@@ -51,4 +51,4 @@ EXPOSE 8080
 ENTRYPOINT ["/usr/local/bin/mcp"]
 
 # Default command (can be overridden)
-CMD ["server"]
+CMD []
