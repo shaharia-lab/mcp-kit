@@ -4,8 +4,8 @@ import (
 	"bufio"
 	"context"
 	"fmt"
+	"github.com/anthropics/anthropic-sdk-go"
 	"github.com/fatih/color"
-	"github.com/openai/openai-go"
 	"github.com/shaharia-lab/goai"
 	"github.com/shaharia-lab/goai/mcp"
 	"github.com/shaharia-lab/mcp-kit/pkg/config"
@@ -87,9 +87,14 @@ func initializeLLM(sseClient *mcp.Client) (*goai.LLMRequest, error) {
 		return nil, fmt.Errorf("failed to add MCP client: %w", err)
 	}
 
-	llmProvider := goai.NewOpenAILLMProvider(goai.OpenAIProviderConfig{
+	/*llmProvider := goai.NewOpenAILLMProvider(goai.OpenAIProviderConfig{
 		Client: goai.NewOpenAIClient(os.Getenv("OPENAI_API_KEY")),
 		Model:  openai.ChatModelGPT3_5Turbo,
+	})*/
+
+	llmProvider := goai.NewAnthropicLLMProvider(goai.AnthropicProviderConfig{
+		Client: goai.NewAnthropicClient(os.Getenv("ANTHROPIC_API_KEY")),
+		Model:  anthropic.ModelClaude3_5Sonnet20241022,
 	})
 
 	llm := goai.NewLLMRequest(goai.NewRequestConfig(
