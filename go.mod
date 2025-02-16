@@ -3,19 +3,18 @@ module github.com/shaharia-lab/mcp-kit
 go 1.23.3
 
 require (
+	github.com/anthropics/anthropic-sdk-go v0.2.0-alpha.8
 	github.com/fatih/color v1.18.0
 	github.com/go-chi/chi/v5 v5.2.1
 	github.com/go-chi/cors v1.2.1
 	github.com/kelseyhightower/envconfig v1.4.0
 	github.com/lib/pq v1.10.9
-	github.com/openai/openai-go v0.1.0-alpha.45
-	github.com/shaharia-lab/goai v0.7.1
+	github.com/shaharia-lab/goai v0.7.4
 	github.com/sirupsen/logrus v1.9.3
 	github.com/spf13/cobra v1.8.1
 )
 
 require (
-	github.com/anthropics/anthropic-sdk-go v0.2.0-alpha.8 // indirect
 	github.com/aws/aws-sdk-go-v2 v1.32.8 // indirect
 	github.com/aws/aws-sdk-go-v2/aws/protocol/eventstream v1.6.7 // indirect
 	github.com/aws/aws-sdk-go-v2/internal/configsources v1.3.27 // indirect
@@ -26,6 +25,7 @@ require (
 	github.com/inconshreveable/mousetrap v1.1.0 // indirect
 	github.com/mattn/go-colorable v0.1.13 // indirect
 	github.com/mattn/go-isatty v0.0.20 // indirect
+	github.com/openai/openai-go v0.1.0-alpha.45 // indirect
 	github.com/pgvector/pgvector-go v0.2.2 // indirect
 	github.com/spf13/pflag v1.0.5 // indirect
 	github.com/tidwall/gjson v1.14.4 // indirect

@@ -112,7 +112,8 @@ func handleAsk(ctx context.Context, sseClient *mcp.Client, logger *log.Logger) h
 
 		llm, err := initializeLLM(sseClient)
 		if err != nil {
-			http.Error(w, "Internal server error", http.StatusInternalServerError)
+			log.Printf("Failed to initialize LLM: %v", err)
+			http.Error(w, fmt.Sprintf("Internal server error. Error: %s", err.Error()), http.StatusInternalServerError)
 			return
 		}
 
@@ -121,6 +122,7 @@ func handleAsk(ctx context.Context, sseClient *mcp.Client, logger *log.Logger) h
 			{Role: goai.UserRole, Text: req.Question},
 		})
 		if err != nil {
+			log.Printf("Failed to generate response: %v", err)
 			http.Error(w, "Failed to generate response", http.StatusInternalServerError)
 			return
 		}

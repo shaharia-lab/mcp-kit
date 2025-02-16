@@ -32,11 +32,10 @@ func getDBConnection(dbName string) (*sql.DB, error) {
 	return sql.Open("postgres", connStr)
 }
 
-var PostgresTools = []mcp.Tool{
-	{
-		Name:        "postgresql_table_schema",
-		Description: "Get the schema definition of a PostgreSQL table",
-		InputSchema: json.RawMessage(`{
+var postgresTableSchema = mcp.Tool{
+	Name:        "postgresql_table_schema",
+	Description: "Get the schema definition of a PostgreSQL table",
+	InputSchema: json.RawMessage(`{
             "type": "object",
             "properties": {
                 "database_name": {
@@ -50,22 +49,22 @@ var PostgresTools = []mcp.Tool{
             },
             "required": ["database_name", "table_name"]
         }`),
-		Handler: func(ctx context.Context, params mcp.CallToolParams) (mcp.CallToolResult, error) {
-			var input struct {
-				DatabaseName string `json:"database_name"`
-				TableName    string `json:"table_name"`
-			}
-			if err := json.Unmarshal(params.Arguments, &input); err != nil {
-				return mcp.CallToolResult{}, err
-			}
+	Handler: func(ctx context.Context, params mcp.CallToolParams) (mcp.CallToolResult, error) {
+		var input struct {
+			DatabaseName string `json:"database_name"`
+			TableName    string `json:"table_name"`
+		}
+		if err := json.Unmarshal(params.Arguments, &input); err != nil {
+			return mcp.CallToolResult{}, err
+		}
 
-			db, err := getDBConnection(input.DatabaseName)
-			if err != nil {
-				return mcp.CallToolResult{}, fmt.Errorf("failed to connect to database: %w", err)
-			}
-			defer db.Close()
+		db, err := getDBConnection(input.DatabaseName)
+		if err != nil {
+			return mcp.CallToolResult{}, fmt.Errorf("failed to connect to database: %w", err)
+		}
+		defer db.Close()
 
-			query := `
+		query := `
                 SELECT column_name, data_type, character_maximum_length, 
                        is_nullable, column_default
                 FROM information_schema.columns 
@@ -73,51 +72,52 @@ var PostgresTools = []mcp.Tool{
                 ORDER BY ordinal_position;
             `
 
-			log.Printf("Query: %s", query)
+		log.Printf("Query: %s", query)
 
-			rows, err := db.QueryContext(ctx, query, input.TableName)
-			if err != nil {
+		rows, err := db.QueryContext(ctx, query, input.TableName)
+		if err != nil {
+			return mcp.CallToolResult{}, err
+		}
+		defer rows.Close()
+
+		var schema strings.Builder
+		schema.WriteString(fmt.Sprintf("Table: %s\n\n", input.TableName))
+		schema.WriteString("Column Name | Data Type | Length | Nullable | Default\n")
+		schema.WriteString("------------|-----------|---------|----------|----------\n")
+
+		for rows.Next() {
+			var (
+				columnName, dataType, isNullable string
+				maxLength                        sql.NullInt64
+				defaultValue                     sql.NullString
+			)
+			if err := rows.Scan(&columnName, &dataType, &maxLength, &isNullable, &defaultValue); err != nil {
 				return mcp.CallToolResult{}, err
 			}
-			defer rows.Close()
 
-			var schema strings.Builder
-			schema.WriteString(fmt.Sprintf("Table: %s\n\n", input.TableName))
-			schema.WriteString("Column Name | Data Type | Length | Nullable | Default\n")
-			schema.WriteString("------------|-----------|---------|----------|----------\n")
+			schema.WriteString(fmt.Sprintf("%s | %s | %v | %s | %s\n",
+				columnName,
+				dataType,
+				maxLength.Int64,
+				isNullable,
+				defaultValue.String))
+		}
 
-			for rows.Next() {
-				var (
-					columnName, dataType, isNullable string
-					maxLength                        sql.NullInt64
-					defaultValue                     sql.NullString
-				)
-				if err := rows.Scan(&columnName, &dataType, &maxLength, &isNullable, &defaultValue); err != nil {
-					return mcp.CallToolResult{}, err
-				}
-
-				schema.WriteString(fmt.Sprintf("%s | %s | %v | %s | %s\n",
-					columnName,
-					dataType,
-					maxLength.Int64,
-					isNullable,
-					defaultValue.String))
-			}
-
-			return mcp.CallToolResult{
-				Content: []mcp.ToolResultContent{
-					{
-						Type: "text",
-						Text: schema.String(),
-					},
+		return mcp.CallToolResult{
+			Content: []mcp.ToolResultContent{
+				{
+					Type: "text",
+					Text: schema.String(),
 				},
-			}, nil
-		},
+			},
+		}, nil
 	},
-	{
-		Name:        "postgresql_execute_query",
-		Description: "Execute a PostgreSQL query and return the results",
-		InputSchema: json.RawMessage(`{
+}
+
+var postgresExecuteQuery = mcp.Tool{
+	Name:        "postgresql_execute_query",
+	Description: "Execute a PostgreSQL query and return the results",
+	InputSchema: json.RawMessage(`{
             "type": "object",
             "properties": {
                 "database_name": {
@@ -131,68 +131,69 @@ var PostgresTools = []mcp.Tool{
             },
             "required": ["database_name", "query"]
         }`),
-		Handler: func(ctx context.Context, params mcp.CallToolParams) (mcp.CallToolResult, error) {
-			var input struct {
-				DatabaseName string `json:"database_name"`
-				Query        string `json:"query"`
-			}
-			if err := json.Unmarshal(params.Arguments, &input); err != nil {
+	Handler: func(ctx context.Context, params mcp.CallToolParams) (mcp.CallToolResult, error) {
+		var input struct {
+			DatabaseName string `json:"database_name"`
+			Query        string `json:"query"`
+		}
+		if err := json.Unmarshal(params.Arguments, &input); err != nil {
+			return mcp.CallToolResult{}, err
+		}
+
+		db, err := getDBConnection(input.DatabaseName)
+		if err != nil {
+			return mcp.CallToolResult{}, err
+		}
+		defer db.Close()
+
+		rows, err := db.QueryContext(ctx, input.Query)
+		if err != nil {
+			return mcp.CallToolResult{}, err
+		}
+		defer rows.Close()
+
+		columns, err := rows.Columns()
+		if err != nil {
+			return mcp.CallToolResult{}, err
+		}
+
+		var result strings.Builder
+		result.WriteString(strings.Join(columns, " | ") + "\n")
+		result.WriteString(strings.Repeat("-", len(strings.Join(columns, " | "))) + "\n")
+
+		values := make([]interface{}, len(columns))
+		valuePtrs := make([]interface{}, len(columns))
+		for i := range values {
+			valuePtrs[i] = &values[i]
+		}
+
+		for rows.Next() {
+			if err := rows.Scan(valuePtrs...); err != nil {
 				return mcp.CallToolResult{}, err
 			}
 
-			db, err := getDBConnection(input.DatabaseName)
-			if err != nil {
-				return mcp.CallToolResult{}, err
+			var rowValues []string
+			for _, val := range values {
+				rowValues = append(rowValues, fmt.Sprintf("%v", val))
 			}
-			defer db.Close()
+			result.WriteString(strings.Join(rowValues, " | ") + "\n")
+		}
 
-			rows, err := db.QueryContext(ctx, input.Query)
-			if err != nil {
-				return mcp.CallToolResult{}, err
-			}
-			defer rows.Close()
-
-			columns, err := rows.Columns()
-			if err != nil {
-				return mcp.CallToolResult{}, err
-			}
-
-			var result strings.Builder
-			result.WriteString(strings.Join(columns, " | ") + "\n")
-			result.WriteString(strings.Repeat("-", len(strings.Join(columns, " | "))) + "\n")
-
-			values := make([]interface{}, len(columns))
-			valuePtrs := make([]interface{}, len(columns))
-			for i := range values {
-				valuePtrs[i] = &values[i]
-			}
-
-			for rows.Next() {
-				if err := rows.Scan(valuePtrs...); err != nil {
-					return mcp.CallToolResult{}, err
-				}
-
-				var rowValues []string
-				for _, val := range values {
-					rowValues = append(rowValues, fmt.Sprintf("%v", val))
-				}
-				result.WriteString(strings.Join(rowValues, " | ") + "\n")
-			}
-
-			return mcp.CallToolResult{
-				Content: []mcp.ToolResultContent{
-					{
-						Type: "text",
-						Text: result.String(),
-					},
+		return mcp.CallToolResult{
+			Content: []mcp.ToolResultContent{
+				{
+					Type: "text",
+					Text: result.String(),
 				},
-			}, nil
-		},
+			},
+		}, nil
 	},
-	{
-		Name:        "postgresql_execute_query_with_explain",
-		Description: "Execute a PostgreSQL query with EXPLAIN ANALYZE",
-		InputSchema: json.RawMessage(`{
+}
+
+var postgresExecuteQueryWithExplain = mcp.Tool{
+	Name:        "postgresql_execute_query_with_explain",
+	Description: "Execute a PostgreSQL query with EXPLAIN ANALYZE",
+	InputSchema: json.RawMessage(`{
             "type": "object",
             "properties": {
                 "database_name": {
@@ -206,45 +207,44 @@ var PostgresTools = []mcp.Tool{
             },
             "required": ["database_name", "query"]
         }`),
-		Handler: func(ctx context.Context, params mcp.CallToolParams) (mcp.CallToolResult, error) {
-			var input struct {
-				DatabaseName string `json:"database_name"`
-				Query        string `json:"query"`
-			}
-			if err := json.Unmarshal(params.Arguments, &input); err != nil {
+	Handler: func(ctx context.Context, params mcp.CallToolParams) (mcp.CallToolResult, error) {
+		var input struct {
+			DatabaseName string `json:"database_name"`
+			Query        string `json:"query"`
+		}
+		if err := json.Unmarshal(params.Arguments, &input); err != nil {
+			return mcp.CallToolResult{}, err
+		}
+
+		db, err := getDBConnection(input.DatabaseName)
+		if err != nil {
+			return mcp.CallToolResult{}, err
+		}
+		defer db.Close()
+
+		explainQuery := "EXPLAIN ANALYZE " + input.Query
+		rows, err := db.QueryContext(ctx, explainQuery)
+		if err != nil {
+			return mcp.CallToolResult{}, err
+		}
+		defer rows.Close()
+
+		var explain strings.Builder
+		for rows.Next() {
+			var line string
+			if err := rows.Scan(&line); err != nil {
 				return mcp.CallToolResult{}, err
 			}
+			explain.WriteString(line + "\n")
+		}
 
-			db, err := getDBConnection(input.DatabaseName)
-			if err != nil {
-				return mcp.CallToolResult{}, err
-			}
-			defer db.Close()
-
-			explainQuery := "EXPLAIN ANALYZE " + input.Query
-			rows, err := db.QueryContext(ctx, explainQuery)
-			if err != nil {
-				return mcp.CallToolResult{}, err
-			}
-			defer rows.Close()
-
-			var explain strings.Builder
-			for rows.Next() {
-				var line string
-				if err := rows.Scan(&line); err != nil {
-					return mcp.CallToolResult{}, err
-				}
-				explain.WriteString(line + "\n")
-			}
-
-			return mcp.CallToolResult{
-				Content: []mcp.ToolResultContent{
-					{
-						Type: "text",
-						Text: explain.String(),
-					},
+		return mcp.CallToolResult{
+			Content: []mcp.ToolResultContent{
+				{
+					Type: "text",
+					Text: explain.String(),
 				},
-			}, nil
-		},
+			},
+		}, nil
 	},
 }
