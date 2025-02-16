@@ -4,7 +4,9 @@ go 1.23.3
 
 require (
 	github.com/fatih/color v1.18.0
+	github.com/go-chi/chi/v5 v5.2.1
 	github.com/kelseyhightower/envconfig v1.4.0
+	github.com/lib/pq v1.10.9
 	github.com/openai/openai-go v0.1.0-alpha.45
 	github.com/shaharia-lab/goai v0.7.1
 	github.com/sirupsen/logrus v1.9.3
@@ -21,7 +23,6 @@ require (
 	github.com/aws/smithy-go v1.22.1 // indirect
 	github.com/google/uuid v1.6.0 // indirect
 	github.com/inconshreveable/mousetrap v1.1.0 // indirect
-	github.com/lib/pq v1.10.9 // indirect
 	github.com/mattn/go-colorable v0.1.13 // indirect
 	github.com/mattn/go-isatty v0.0.20 // indirect
 	github.com/pgvector/pgvector-go v0.2.2 // indirect
