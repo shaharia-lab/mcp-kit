@@ -17,7 +17,7 @@ func NewRootCmd() *cobra.Command {
 	logger := logrus.New()
 	logger.SetFormatter(&logrus.JSONFormatter{})
 	logger.SetOutput(os.Stdout)
-	logger.SetLevel(logrus.WarnLevel)
+	logger.SetLevel(logrus.InfoLevel)
 
 	l := log.New(logger.Writer(), "", log.LstdFlags)
 
