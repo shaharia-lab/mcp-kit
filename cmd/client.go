@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"bufio"
 	"context"
 	"fmt"
 	"github.com/openai/openai-go"
@@ -10,14 +11,15 @@ import (
 	"github.com/spf13/cobra"
 	"log"
 	"os"
+	"strings"
 	"time"
 )
 
-func NewClientCmd(logger *log.Logger) *cobra.Command {
+func NewTaskCmd(logger *log.Logger) *cobra.Command {
 	return &cobra.Command{
-		Use:   "get_weather",
-		Short: "Get the current weather for a given location",
-		Long:  "Get the current weather for a given location",
+		Use:   "task",
+		Short: "Ask a question or give a task to the LLM model",
+		Long:  "Ask a question or give a task to the LLM model",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			cfg, err := config.Load()
 			if err != nil {
@@ -61,9 +63,32 @@ func NewClientCmd(logger *log.Logger) *cobra.Command {
 			}
 			defer sseClient.Close(ctx)
 
+			// start buffer
+			// Create a scanner to read from standard input
+			fmt.Println("Enter your text (press Enter when done):")
+			scanner := bufio.NewScanner(os.Stdin)
+
+			// Collect all input lines
+			var input string
+			for scanner.Scan() {
+				text := scanner.Text()
+				// Break if user enters an empty line
+				if text == "" {
+					break
+				}
+				input += text + "\n"
+			}
+
+			if err := scanner.Err(); err != nil {
+				return fmt.Errorf("error reading input: %w", err)
+			}
+
+			// Trim the trailing newline
+			input = strings.TrimSpace(input)
+
 			// Generate response
 			response, err := llm.Generate(ctx, []goai.LLMMessage{
-				{Role: goai.UserRole, Text: "What's the weather in Dhaka?"},
+				{Role: goai.UserRole, Text: input},
 			})
 
 			if err != nil {
