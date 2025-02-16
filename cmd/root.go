@@ -17,14 +17,12 @@ func NewRootCmd() *cobra.Command {
 	logger := logrus.New()
 	logger.SetFormatter(&logrus.JSONFormatter{})
 	logger.SetOutput(os.Stdout)
-	logger.SetLevel(logrus.InfoLevel)
+	logger.SetLevel(logrus.WarnLevel)
 
 	l := log.New(logger.Writer(), "", log.LstdFlags)
 
-	ctx := root.Context()
-
-	root.AddCommand(NewServerCmd(ctx, l))
-	root.AddCommand(NewClientCmd(ctx, l))
+	root.AddCommand(NewServerCmd(l))
+	root.AddCommand(NewClientCmd(l))
 
 	return root
 }

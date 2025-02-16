@@ -10,12 +10,13 @@ import (
 	"log"
 )
 
-func NewServerCmd(ctx context.Context, logger *log.Logger) *cobra.Command {
+func NewServerCmd(logger *log.Logger) *cobra.Command {
 	return &cobra.Command{
 		Use:   "server",
 		Short: "Start the server",
 		Long:  `Start the server with specified configuration`,
 		RunE: func(cmd *cobra.Command, args []string) error {
+			ctx := context.Background()
 			cfg, err := config.Load()
 			if err != nil {
 				return fmt.Errorf("failed to load config: %w", err)
@@ -37,7 +38,6 @@ func NewServerCmd(ctx context.Context, logger *log.Logger) *cobra.Command {
 			server := mcp.NewSSEServer(baseServer)
 			server.SetAddress(fmt.Sprintf(":%d", cfg.MCPServerPort))
 
-			ctx := context.Background()
 			if err := server.Run(ctx); err != nil {
 				return fmt.Errorf("failed to run server: %w", err)
 			}
