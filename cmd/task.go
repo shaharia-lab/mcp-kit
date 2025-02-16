@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"context"
 	"fmt"
+	"github.com/fatih/color"
 	"github.com/openai/openai-go"
 	"github.com/shaharia-lab/goai"
 	"github.com/shaharia-lab/goai/mcp"
@@ -23,6 +24,7 @@ func NewTaskCmd(logger *log.Logger) *cobra.Command {
 		RunE: func(cmd *cobra.Command, args []string) error {
 			cfg, err := loadConfig()
 			if err != nil {
+				printError("Failed to load config", err)
 				return err
 			}
 
@@ -30,17 +32,20 @@ func NewTaskCmd(logger *log.Logger) *cobra.Command {
 
 			sseClient, err := initializeSSEClient(cfg, logger)
 			if err != nil {
+				printError("Failed to initialize SSE client", err)
 				return err
 			}
 			defer sseClient.Close(ctx)
 
 			llm, err := initializeLLM(sseClient)
 			if err != nil {
+				printError("Failed to initialize LLM", err)
 				return err
 			}
 
 			input, err := readUserInput()
 			if err != nil {
+				printError("Failed to read user input", err)
 				return err
 			}
 
@@ -97,7 +102,7 @@ func initializeLLM(sseClient *mcp.Client) (*goai.LLMRequest, error) {
 }
 
 func readUserInput() (string, error) {
-	fmt.Println("Enter your text (press Enter when done):")
+	color.New(color.FgGreen).Println("Enter your text (press Enter when done):")
 	scanner := bufio.NewScanner(os.Stdin)
 
 	var input string
@@ -113,6 +118,7 @@ func readUserInput() (string, error) {
 		return "", fmt.Errorf("error reading input: %w", err)
 	}
 
+	color.New(color.FgYellow).Printf("Your input: %s\n", strings.TrimSpace(input))
 	return strings.TrimSpace(input), nil
 }
 
@@ -121,11 +127,19 @@ func generateResponse(ctx context.Context, llm *goai.LLMRequest, input string) e
 		{Role: goai.UserRole, Text: input},
 	})
 	if err != nil {
-		return fmt.Errorf("failed to generate response: %w", err)
+		printError("Failed to generate response", err)
+		return err
 	}
 
-	fmt.Printf("Response: %s\n", response.Text)
-	fmt.Printf("Input token: %d, Output token: %d\n", response.TotalInputToken, response.TotalOutputToken)
+	color.New(color.FgBlue).Println("---------- Response ----------")
+	color.New(color.FgBlue).Printf("%s\n", response.Text)
+	color.New(color.FgBlue).Println("-----------------------------")
+
+	color.New(color.FgMagenta).Printf("Input token: %d, Output token: %d\n", response.TotalInputToken, response.TotalOutputToken)
 
 	return nil
+}
+
+func printError(msg string, err error) {
+	color.New(color.FgRed, color.Bold).Printf("[ERROR] %s: %v\n", msg, err)
 }
