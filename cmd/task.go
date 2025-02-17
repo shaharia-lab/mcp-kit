@@ -8,7 +8,6 @@ import (
 	"github.com/fatih/color"
 	"github.com/shaharia-lab/goai"
 	"github.com/shaharia-lab/mcp-kit/pkg/config"
-	"github.com/shaharia-lab/mcp-kit/pkg/prompt"
 	"github.com/shaharia-lab/mcp-kit/pkg/tools"
 	"github.com/spf13/cobra"
 	"log"
@@ -97,7 +96,7 @@ func readUserInput() (string, error) {
 
 func generateResponse(ctx context.Context, llm *goai.LLMRequest, input string) error {
 	response, err := llm.Generate(ctx, []goai.LLMMessage{
-		{Role: goai.UserRole, Text: fmt.Sprintf(prompt.LLMPromptTemplateForToolsUsage, input)},
+		{Role: goai.UserRole, Text: fmt.Sprintf("%s", input)},
 	})
 	if err != nil {
 		printError("Failed to generate response", err)

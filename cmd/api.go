@@ -11,7 +11,6 @@ import (
 	"github.com/go-chi/cors"
 	"github.com/shaharia-lab/goai"
 	"github.com/shaharia-lab/goai/mcp"
-	"github.com/shaharia-lab/mcp-kit/pkg/prompt"
 	"github.com/spf13/cobra"
 	"io/fs"
 	"os"
@@ -144,7 +143,6 @@ func handleAsk(ctx context.Context, sseClient *mcp.Client, logger *log.Logger) h
 				})
 				return
 			}
-
 			reqOptions = append(reqOptions, goai.UseToolsProvider(toolsProvider))
 		}
 
@@ -154,13 +152,13 @@ func handleAsk(ctx context.Context, sseClient *mcp.Client, logger *log.Logger) h
 		})
 		llm := goai.NewLLMRequest(goai.NewRequestConfig(reqOptions...), llmProvider)
 
-		textMessage := fmt.Sprintf(prompt.LLMPromptTemplateGeneral, req.Question)
-		if req.UseTools {
-			textMessage = fmt.Sprintf(prompt.LLMPromptTemplateForToolsUsage, req.Question)
-		}
-
-		messages := []goai.LLMMessage{
-			{Role: goai.UserRole, Text: textMessage},
+		messages, err := buildMessagesFromPromptTemplates(ctx, sseClient, req)
+		if err != nil {
+			w.Header().Set("Content-Type", "application/json")
+			json.NewEncoder(w).Encode(map[string]string{
+				"error": err.Error(),
+			})
+			return
 		}
 
 		response, err := llm.Generate(ctx, messages)
@@ -180,4 +178,30 @@ func handleAsk(ctx context.Context, sseClient *mcp.Client, logger *log.Logger) h
 			OutputToken: response.TotalOutputToken,
 		})
 	}
+}
+
+func buildMessagesFromPromptTemplates(ctx context.Context, sseClient *mcp.Client, req QuestionRequest) ([]goai.LLMMessage, error) {
+	promptName := "llm_general"
+	if req.UseTools {
+		promptName = "llm_with_tools"
+	}
+
+	promptMessages, err := sseClient.GetPrompt(ctx, mcp.GetPromptParams{
+		Name: promptName,
+		Arguments: json.RawMessage(fmt.Sprintf(`{
+			"question": "%s"
+		}`, req.Question)),
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to fetch prompts from MCP server")
+	}
+
+	var messages []goai.LLMMessage
+	for _, p := range promptMessages {
+		messages = append(messages, goai.LLMMessage{
+			Role: goai.LLMMessageRole(p.Role),
+			Text: p.Content.Text,
+		})
+	}
+	return messages, nil
 }

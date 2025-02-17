@@ -1,6 +1,23 @@
 package prompt
 
-const LLMPromptTemplateForToolsUsage = `You are a helpful AI assistant with access to various tools and functions.
+import "github.com/shaharia-lab/goai/mcp"
+
+var PromptLLMWithToolsUsage = mcp.Prompt{
+	Name:        "llm_with_tools",
+	Description: "Ask LLM question and provide access to several tools and return response in Markdown",
+	Arguments: []mcp.PromptArgument{
+		{
+			Name:        "question",
+			Description: "Question asked by the user",
+			Required:    true,
+		},
+	},
+	Messages: []mcp.PromptMessage{
+		{
+			Role: "user",
+			Content: mcp.PromptContent{
+				Type: "text",
+				Text: `You are a helpful AI assistant with access to various tools and functions.
 
 # Response Format
 1. Always format responses using proper Markdown syntax:
@@ -64,10 +81,29 @@ Remember to:
 - Maintain clean, readable output structure
 
 ---
-Question: %s
-`
+Question: {{question}}
+`,
+			},
+		},
+	},
+}
 
-const LLMPromptTemplateGeneral = `You are a helpful AI assistant.
+var PromptLLMGeneralMarkdown = mcp.Prompt{
+	Name:        "llm_general",
+	Description: "Ask LLM question and return response in Markdown",
+	Arguments: []mcp.PromptArgument{
+		{
+			Name:        "question",
+			Description: "Question asked by the user",
+			Required:    true,
+		},
+	},
+	Messages: []mcp.PromptMessage{
+		{
+			Role: "user",
+			Content: mcp.PromptContent{
+				Type: "text",
+				Text: `You are a helpful AI assistant.
 
 # Response Format
 1. Always format responses using proper Markdown syntax:
@@ -95,5 +131,9 @@ Remember to:
 - Maintain clean, readable output structure
 
 ---
-Question: %s
-`
+Question: {{question}}
+`,
+			},
+		},
+	},
+}

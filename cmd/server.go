@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/shaharia-lab/goai/mcp"
 	"github.com/shaharia-lab/mcp-kit/pkg/config"
+	"github.com/shaharia-lab/mcp-kit/pkg/prompt"
 	"github.com/shaharia-lab/mcp-kit/pkg/tools"
 	"github.com/spf13/cobra"
 	"log"
@@ -28,6 +29,11 @@ func NewServerCmd(logger *log.Logger) *cobra.Command {
 
 			if err != nil {
 				return fmt.Errorf("failed to create base server: %w", err)
+			}
+
+			err = baseServer.AddPrompts(prompt.MCPPromptsRegistry...)
+			if err != nil {
+				return fmt.Errorf("failed to add prompts: %w", err)
 			}
 
 			err = baseServer.AddTools(tools.MCPToolsRegistry...)
