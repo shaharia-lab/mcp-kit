@@ -1,4 +1,4 @@
-# MCP Kit (Model Context Protocol Kit)
+# MCP Kit (Model Context Protocol) Kit
 
 ## Installation
 
@@ -20,7 +20,7 @@ docker run -d \
   --name mcp-client \
   --add-host=host.docker.internal:host-gateway \
   -e MCP_SERVER_URL=http://host.docker.internal:8080/events \
-  mcp:latest client
+  mcp:latest api
 ```
 
 ### Test Postgresql Tools
