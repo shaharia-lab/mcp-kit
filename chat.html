@@ -240,9 +240,17 @@
 
     <div class="border-t bg-white p-4">
         <div class="max-w-5xl mx-auto relative">
-                <textarea id="user-input"
-                          class="w-full p-3 bg-gray-50 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
-                          rows="1" placeholder="Ask me anything..."></textarea>
+            <div class="relative border rounded-lg bg-white shadow-sm">
+                <div class="flex items-center border-b p-2 gap-2">
+                    <button id="tools-toggle" class="flex items-center gap-1 text-sm px-3 py-1.5 rounded-full border transition-colors duration-200" data-selected="false">
+                        <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16m-7 6h7" />
+                        </svg>
+                        Use Tools
+                    </button>
+                </div>
+                <textarea id="user-input" class="w-full p-3 bg-transparent rounded-b-lg focus:outline-none resize-none" rows="1" placeholder="Ask me anything..."></textarea>
+            </div>
         </div>
     </div>
 

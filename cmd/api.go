@@ -5,6 +5,7 @@ import (
 	"embed"
 	"encoding/json"
 	"fmt"
+	"github.com/anthropics/anthropic-sdk-go"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/go-chi/cors"
@@ -13,6 +14,8 @@ import (
 	"github.com/shaharia-lab/mcp-kit/pkg/prompt"
 	"github.com/spf13/cobra"
 	"io/fs"
+	"os"
+	"time"
 
 	"log"
 	"net/http"
@@ -23,6 +26,7 @@ var staticFiles embed.FS
 
 type QuestionRequest struct {
 	Question string `json:"question"`
+	UseTools bool   `json:"useTools"`
 }
 
 type Response struct {
@@ -44,13 +48,24 @@ func NewAPICmd(logger *log.Logger) *cobra.Command {
 
 			ctx := context.Background()
 
-			sseClient, err := initializeSSEClient(cfg, logger)
-			if err != nil {
-				return fmt.Errorf("failed to initialize SSE client: %w", err)
-			}
-			defer sseClient.Close(ctx)
+			mcpClient := mcp.NewClient(mcp.NewSSETransport(), mcp.ClientConfig{
+				ClientName:    "My MCP Kit Client",
+				ClientVersion: "1.0.0",
+				Logger:        log.New(logger.Writer(), "", log.LstdFlags),
+				RetryDelay:    5 * time.Second,
+				MaxRetries:    3,
+				SSE: mcp.SSEConfig{
+					URL: cfg.MCPServerURL,
+				},
+			})
+			defer mcpClient.Close(ctx)
 
-			router := setupRouter(ctx, sseClient, logger)
+			if err := mcpClient.Connect(context.Background()); err != nil {
+				log.Printf("Failed to connect to SSE: %v", err)
+				return fmt.Errorf("failed to connect to MCP server: %w", err)
+			}
+
+			router := setupRouter(ctx, mcpClient, logger)
 			logger.Printf("Starting server on :8080")
 			return http.ListenAndServe(":8081", router)
 		},
@@ -107,35 +122,62 @@ func handleAsk(ctx context.Context, sseClient *mcp.Client, logger *log.Logger) h
 	return func(w http.ResponseWriter, r *http.Request) {
 		var req QuestionRequest
 		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-			http.Error(w, "Invalid request body", http.StatusBadRequest)
+			w.Header().Set("Content-Type", "application/json")
+			json.NewEncoder(w).Encode(map[string]string{
+				"error": "Invalid request body",
+			})
 			return
 		}
 
-		llm, err := initializeLLM(sseClient)
-		if err != nil {
-			log.Printf("Failed to initialize LLM: %v", err)
-			http.Error(w, fmt.Sprintf("Internal server error. Error: %s", err.Error()), http.StatusInternalServerError)
-			return
+		reqOptions := []goai.RequestOption{
+			goai.WithMaxToken(1000),
+			goai.WithTemperature(0.5),
+		}
+
+		if req.UseTools {
+			logger.Println("Using tools provider")
+			toolsProvider := goai.NewToolsProvider()
+			if err := toolsProvider.AddMCPClient(sseClient); err != nil {
+				w.Header().Set("Content-Type", "application/json")
+				json.NewEncoder(w).Encode(map[string]string{
+					"error": "Failed to connect with MCP client",
+				})
+				return
+			}
+
+			reqOptions = append(reqOptions, goai.UseToolsProvider(toolsProvider))
+		}
+
+		llmProvider := goai.NewAnthropicLLMProvider(goai.AnthropicProviderConfig{
+			Client: goai.NewAnthropicClient(os.Getenv("ANTHROPIC_API_KEY")),
+			Model:  anthropic.ModelClaude3_5Sonnet20241022,
+		})
+		llm := goai.NewLLMRequest(goai.NewRequestConfig(reqOptions...), llmProvider)
+
+		textMessage := fmt.Sprintf(prompt.LLMPromptTemplateGeneral, req.Question)
+		if req.UseTools {
+			textMessage = fmt.Sprintf(prompt.LLMPromptTemplateForToolsUsage, req.Question)
 		}
 
 		messages := []goai.LLMMessage{
-			{Role: goai.UserRole, Text: fmt.Sprintf(prompt.LLMPromptTemplate, req.Question)},
+			{Role: goai.UserRole, Text: textMessage},
 		}
 
 		response, err := llm.Generate(ctx, messages)
 		if err != nil {
 			log.Printf("Failed to generate response: %v", err)
-			http.Error(w, "Failed to generate response", http.StatusInternalServerError)
+			w.Header().Set("Content-Type", "application/json")
+			json.NewEncoder(w).Encode(map[string]string{
+				"error": "Failed to generate response",
+			})
 			return
 		}
 
-		apiResponse := Response{
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(Response{
 			Answer:      response.Text,
 			InputToken:  response.TotalInputToken,
 			OutputToken: response.TotalOutputToken,
-		}
-
-		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(apiResponse)
+		})
 	}
 }

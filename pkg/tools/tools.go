@@ -8,7 +8,7 @@ var MCPToolsRegistry = []mcp.Tool{
 	weatherTool,
 	// Git tools
 	gitStatusTool,
-	/*gitDiffUnstagedTool,
+	gitDiffUnstagedTool,
 	gitDiffStagedTool,
 	gitDiffTool,
 	gitCommitTool,
@@ -28,5 +28,5 @@ var MCPToolsRegistry = []mcp.Tool{
 	// PostgreSQL tools
 	postgresExecuteQuery,
 	postgresTableSchema,
-	postgresExecuteQueryWithExplain,*/
+	postgresExecuteQueryWithExplain,
 }

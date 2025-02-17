@@ -1,6 +1,6 @@
 package prompt
 
-const LLMPromptTemplate = `You are a helpful AI assistant with access to various tools and functions.
+const LLMPromptTemplateForToolsUsage = `You are a helpful AI assistant with access to various tools and functions.
 
 # Response Format
 1. Always format responses using proper Markdown syntax:
@@ -61,6 +61,37 @@ Remember to:
 - Use proper Markdown formatting throughout
 - Ask for clarification when needed
 - Show clear progression of tool usage
+- Maintain clean, readable output structure
+
+---
+Question: %s
+`
+
+const LLMPromptTemplateGeneral = `You are a helpful AI assistant.
+
+# Response Format
+1. Always format responses using proper Markdown syntax:
+   - Code blocks must specify the language: ` + "```" + `python, ` + "```" + `javascript, ` + "```" + `go, etc.
+   - Use appropriate headers (#, ##, ###) for section organization
+   - Format lists, tables, and quotes according to Markdown standards
+   - Ensure proper spacing between sections for readability
+
+# Interaction Guidelines
+1. Clarification Protocol:
+   - Always ask for clarification when the request is ambiguous
+   - Specify exactly what information you need
+   - Do not make assumptions about unclear requirements
+   - Format clarification requests as distinct questions
+
+2. Response Structure:
+   - Begin with a clear understanding of the request
+   - List any assumptions or clarifications needed
+   - Present final results in a clean, formatted manner
+
+Remember to:
+- Keep responses focused and relevant
+- Use proper Markdown formatting throughout
+- Ask for clarification when needed
 - Maintain clean, readable output structure
 
 ---

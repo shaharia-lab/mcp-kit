@@ -20,6 +20,23 @@ const chatContainer = document.getElementById('chat-container');
 const userInput = document.getElementById('user-input');
 const sidebarOverlay = document.getElementById('sidebar-overlay');
 
+// Tools toggle
+const toolsToggle = document.getElementById('tools-toggle');
+
+toolsToggle.addEventListener('click', () => {
+    const isSelected = toolsToggle.dataset.selected === 'true';
+    toolsToggle.dataset.selected = !isSelected;
+
+    if (!isSelected) {
+        toolsToggle.classList.add('bg-gray-800', 'text-white', 'hover:bg-white', 'hover:text-gray-800');
+    } else {
+        toolsToggle.classList.remove('bg-gray-800', 'text-white', 'hover:bg-white', 'hover:text-gray-800');
+    }
+});
+
+const isToolsEnabled = () => document.getElementById('tools-toggle').dataset.selected === 'true';
+// End of tools toggle
+
 // State
 let sidebarOpen = false;
 let modelControlsOpen = false;
@@ -89,7 +106,8 @@ const getAIResponse = async (message) => {
                 'Content-Type': 'application/json',
             },
             body: JSON.stringify({
-                question: message
+                question: message,
+                useTools: isToolsEnabled()
             })
         });
 

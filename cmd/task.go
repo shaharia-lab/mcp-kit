@@ -7,7 +7,6 @@ import (
 	"github.com/anthropics/anthropic-sdk-go"
 	"github.com/fatih/color"
 	"github.com/shaharia-lab/goai"
-	"github.com/shaharia-lab/goai/mcp"
 	"github.com/shaharia-lab/mcp-kit/pkg/config"
 	"github.com/shaharia-lab/mcp-kit/pkg/prompt"
 	"github.com/shaharia-lab/mcp-kit/pkg/tools"
@@ -15,7 +14,6 @@ import (
 	"log"
 	"os"
 	"strings"
-	"time"
 )
 
 func NewTaskCmd(logger *log.Logger) *cobra.Command {
@@ -24,22 +22,8 @@ func NewTaskCmd(logger *log.Logger) *cobra.Command {
 		Short: "Ask a question or give a task to the LLM model",
 		Long:  "Ask a question or give a task to the LLM model",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			cfg, err := loadConfig()
-			if err != nil {
-				printError("Failed to load config", err)
-				return err
-			}
-
 			ctx := context.Background()
-
-			sseClient, err := initializeSSEClient(cfg, logger)
-			if err != nil {
-				printError("Failed to initialize SSE client", err)
-				return err
-			}
-			defer sseClient.Close(ctx)
-
-			llm, err := initializeLLM(sseClient)
+			llm, err := initializeLLM()
 			if err != nil {
 				printError("Failed to initialize LLM", err)
 				return err
@@ -64,26 +48,7 @@ func loadConfig() (*config.Config, error) {
 	return cfg, nil
 }
 
-func initializeSSEClient(cfg *config.Config, logger *log.Logger) (*mcp.Client, error) {
-	client := mcp.NewClient(mcp.NewSSETransport(), mcp.ClientConfig{
-		ClientName:    "My MCP Kit Client",
-		ClientVersion: "1.0.0",
-		Logger:        log.New(logger.Writer(), "", log.LstdFlags),
-		RetryDelay:    5 * time.Second,
-		MaxRetries:    3,
-		SSE: mcp.SSEConfig{
-			URL: cfg.MCPServerURL,
-		},
-	})
-
-	if err := client.Connect(context.Background()); err != nil {
-		return nil, fmt.Errorf("SSE Client failed to connect: %w", err)
-	}
-
-	return client, nil
-}
-
-func initializeLLM(sseClient *mcp.Client) (*goai.LLMRequest, error) {
+func initializeLLM() (*goai.LLMRequest, error) {
 	toolsProvider := goai.NewToolsProvider()
 	/*if err := toolsProvider.AddMCPClient(sseClient); err != nil {
 		return nil, fmt.Errorf("failed to add MCP client: %w", err)
@@ -132,7 +97,7 @@ func readUserInput() (string, error) {
 
 func generateResponse(ctx context.Context, llm *goai.LLMRequest, input string) error {
 	response, err := llm.Generate(ctx, []goai.LLMMessage{
-		{Role: goai.UserRole, Text: fmt.Sprintf(prompt.LLMPromptTemplate, input)},
+		{Role: goai.UserRole, Text: fmt.Sprintf(prompt.LLMPromptTemplateForToolsUsage, input)},
 	})
 	if err != nil {
 		printError("Failed to generate response", err)
