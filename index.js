@@ -98,7 +98,7 @@ const getAIResponse = async (message) => {
         }
 
         const data = await response.json();
-        return data.answer;
+        return data; // Return the whole response object
     } catch (error) {
         console.error('API call failed:', error);
         throw error;
@@ -116,15 +116,43 @@ const sendMessage = async () => {
         chatContainer.classList.remove('hidden');
     }
 
-    try {
-        chatContainer.appendChild(createMessage(message, true));
-        userInput.value = '';
-        userInput.style.height = 'auto';
+    // Add user message
+    chatContainer.appendChild(createMessage(message, true));
+    userInput.value = '';
+    userInput.style.height = 'auto';
 
+    // Create loading message wrapper with a specific class
+    const loadingWrapper = document.createElement('div');
+    loadingWrapper.classList.add('loading-message');
+    loadingWrapper.appendChild(createMessage("*Processing your request...*"));
+    chatContainer.appendChild(loadingWrapper);
+    chatContainer.scrollTop = chatContainer.scrollHeight;
+
+    try {
+        // Get AI response
         const response = await getAIResponse(message);
-        chatContainer.appendChild(createMessage(response));
+
+        // Remove loading message
+        const loadingElement = document.querySelector('.loading-message');
+        if (loadingElement) {
+            loadingElement.remove();
+        }
+
+        // Check if response has the answer property and it's not empty
+        if (response && typeof response.answer === 'string' && response.answer.trim()) {
+            chatContainer.appendChild(createMessage(response.answer));
+        } else {
+            console.error('Invalid or empty response:', response);
+            throw new Error("Invalid API response format");
+        }
     } catch (error) {
-        // Add error message to chat
+        // Remove loading message
+        const loadingElement = document.querySelector('.loading-message');
+        if (loadingElement) {
+            loadingElement.remove();
+        }
+
+        // Add error message
         const errorMessage = "Sorry, I couldn't process your request. Please try again.";
         chatContainer.appendChild(createMessage(errorMessage));
         console.error('Failed to get response:', error);
@@ -132,7 +160,6 @@ const sendMessage = async () => {
         chatContainer.scrollTop = chatContainer.scrollHeight;
     }
 };
-
 
 // Keyboard event handler
 userInput.addEventListener('keydown', async (e) => {

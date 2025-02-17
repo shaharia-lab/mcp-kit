@@ -9,6 +9,8 @@ import (
 	"github.com/shaharia-lab/goai"
 	"github.com/shaharia-lab/goai/mcp"
 	"github.com/shaharia-lab/mcp-kit/pkg/config"
+	"github.com/shaharia-lab/mcp-kit/pkg/prompt"
+	"github.com/shaharia-lab/mcp-kit/pkg/tools"
 	"github.com/spf13/cobra"
 	"log"
 	"os"
@@ -83,9 +85,10 @@ func initializeSSEClient(cfg *config.Config, logger *log.Logger) (*mcp.Client, e
 
 func initializeLLM(sseClient *mcp.Client) (*goai.LLMRequest, error) {
 	toolsProvider := goai.NewToolsProvider()
-	if err := toolsProvider.AddMCPClient(sseClient); err != nil {
+	/*if err := toolsProvider.AddMCPClient(sseClient); err != nil {
 		return nil, fmt.Errorf("failed to add MCP client: %w", err)
-	}
+	}*/
+	toolsProvider.AddTools(tools.MCPToolsRegistry)
 
 	/*llmProvider := goai.NewOpenAILLMProvider(goai.OpenAIProviderConfig{
 		Client: goai.NewOpenAIClient(os.Getenv("OPENAI_API_KEY")),
@@ -129,7 +132,7 @@ func readUserInput() (string, error) {
 
 func generateResponse(ctx context.Context, llm *goai.LLMRequest, input string) error {
 	response, err := llm.Generate(ctx, []goai.LLMMessage{
-		{Role: goai.UserRole, Text: input},
+		{Role: goai.UserRole, Text: fmt.Sprintf(prompt.LLMPromptTemplate, input)},
 	})
 	if err != nil {
 		printError("Failed to generate response", err)

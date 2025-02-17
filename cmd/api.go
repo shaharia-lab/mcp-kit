@@ -118,9 +118,11 @@ func handleAsk(ctx context.Context, sseClient *mcp.Client, logger *log.Logger) h
 			return
 		}
 
-		response, err := llm.Generate(ctx, []goai.LLMMessage{
+		messages := []goai.LLMMessage{
 			{Role: goai.UserRole, Text: fmt.Sprintf(prompt.LLMPromptTemplate, req.Question)},
-		})
+		}
+
+		response, err := llm.Generate(ctx, messages)
 		if err != nil {
 			log.Printf("Failed to generate response: %v", err)
 			http.Error(w, "Failed to generate response", http.StatusInternalServerError)
