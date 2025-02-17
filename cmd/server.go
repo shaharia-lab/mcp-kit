@@ -4,9 +4,9 @@ import (
 	"context"
 	"fmt"
 	"github.com/shaharia-lab/goai/mcp"
-	"github.com/shaharia-lab/mcp-kit/pkg/config"
-	"github.com/shaharia-lab/mcp-kit/pkg/prompt"
-	"github.com/shaharia-lab/mcp-kit/pkg/tools"
+	"github.com/shaharia-lab/mcp-kit/config"
+	"github.com/shaharia-lab/mcp-kit/prompt"
+	"github.com/shaharia-lab/mcp-kit/tools"
 	"github.com/spf13/cobra"
 	"log"
 )
