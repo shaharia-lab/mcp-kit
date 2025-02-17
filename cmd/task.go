@@ -98,8 +98,8 @@ func initializeLLM(sseClient *mcp.Client) (*goai.LLMRequest, error) {
 	})
 
 	llm := goai.NewLLMRequest(goai.NewRequestConfig(
-		goai.WithMaxToken(100),
-		goai.WithTemperature(0.7),
+		goai.WithMaxToken(1000),
+		goai.WithTemperature(0.5),
 		goai.UseToolsProvider(toolsProvider),
 	), llmProvider)
 

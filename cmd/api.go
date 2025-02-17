@@ -10,6 +10,7 @@ import (
 	"github.com/go-chi/cors"
 	"github.com/shaharia-lab/goai"
 	"github.com/shaharia-lab/goai/mcp"
+	"github.com/shaharia-lab/mcp-kit/pkg/prompt"
 	"github.com/spf13/cobra"
 	"io/fs"
 
@@ -118,8 +119,7 @@ func handleAsk(ctx context.Context, sseClient *mcp.Client, logger *log.Logger) h
 		}
 
 		response, err := llm.Generate(ctx, []goai.LLMMessage{
-			{Role: goai.UserRole, Text: "Please always respond in a beautiful markdown format."},
-			{Role: goai.UserRole, Text: req.Question},
+			{Role: goai.UserRole, Text: fmt.Sprintf(prompt.LLMPromptTemplate, req.Question)},
 		})
 		if err != nil {
 			log.Printf("Failed to generate response: %v", err)
