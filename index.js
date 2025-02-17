@@ -53,7 +53,7 @@ const createMessage = (content, isUser = false) => {
     const copyButton = message.querySelector('.copy-button');
 
     messageDiv.classList.add(
-        isUser ? 'bg-gray-70' : 'bg-gray-100',
+        isUser ? 'bg-lime-100' : 'bg-gray-100',
         'p-4',
         'rounded-lg'
     );
@@ -81,17 +81,30 @@ const createMessage = (content, isUser = false) => {
     return message;
 };
 
-// Mock API call
 const getAIResponse = async (message) => {
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    const mockResponses = [
-        `# Heading 1\n\nThis is a test markdown content with a table:\n\n| Column 1 | Column 2 |\n|----------|----------|\n| Value 1  | Value 2  |\n\nAnd a code block:\n\n\`\`\`javascript\nconsole.log('Hello, World!');\n\`\`\`\n\nHere is an image:\n\n![Test Image](https://via.placeholder.com/150)\n\n## Subheading\n\n- Item 1\n- Item 2\n  - Subitem 2.1\n\nThank you!`,
-        `## Another Response\n\n- **Bold Item**\n- *Italic Item*\n\n\`\`\`python\ndef add(a, b):\n    return a + b\n\`\`\`\n\nHere is another table:\n\n| Name       | Hobby        |\n|------------|--------------|\n| Alice      | Drawing      |\n| Bob        | Programming  |`,
-        `### Response with Image\n\nHere is a test image:\n\n![Random Image](https://placehold.co/150x150/EEE/31343C)\n\nAlso, some inline code: \`let x = 10;\`. Below is markdown with a blockquote:\n\n> This is a blockquote example.\n\n### List Section\n\n1. Item A\n2. Item B\n   - Subitem B.1\n   - Subitem B.2`
-    ];
-    const randomIndex = Math.floor(Math.random() * mockResponses.length);
-    return mockResponses[randomIndex];
+    try {
+        const response = await fetch('http://localhost:8081/ask', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                question: message
+            })
+        });
+
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+
+        const data = await response.json();
+        return data.answer;
+    } catch (error) {
+        console.error('API call failed:', error);
+        throw error;
+    }
 };
+
 
 // Send message handler
 const sendMessage = async () => {
@@ -110,12 +123,16 @@ const sendMessage = async () => {
 
         const response = await getAIResponse(message);
         chatContainer.appendChild(createMessage(response));
-
-        chatContainer.scrollTop = chatContainer.scrollHeight;
     } catch (error) {
+        // Add error message to chat
+        const errorMessage = "Sorry, I couldn't process your request. Please try again.";
+        chatContainer.appendChild(createMessage(errorMessage));
         console.error('Failed to get response:', error);
+    } finally {
+        chatContainer.scrollTop = chatContainer.scrollHeight;
     }
 };
+
 
 // Keyboard event handler
 userInput.addEventListener('keydown', async (e) => {
