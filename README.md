@@ -21,6 +21,9 @@ docker run -d \
   --add-host=host.docker.internal:host-gateway \
   -e MCP_SERVER_URL=http://host.docker.internal:8080/events \
   mcp:latest api
+  
+# Run client with Jaeger to see traces
+docker run -d --name jaeger -e COLLECTOR_OTLP_ENABLED=true -p 16686:16686 -p 4317:4317 -p 4318:4318 jaegertracing/all-in-one:latest
 ```
 
 ### Test Postgresql Tools
