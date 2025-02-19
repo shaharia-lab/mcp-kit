@@ -81,6 +81,13 @@ const createMessage = (content, isUser = false) => {
     const sanitizedContent = DOMPurify.sanitize(marked.parse(content));
     contentDiv.innerHTML = sanitizedContent;
 
+    // Delay highlighting to ensure elements are fully rendered
+    setTimeout(() => {
+        contentDiv.querySelectorAll('pre code').forEach((codeBlock) => {
+            hljs.highlightElement(codeBlock);
+        });
+    }, 0);
+
     copyButton.addEventListener('click', async () => {
         try {
             await navigator.clipboard.writeText(content);

@@ -6,11 +6,18 @@
     <title>MCP Kit - Chat Interface</title>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/tailwindcss/2.2.19/tailwind.min.css" rel="stylesheet">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/marked/9.1.6/marked.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.0.8/purify.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/markdown-it/13.0.1/markdown-it.min.js"></script>
 
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/styles/github-dark.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/highlight.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/languages/terraform.min.js"></script>
+
+    <script>
+        hljs.registerLanguage('terraform', window.hljsDefineTerraform);
+        hljs.highlightAll();
+    </script>
+
     <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&family=Open+Sans:wght@400;700&display=swap"
           rel="stylesheet">
 
@@ -19,20 +26,12 @@
             font-family: 'Roboto', 'Open Sans', sans-serif;
         }
 
-        .prose pre {
-            background-color: #f8f9fa;
-            padding: 1rem;
-            border-radius: 0.5rem;
-            margin: 1rem 0;
-        }
-
-        .prose code {
-            color: #e83e8c;
+        .prose code:not(pre code) {
+            background-color: #f3f4f6;
+            padding: 0.2rem 0.4rem;
+            border-radius: 0.25rem;
             font-size: 0.875em;
-        }
-
-        .prose pre code {
-            color: inherit;
+            color: #e83e8c;
         }
 
         .prose img {
@@ -131,23 +130,6 @@
             background-color: #f9fafb;
         }
 
-        /* Code blocks and inline code */
-        .prose pre {
-            background-color: #f3f4f6;
-            border-radius: 0.5rem;
-            padding: 1rem;
-            margin-bottom: 1rem;
-            overflow-x: auto;
-        }
-
-        .prose code:not(pre code) {
-            background-color: #f3f4f6;
-            padding: 0.2rem 0.4rem;
-            border-radius: 0.25rem;
-            font-size: 0.875em;
-            color: #e83e8c;
-        }
-
         /* Links */
         .prose a {
             color: #2563eb;
@@ -165,6 +147,7 @@
             margin: 1rem 0;
             font-style: italic;
         }
+
 
     </style>
 </head>
