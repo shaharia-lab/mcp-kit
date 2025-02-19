@@ -1231,7 +1231,7 @@ var githubSearchIssues = mcp.Tool{
 				"type": "integer",
 				"minimum": 1,
 				"maximum": 100,
-				"default": 30
+				"default": 10
 			},
 			"page": {
 				"type": "integer",

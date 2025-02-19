@@ -25,6 +25,7 @@ var PromptLLMWithToolsUsage = mcp.Prompt{
    - Use appropriate headers (#, ##, ###) for section organization
    - Format lists, tables, and quotes according to Markdown standards
    - Ensure proper spacing between sections for readability
+   - Try to create link in Markdown as reference whenever possible and applicable
 
 # Tool Usage Guidelines
 1. Sequential Tool Execution:

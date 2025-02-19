@@ -11,6 +11,9 @@ import (
 	"github.com/go-chi/cors"
 	"github.com/shaharia-lab/goai"
 	"github.com/shaharia-lab/goai/mcp"
+	goaiObs "github.com/shaharia-lab/goai/observability"
+	"github.com/shaharia-lab/mcp-kit/observability"
+	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"io/fs"
 	"os"
@@ -46,20 +49,31 @@ func NewAPICmd(logger *log.Logger) *cobra.Command {
 			}
 
 			ctx := context.Background()
+			cleanup, err := initializeTracer(ctx, "mcp-kit", logrus.New())
+			if err != nil {
+				return err
+			}
+			defer cleanup()
 
-			mcpClient := mcp.NewClient(mcp.NewSSETransport(), mcp.ClientConfig{
+			ctx, span := observability.StartSpan(ctx, "main")
+			defer span.End()
+
+			l := goaiObs.NewDefaultLogger()
+
+			mcpClient := mcp.NewClient(mcp.NewSSETransport(l), mcp.ClientConfig{
 				ClientName:    "My MCP Kit Client",
 				ClientVersion: "1.0.0",
-				Logger:        log.New(logger.Writer(), "", log.LstdFlags),
+				Logger:        l,
 				RetryDelay:    5 * time.Second,
 				MaxRetries:    3,
 				SSE: mcp.SSEConfig{
 					URL: cfg.MCPServerURL,
 				},
+				RequestTimeout: 60 * time.Second,
 			})
 			defer mcpClient.Close(ctx)
 
-			if err := mcpClient.Connect(context.Background()); err != nil {
+			if err := mcpClient.Connect(ctx); err != nil {
 				log.Printf("Failed to connect to SSE: %v", err)
 				return fmt.Errorf("failed to connect to MCP server: %w", err)
 			}
@@ -73,6 +87,18 @@ func NewAPICmd(logger *log.Logger) *cobra.Command {
 
 func setupRouter(ctx context.Context, mcpClient *mcp.Client, logger *log.Logger) *chi.Mux {
 	r := chi.NewRouter()
+
+	r.Use(func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			requestCtx, span := observability.StartSpan(r.Context(), "http_request")
+			defer span.End()
+
+			observability.AddAttribute(requestCtx, "http.method", r.Method)
+			observability.AddAttribute(requestCtx, "http.url", r.URL.String())
+
+			next.ServeHTTP(w, r.WithContext(requestCtx))
+		})
+	})
 
 	r.Use(cors.Handler(cors.Options{
 		AllowedOrigins:   []string{"*"},
@@ -185,15 +211,17 @@ func buildMessagesFromPromptTemplates(ctx context.Context, sseClient *mcp.Client
 	if req.UseTools {
 		promptName = "llm_with_tools"
 	}
+	log.Printf("Fetching prompt: %s", promptName)
 
 	promptMessages, err := sseClient.GetPrompt(ctx, mcp.GetPromptParams{
 		Name: promptName,
-		Arguments: json.RawMessage(fmt.Sprintf(`{
-			"question": "%s"
-		}`, req.Question)),
+		Arguments: json.RawMessage(`{
+        "question": ` + fmt.Sprintf("%q", req.Question) + `
+    }`),
 	})
+
 	if err != nil {
-		return nil, fmt.Errorf("failed to fetch prompts from MCP server")
+		return nil, fmt.Errorf("failed to fetch prompts from MCP server. Error: %w", err)
 	}
 
 	var messages []goai.LLMMessage
@@ -204,4 +232,15 @@ func buildMessagesFromPromptTemplates(ctx context.Context, sseClient *mcp.Client
 		})
 	}
 	return messages, nil
+}
+
+func initializeTracer(ctx context.Context, appName string, l *logrus.Logger) (func(), error) {
+	l.Info("Initializing tracer")
+	cleanup, err := observability.InitTracer(ctx, appName, l)
+	if err != nil {
+		log.Fatalf("Failed to initialize tracer: %v", err)
+		return nil, err
+	}
+	l.Info("Tracer initialized successfully")
+	return cleanup, nil
 }
