@@ -5,6 +5,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/shaharia-lab/goai/mcp"
+	"github.com/shaharia-lab/goai/observability"
+	"go.opentelemetry.io/otel/attribute"
 	"io/ioutil"
 	"os"
 	"strings"
@@ -35,6 +37,20 @@ var fileSystemListDirectory = mcp.Tool{
         "required": ["path"]
     }`),
 	Handler: func(ctx context.Context, params mcp.CallToolParams) (mcp.CallToolResult, error) {
+		ctx, span := observability.StartSpan(ctx, fmt.Sprintf("%s.Handler", params.Name))
+		span.SetAttributes(
+			attribute.String("tool_name", params.Name),
+			attribute.String("tool_argument", string(params.Arguments)),
+		)
+		defer span.End()
+
+		var err error
+		defer func() {
+			if err != nil {
+				span.RecordError(err)
+			}
+		}()
+
 		var input struct {
 			Path string `json:"path"`
 		}
@@ -81,6 +97,20 @@ var fileSystemReadFile = mcp.Tool{
             "required": ["path"]
         }`),
 	Handler: func(ctx context.Context, params mcp.CallToolParams) (mcp.CallToolResult, error) {
+		ctx, span := observability.StartSpan(ctx, fmt.Sprintf("%s.Handler", params.Name))
+		span.SetAttributes(
+			attribute.String("tool_name", params.Name),
+			attribute.String("tool_argument", string(params.Arguments)),
+		)
+		defer span.End()
+
+		var err error
+		defer func() {
+			if err != nil {
+				span.RecordError(err)
+			}
+		}()
+
 		var input struct {
 			Path string `json:"path"`
 		}
@@ -122,6 +152,20 @@ var fileSystemWriteFile = mcp.Tool{
             "required": ["path", "content"]
         }`),
 	Handler: func(ctx context.Context, params mcp.CallToolParams) (mcp.CallToolResult, error) {
+		ctx, span := observability.StartSpan(ctx, fmt.Sprintf("%s.Handler", params.Name))
+		span.SetAttributes(
+			attribute.String("tool_name", params.Name),
+			attribute.String("tool_argument", string(params.Arguments)),
+		)
+		defer span.End()
+
+		var err error
+		defer func() {
+			if err != nil {
+				span.RecordError(err)
+			}
+		}()
+
 		var input struct {
 			Path    string `json:"path"`
 			Content string `json:"content"`
@@ -159,6 +203,20 @@ var fileSystemGetFileInfo = mcp.Tool{
             "required": ["path"]
         }`),
 	Handler: func(ctx context.Context, params mcp.CallToolParams) (mcp.CallToolResult, error) {
+		ctx, span := observability.StartSpan(ctx, fmt.Sprintf("%s.Handler", params.Name))
+		span.SetAttributes(
+			attribute.String("tool_name", params.Name),
+			attribute.String("tool_argument", string(params.Arguments)),
+		)
+		defer span.End()
+
+		var err error
+		defer func() {
+			if err != nil {
+				span.RecordError(err)
+			}
+		}()
+
 		var input struct {
 			Path string `json:"path"`
 		}

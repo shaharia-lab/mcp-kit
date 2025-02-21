@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"github.com/google/go-github/v60/github"
 	"github.com/shaharia-lab/goai/mcp"
+	"github.com/shaharia-lab/goai/observability"
+	"go.opentelemetry.io/otel/attribute"
 	"golang.org/x/oauth2"
 	"os"
 	"time"
@@ -74,6 +76,20 @@ var githubCreateRepository = mcp.Tool{
 		"required": ["name"]
 	}`),
 	Handler: func(ctx context.Context, params mcp.CallToolParams) (mcp.CallToolResult, error) {
+		ctx, span := observability.StartSpan(ctx, fmt.Sprintf("%s.Handler", params.Name))
+		span.SetAttributes(
+			attribute.String("tool_name", params.Name),
+			attribute.String("tool_argument", string(params.Arguments)),
+		)
+		defer span.End()
+
+		var err error
+		defer func() {
+			if err != nil {
+				span.RecordError(err)
+			}
+		}()
+
 		var input struct {
 			Name        string `json:"name"`
 			Description string `json:"description"`
@@ -143,6 +159,20 @@ var githubCreateIssue = mcp.Tool{
 		"required": ["owner", "repo", "title"]
 	}`),
 	Handler: func(ctx context.Context, params mcp.CallToolParams) (mcp.CallToolResult, error) {
+		ctx, span := observability.StartSpan(ctx, fmt.Sprintf("%s.Handler", params.Name))
+		span.SetAttributes(
+			attribute.String("tool_name", params.Name),
+			attribute.String("tool_argument", string(params.Arguments)),
+		)
+		defer span.End()
+
+		var err error
+		defer func() {
+			if err != nil {
+				span.RecordError(err)
+			}
+		}()
+
 		var input struct {
 			Owner  string   `json:"owner"`
 			Repo   string   `json:"repo"`
@@ -207,6 +237,20 @@ var githubGetFileContents = mcp.Tool{
 		"required": ["owner", "repo", "path"]
 	}`),
 	Handler: func(ctx context.Context, params mcp.CallToolParams) (mcp.CallToolResult, error) {
+		ctx, span := observability.StartSpan(ctx, fmt.Sprintf("%s.Handler", params.Name))
+		span.SetAttributes(
+			attribute.String("tool_name", params.Name),
+			attribute.String("tool_argument", string(params.Arguments)),
+		)
+		defer span.End()
+
+		var err error
+		defer func() {
+			if err != nil {
+				span.RecordError(err)
+			}
+		}()
+
 		var input struct {
 			Owner  string `json:"owner"`
 			Repo   string `json:"repo"`
@@ -285,6 +329,20 @@ var githubCreateOrUpdateFile = mcp.Tool{
 		"required": ["owner", "repo", "path", "content", "message", "branch"]
 	}`),
 	Handler: func(ctx context.Context, params mcp.CallToolParams) (mcp.CallToolResult, error) {
+		ctx, span := observability.StartSpan(ctx, fmt.Sprintf("%s.Handler", params.Name))
+		span.SetAttributes(
+			attribute.String("tool_name", params.Name),
+			attribute.String("tool_argument", string(params.Arguments)),
+		)
+		defer span.End()
+
+		var err error
+		defer func() {
+			if err != nil {
+				span.RecordError(err)
+			}
+		}()
+
 		var input struct {
 			Owner   string `json:"owner"`
 			Repo    string `json:"repo"`
@@ -378,6 +436,20 @@ var githubPushFiles = mcp.Tool{
 		"required": ["owner", "repo", "branch", "message", "files"]
 	}`),
 	Handler: func(ctx context.Context, params mcp.CallToolParams) (mcp.CallToolResult, error) {
+		ctx, span := observability.StartSpan(ctx, fmt.Sprintf("%s.Handler", params.Name))
+		span.SetAttributes(
+			attribute.String("tool_name", params.Name),
+			attribute.String("tool_argument", string(params.Arguments)),
+		)
+		defer span.End()
+
+		var err error
+		defer func() {
+			if err != nil {
+				span.RecordError(err)
+			}
+		}()
+
 		var input struct {
 			Owner   string `json:"owner"`
 			Repo    string `json:"repo"`
@@ -486,6 +558,20 @@ var githubSearchRepositories = mcp.Tool{
 		"required": ["query"]
 	}`),
 	Handler: func(ctx context.Context, params mcp.CallToolParams) (mcp.CallToolResult, error) {
+		ctx, span := observability.StartSpan(ctx, fmt.Sprintf("%s.Handler", params.Name))
+		span.SetAttributes(
+			attribute.String("tool_name", params.Name),
+			attribute.String("tool_argument", string(params.Arguments)),
+		)
+		defer span.End()
+
+		var err error
+		defer func() {
+			if err != nil {
+				span.RecordError(err)
+			}
+		}()
+
 		var input struct {
 			Query   string `json:"query"`
 			Page    int    `json:"page"`
@@ -592,6 +678,20 @@ var githubCreatePullRequest = mcp.Tool{
 		"required": ["owner", "repo", "title", "head", "base"]
 	}`),
 	Handler: func(ctx context.Context, params mcp.CallToolParams) (mcp.CallToolResult, error) {
+		ctx, span := observability.StartSpan(ctx, fmt.Sprintf("%s.Handler", params.Name))
+		span.SetAttributes(
+			attribute.String("tool_name", params.Name),
+			attribute.String("tool_argument", string(params.Arguments)),
+		)
+		defer span.End()
+
+		var err error
+		defer func() {
+			if err != nil {
+				span.RecordError(err)
+			}
+		}()
+
 		var input struct {
 			Owner               string `json:"owner"`
 			Repo                string `json:"repo"`
@@ -667,6 +767,20 @@ var githubForkRepository = mcp.Tool{
 		"required": ["owner", "repo"]
 	}`),
 	Handler: func(ctx context.Context, params mcp.CallToolParams) (mcp.CallToolResult, error) {
+		ctx, span := observability.StartSpan(ctx, fmt.Sprintf("%s.Handler", params.Name))
+		span.SetAttributes(
+			attribute.String("tool_name", params.Name),
+			attribute.String("tool_argument", string(params.Arguments)),
+		)
+		defer span.End()
+
+		var err error
+		defer func() {
+			if err != nil {
+				span.RecordError(err)
+			}
+		}()
+
 		var input struct {
 			Owner        string `json:"owner"`
 			Repo         string `json:"repo"`
@@ -740,6 +854,20 @@ var githubCreateBranch = mcp.Tool{
 		"required": ["owner", "repo", "branch"]
 	}`),
 	Handler: func(ctx context.Context, params mcp.CallToolParams) (mcp.CallToolResult, error) {
+		ctx, span := observability.StartSpan(ctx, fmt.Sprintf("%s.Handler", params.Name))
+		span.SetAttributes(
+			attribute.String("tool_name", params.Name),
+			attribute.String("tool_argument", string(params.Arguments)),
+		)
+		defer span.End()
+
+		var err error
+		defer func() {
+			if err != nil {
+				span.RecordError(err)
+			}
+		}()
+
 		var input struct {
 			Owner      string `json:"owner"`
 			Repo       string `json:"repo"`
@@ -865,6 +993,20 @@ var githubListIssues = mcp.Tool{
 		"required": ["owner", "repo"]
 	}`),
 	Handler: func(ctx context.Context, params mcp.CallToolParams) (mcp.CallToolResult, error) {
+		ctx, span := observability.StartSpan(ctx, fmt.Sprintf("%s.Handler", params.Name))
+		span.SetAttributes(
+			attribute.String("tool_name", params.Name),
+			attribute.String("tool_argument", string(params.Arguments)),
+		)
+		defer span.End()
+
+		var err error
+		defer func() {
+			if err != nil {
+				span.RecordError(err)
+			}
+		}()
+
 		var input struct {
 			Owner     string   `json:"owner"`
 			Repo      string   `json:"repo"`
@@ -975,6 +1117,20 @@ var githubUpdateIssue = mcp.Tool{
 		"required": ["owner", "repo", "issue_number"]
 	}`),
 	Handler: func(ctx context.Context, params mcp.CallToolParams) (mcp.CallToolResult, error) {
+		ctx, span := observability.StartSpan(ctx, fmt.Sprintf("%s.Handler", params.Name))
+		span.SetAttributes(
+			attribute.String("tool_name", params.Name),
+			attribute.String("tool_argument", string(params.Arguments)),
+		)
+		defer span.End()
+
+		var err error
+		defer func() {
+			if err != nil {
+				span.RecordError(err)
+			}
+		}()
+
 		var input struct {
 			Owner       string   `json:"owner"`
 			Repo        string   `json:"repo"`
@@ -1066,6 +1222,20 @@ var githubAddIssueComment = mcp.Tool{
 		"required": ["owner", "repo", "issue_number", "body"]
 	}`),
 	Handler: func(ctx context.Context, params mcp.CallToolParams) (mcp.CallToolResult, error) {
+		ctx, span := observability.StartSpan(ctx, fmt.Sprintf("%s.Handler", params.Name))
+		span.SetAttributes(
+			attribute.String("tool_name", params.Name),
+			attribute.String("tool_argument", string(params.Arguments)),
+		)
+		defer span.End()
+
+		var err error
+		defer func() {
+			if err != nil {
+				span.RecordError(err)
+			}
+		}()
+
 		var input struct {
 			Owner       string `json:"owner"`
 			Repo        string `json:"repo"`
@@ -1145,6 +1315,20 @@ var githubSearchCode = mcp.Tool{
 		"required": ["q"]
 	}`),
 	Handler: func(ctx context.Context, params mcp.CallToolParams) (mcp.CallToolResult, error) {
+		ctx, span := observability.StartSpan(ctx, fmt.Sprintf("%s.Handler", params.Name))
+		span.SetAttributes(
+			attribute.String("tool_name", params.Name),
+			attribute.String("tool_argument", string(params.Arguments)),
+		)
+		defer span.End()
+
+		var err error
+		defer func() {
+			if err != nil {
+				span.RecordError(err)
+			}
+		}()
+
 		var input struct {
 			Query   string `json:"q"`
 			Sort    string `json:"sort"`
@@ -1242,6 +1426,20 @@ var githubSearchIssues = mcp.Tool{
 		"required": ["q"]
 	}`),
 	Handler: func(ctx context.Context, params mcp.CallToolParams) (mcp.CallToolResult, error) {
+		ctx, span := observability.StartSpan(ctx, fmt.Sprintf("%s.Handler", params.Name))
+		span.SetAttributes(
+			attribute.String("tool_name", params.Name),
+			attribute.String("tool_argument", string(params.Arguments)),
+		)
+		defer span.End()
+
+		var err error
+		defer func() {
+			if err != nil {
+				span.RecordError(err)
+			}
+		}()
+
 		var input struct {
 			Query   string `json:"q"`
 			Sort    string `json:"sort"`
@@ -1339,6 +1537,20 @@ var githubSearchUsers = mcp.Tool{
 		"required": ["q"]
 	}`),
 	Handler: func(ctx context.Context, params mcp.CallToolParams) (mcp.CallToolResult, error) {
+		ctx, span := observability.StartSpan(ctx, fmt.Sprintf("%s.Handler", params.Name))
+		span.SetAttributes(
+			attribute.String("tool_name", params.Name),
+			attribute.String("tool_argument", string(params.Arguments)),
+		)
+		defer span.End()
+
+		var err error
+		defer func() {
+			if err != nil {
+				span.RecordError(err)
+			}
+		}()
+
 		var input struct {
 			Query   string `json:"q"`
 			Sort    string `json:"sort"`
@@ -1434,6 +1646,20 @@ var githubListCommits = mcp.Tool{
 		"required": ["owner", "repo"]
 	}`),
 	Handler: func(ctx context.Context, params mcp.CallToolParams) (mcp.CallToolResult, error) {
+		ctx, span := observability.StartSpan(ctx, fmt.Sprintf("%s.Handler", params.Name))
+		span.SetAttributes(
+			attribute.String("tool_name", params.Name),
+			attribute.String("tool_argument", string(params.Arguments)),
+		)
+		defer span.End()
+
+		var err error
+		defer func() {
+			if err != nil {
+				span.RecordError(err)
+			}
+		}()
+
 		var input struct {
 			Owner   string `json:"owner"`
 			Repo    string `json:"repo"`
@@ -1539,6 +1765,20 @@ var githubGetIssue = mcp.Tool{
 		"required": ["owner", "repo", "issue_number"]
 	}`),
 	Handler: func(ctx context.Context, params mcp.CallToolParams) (mcp.CallToolResult, error) {
+		ctx, span := observability.StartSpan(ctx, fmt.Sprintf("%s.Handler", params.Name))
+		span.SetAttributes(
+			attribute.String("tool_name", params.Name),
+			attribute.String("tool_argument", string(params.Arguments)),
+		)
+		defer span.End()
+
+		var err error
+		defer func() {
+			if err != nil {
+				span.RecordError(err)
+			}
+		}()
+
 		var input struct {
 			Owner       string `json:"owner"`
 			Repo        string `json:"repo"`
@@ -1605,6 +1845,20 @@ var githubGetPullRequest = mcp.Tool{
 		"required": ["owner", "repo", "pull_number"]
 	}`),
 	Handler: func(ctx context.Context, params mcp.CallToolParams) (mcp.CallToolResult, error) {
+		ctx, span := observability.StartSpan(ctx, fmt.Sprintf("%s.Handler", params.Name))
+		span.SetAttributes(
+			attribute.String("tool_name", params.Name),
+			attribute.String("tool_argument", string(params.Arguments)),
+		)
+		defer span.End()
+
+		var err error
+		defer func() {
+			if err != nil {
+				span.RecordError(err)
+			}
+		}()
+
 		var input struct {
 			Owner      string `json:"owner"`
 			Repo       string `json:"repo"`
@@ -1742,6 +1996,20 @@ var githubListPullRequests = mcp.Tool{
 		"required": ["owner", "repo"]
 	}`),
 	Handler: func(ctx context.Context, params mcp.CallToolParams) (mcp.CallToolResult, error) {
+		ctx, span := observability.StartSpan(ctx, fmt.Sprintf("%s.Handler", params.Name))
+		span.SetAttributes(
+			attribute.String("tool_name", params.Name),
+			attribute.String("tool_argument", string(params.Arguments)),
+		)
+		defer span.End()
+
+		var err error
+		defer func() {
+			if err != nil {
+				span.RecordError(err)
+			}
+		}()
+
 		var input struct {
 			Owner     string `json:"owner"`
 			Repo      string `json:"repo"`
@@ -1895,6 +2163,20 @@ var githubCreatePullRequestReview = mcp.Tool{
 		"required": ["owner", "repo", "pull_number", "body", "event"]
 	}`),
 	Handler: func(ctx context.Context, params mcp.CallToolParams) (mcp.CallToolResult, error) {
+		ctx, span := observability.StartSpan(ctx, fmt.Sprintf("%s.Handler", params.Name))
+		span.SetAttributes(
+			attribute.String("tool_name", params.Name),
+			attribute.String("tool_argument", string(params.Arguments)),
+		)
+		defer span.End()
+
+		var err error
+		defer func() {
+			if err != nil {
+				span.RecordError(err)
+			}
+		}()
+
 		var input struct {
 			Owner      string `json:"owner"`
 			Repo       string `json:"repo"`
@@ -2003,6 +2285,20 @@ var githubMergePullRequest = mcp.Tool{
 		"required": ["owner", "repo", "pull_number"]
 	}`),
 	Handler: func(ctx context.Context, params mcp.CallToolParams) (mcp.CallToolResult, error) {
+		ctx, span := observability.StartSpan(ctx, fmt.Sprintf("%s.Handler", params.Name))
+		span.SetAttributes(
+			attribute.String("tool_name", params.Name),
+			attribute.String("tool_argument", string(params.Arguments)),
+		)
+		defer span.End()
+
+		var err error
+		defer func() {
+			if err != nil {
+				span.RecordError(err)
+			}
+		}()
+
 		var input struct {
 			Owner         string `json:"owner"`
 			Repo          string `json:"repo"`
@@ -2102,6 +2398,20 @@ var githubGetPullRequestFiles = mcp.Tool{
 		"required": ["owner", "repo", "pull_number"]
 	}`),
 	Handler: func(ctx context.Context, params mcp.CallToolParams) (mcp.CallToolResult, error) {
+		ctx, span := observability.StartSpan(ctx, fmt.Sprintf("%s.Handler", params.Name))
+		span.SetAttributes(
+			attribute.String("tool_name", params.Name),
+			attribute.String("tool_argument", string(params.Arguments)),
+		)
+		defer span.End()
+
+		var err error
+		defer func() {
+			if err != nil {
+				span.RecordError(err)
+			}
+		}()
+
 		var input struct {
 			Owner      string `json:"owner"`
 			Repo       string `json:"repo"`
@@ -2260,6 +2570,20 @@ var githubGetPullRequestStatus = mcp.Tool{
         "required": ["owner", "repo", "pull_number"]
     }`),
 	Handler: func(ctx context.Context, params mcp.CallToolParams) (mcp.CallToolResult, error) {
+		ctx, span := observability.StartSpan(ctx, fmt.Sprintf("%s.Handler", params.Name))
+		span.SetAttributes(
+			attribute.String("tool_name", params.Name),
+			attribute.String("tool_argument", string(params.Arguments)),
+		)
+		defer span.End()
+
+		var err error
+		defer func() {
+			if err != nil {
+				span.RecordError(err)
+			}
+		}()
+
 		var input struct {
 			Owner      string `json:"owner"`
 			Repo       string `json:"repo"`
@@ -2411,6 +2735,20 @@ var githubUpdatePullRequestBranch = mcp.Tool{
 		"required": ["owner", "repo", "pull_number"]
 	}`),
 	Handler: func(ctx context.Context, params mcp.CallToolParams) (mcp.CallToolResult, error) {
+		ctx, span := observability.StartSpan(ctx, fmt.Sprintf("%s.Handler", params.Name))
+		span.SetAttributes(
+			attribute.String("tool_name", params.Name),
+			attribute.String("tool_argument", string(params.Arguments)),
+		)
+		defer span.End()
+
+		var err error
+		defer func() {
+			if err != nil {
+				span.RecordError(err)
+			}
+		}()
+
 		var input struct {
 			Owner           string `json:"owner"`
 			Repo            string `json:"repo"`
@@ -2481,6 +2819,20 @@ var githubGetPullRequestComments = mcp.Tool{
 		"required": ["owner", "repo", "pull_number"]
 	}`),
 	Handler: func(ctx context.Context, params mcp.CallToolParams) (mcp.CallToolResult, error) {
+		ctx, span := observability.StartSpan(ctx, fmt.Sprintf("%s.Handler", params.Name))
+		span.SetAttributes(
+			attribute.String("tool_name", params.Name),
+			attribute.String("tool_argument", string(params.Arguments)),
+		)
+		defer span.End()
+
+		var err error
+		defer func() {
+			if err != nil {
+				span.RecordError(err)
+			}
+		}()
+
 		var input struct {
 			Owner      string `json:"owner"`
 			Repo       string `json:"repo"`
@@ -2630,6 +2982,20 @@ var githubGetPullRequestReviews = mcp.Tool{
 		}
 	}`),
 	Handler: func(ctx context.Context, params mcp.CallToolParams) (mcp.CallToolResult, error) {
+		ctx, span := observability.StartSpan(ctx, fmt.Sprintf("%s.Handler", params.Name))
+		span.SetAttributes(
+			attribute.String("tool_name", params.Name),
+			attribute.String("tool_argument", string(params.Arguments)),
+		)
+		defer span.End()
+
+		var err error
+		defer func() {
+			if err != nil {
+				span.RecordError(err)
+			}
+		}()
+
 		var input struct {
 			Owner      string `json:"owner"`
 			Repo       string `json:"repo"`

@@ -7,6 +7,8 @@ import (
 	"fmt"
 	_ "github.com/lib/pq"
 	"github.com/shaharia-lab/goai/mcp"
+	"github.com/shaharia-lab/goai/observability"
+	"go.opentelemetry.io/otel/attribute"
 	"log"
 	"strings"
 )
@@ -50,6 +52,20 @@ var postgresTableSchema = mcp.Tool{
             "required": ["database_name", "table_name"]
         }`),
 	Handler: func(ctx context.Context, params mcp.CallToolParams) (mcp.CallToolResult, error) {
+		ctx, span := observability.StartSpan(ctx, fmt.Sprintf("%s.Handler", params.Name))
+		span.SetAttributes(
+			attribute.String("tool_name", params.Name),
+			attribute.String("tool_argument", string(params.Arguments)),
+		)
+		defer span.End()
+
+		var err error
+		defer func() {
+			if err != nil {
+				span.RecordError(err)
+			}
+		}()
+
 		var input struct {
 			DatabaseName string `json:"database_name"`
 			TableName    string `json:"table_name"`
@@ -132,6 +148,20 @@ var postgresExecuteQuery = mcp.Tool{
             "required": ["database_name", "query"]
         }`),
 	Handler: func(ctx context.Context, params mcp.CallToolParams) (mcp.CallToolResult, error) {
+		ctx, span := observability.StartSpan(ctx, fmt.Sprintf("%s.Handler", params.Name))
+		span.SetAttributes(
+			attribute.String("tool_name", params.Name),
+			attribute.String("tool_argument", string(params.Arguments)),
+		)
+		defer span.End()
+
+		var err error
+		defer func() {
+			if err != nil {
+				span.RecordError(err)
+			}
+		}()
+
 		var input struct {
 			DatabaseName string `json:"database_name"`
 			Query        string `json:"query"`
@@ -208,6 +238,20 @@ var postgresExecuteQueryWithExplain = mcp.Tool{
             "required": ["database_name", "query"]
         }`),
 	Handler: func(ctx context.Context, params mcp.CallToolParams) (mcp.CallToolResult, error) {
+		ctx, span := observability.StartSpan(ctx, fmt.Sprintf("%s.Handler", params.Name))
+		span.SetAttributes(
+			attribute.String("tool_name", params.Name),
+			attribute.String("tool_argument", string(params.Arguments)),
+		)
+		defer span.End()
+
+		var err error
+		defer func() {
+			if err != nil {
+				span.RecordError(err)
+			}
+		}()
+
 		var input struct {
 			DatabaseName string `json:"database_name"`
 			Query        string `json:"query"`

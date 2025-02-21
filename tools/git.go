@@ -7,7 +7,6 @@ import (
 	"github.com/shaharia-lab/goai/mcp"
 	"github.com/shaharia-lab/goai/observability"
 	"go.opentelemetry.io/otel/attribute"
-	"go.opentelemetry.io/otel/codes"
 	"go.opentelemetry.io/otel/trace"
 	"os/exec"
 	"time"
@@ -27,14 +26,17 @@ var gitStatusTool = mcp.Tool{
         "required": ["repo_path"]
     }`),
 	Handler: func(ctx context.Context, params mcp.CallToolParams) (mcp.CallToolResult, error) {
-		ctx, span := observability.StartSpan(ctx, "GitStatusTool.Handler")
+		ctx, span := observability.StartSpan(ctx, fmt.Sprintf("%s.Handler", params.Name))
+		span.SetAttributes(
+			attribute.String("tool_name", params.Name),
+			attribute.String("tool_argument", string(params.Arguments)),
+		)
 		defer span.End()
 
 		var err error
 		defer func() {
 			if err != nil {
 				span.RecordError(err)
-				span.SetStatus(codes.Error, err.Error())
 			}
 		}()
 
@@ -116,6 +118,20 @@ var gitDiffTool = mcp.Tool{
         "required": ["repo_path", "target"]
     }`),
 	Handler: func(ctx context.Context, params mcp.CallToolParams) (mcp.CallToolResult, error) {
+		ctx, span := observability.StartSpan(ctx, fmt.Sprintf("%s.Handler", params.Name))
+		span.SetAttributes(
+			attribute.String("tool_name", params.Name),
+			attribute.String("tool_argument", string(params.Arguments)),
+		)
+		defer span.End()
+
+		var err error
+		defer func() {
+			if err != nil {
+				span.RecordError(err)
+			}
+		}()
+
 		var input struct {
 			RepoPath string `json:"repo_path"`
 			Target   string `json:"target"`
@@ -159,6 +175,20 @@ var gitCommitTool = mcp.Tool{
         "required": ["repo_path", "message"]
     }`),
 	Handler: func(ctx context.Context, params mcp.CallToolParams) (mcp.CallToolResult, error) {
+		ctx, span := observability.StartSpan(ctx, fmt.Sprintf("%s.Handler", params.Name))
+		span.SetAttributes(
+			attribute.String("tool_name", params.Name),
+			attribute.String("tool_argument", string(params.Arguments)),
+		)
+		defer span.End()
+
+		var err error
+		defer func() {
+			if err != nil {
+				span.RecordError(err)
+			}
+		}()
+
 		var input struct {
 			RepoPath string `json:"repo_path"`
 			Message  string `json:"message"`
@@ -198,6 +228,20 @@ var gitDiffUnstagedTool = mcp.Tool{
         "required": ["repo_path"]
     }`),
 	Handler: func(ctx context.Context, params mcp.CallToolParams) (mcp.CallToolResult, error) {
+		ctx, span := observability.StartSpan(ctx, fmt.Sprintf("%s.Handler", params.Name))
+		span.SetAttributes(
+			attribute.String("tool_name", params.Name),
+			attribute.String("tool_argument", string(params.Arguments)),
+		)
+		defer span.End()
+
+		var err error
+		defer func() {
+			if err != nil {
+				span.RecordError(err)
+			}
+		}()
+
 		var input struct {
 			RepoPath string `json:"repo_path"`
 		}
@@ -231,6 +275,20 @@ var gitDiffStagedTool = mcp.Tool{
         "required": ["repo_path"]
     }`),
 	Handler: func(ctx context.Context, params mcp.CallToolParams) (mcp.CallToolResult, error) {
+		ctx, span := observability.StartSpan(ctx, fmt.Sprintf("%s.Handler", params.Name))
+		span.SetAttributes(
+			attribute.String("tool_name", params.Name),
+			attribute.String("tool_argument", string(params.Arguments)),
+		)
+		defer span.End()
+
+		var err error
+		defer func() {
+			if err != nil {
+				span.RecordError(err)
+			}
+		}()
+
 		var input struct {
 			RepoPath string `json:"repo_path"`
 		}
@@ -269,6 +327,20 @@ var gitAddTool = mcp.Tool{
         "required": ["repo_path", "files"]
     }`),
 	Handler: func(ctx context.Context, params mcp.CallToolParams) (mcp.CallToolResult, error) {
+		ctx, span := observability.StartSpan(ctx, fmt.Sprintf("%s.Handler", params.Name))
+		span.SetAttributes(
+			attribute.String("tool_name", params.Name),
+			attribute.String("tool_argument", string(params.Arguments)),
+		)
+		defer span.End()
+
+		var err error
+		defer func() {
+			if err != nil {
+				span.RecordError(err)
+			}
+		}()
+
 		var input struct {
 			RepoPath string   `json:"repo_path"`
 			Files    []string `json:"files"`
@@ -304,6 +376,20 @@ var gitResetTool = mcp.Tool{
         "required": ["repo_path"]
     }`),
 	Handler: func(ctx context.Context, params mcp.CallToolParams) (mcp.CallToolResult, error) {
+		ctx, span := observability.StartSpan(ctx, fmt.Sprintf("%s.Handler", params.Name))
+		span.SetAttributes(
+			attribute.String("tool_name", params.Name),
+			attribute.String("tool_argument", string(params.Arguments)),
+		)
+		defer span.End()
+
+		var err error
+		defer func() {
+			if err != nil {
+				span.RecordError(err)
+			}
+		}()
+
 		var input struct {
 			RepoPath string `json:"repo_path"`
 		}
@@ -341,6 +427,20 @@ var gitLogTool = mcp.Tool{
         "required": ["repo_path"]
     }`),
 	Handler: func(ctx context.Context, params mcp.CallToolParams) (mcp.CallToolResult, error) {
+		ctx, span := observability.StartSpan(ctx, fmt.Sprintf("%s.Handler", params.Name))
+		span.SetAttributes(
+			attribute.String("tool_name", params.Name),
+			attribute.String("tool_argument", string(params.Arguments)),
+		)
+		defer span.End()
+
+		var err error
+		defer func() {
+			if err != nil {
+				span.RecordError(err)
+			}
+		}()
+
 		var input struct {
 			RepoPath string `json:"repo_path"`
 			MaxCount int    `json:"max_count"`
@@ -388,6 +488,20 @@ var gitCreateBranchTool = mcp.Tool{
         "required": ["repo_path", "branch_name"]
     }`),
 	Handler: func(ctx context.Context, params mcp.CallToolParams) (mcp.CallToolResult, error) {
+		ctx, span := observability.StartSpan(ctx, fmt.Sprintf("%s.Handler", params.Name))
+		span.SetAttributes(
+			attribute.String("tool_name", params.Name),
+			attribute.String("tool_argument", string(params.Arguments)),
+		)
+		defer span.End()
+
+		var err error
+		defer func() {
+			if err != nil {
+				span.RecordError(err)
+			}
+		}()
+
 		var input struct {
 			RepoPath   string `json:"repo_path"`
 			BranchName string `json:"branch_name"`
@@ -432,6 +546,20 @@ var gitCheckoutTool = mcp.Tool{
         "required": ["repo_path", "branch_name"]
     }`),
 	Handler: func(ctx context.Context, params mcp.CallToolParams) (mcp.CallToolResult, error) {
+		ctx, span := observability.StartSpan(ctx, fmt.Sprintf("%s.Handler", params.Name))
+		span.SetAttributes(
+			attribute.String("tool_name", params.Name),
+			attribute.String("tool_argument", string(params.Arguments)),
+		)
+		defer span.End()
+
+		var err error
+		defer func() {
+			if err != nil {
+				span.RecordError(err)
+			}
+		}()
+
 		var input struct {
 			RepoPath   string `json:"repo_path"`
 			BranchName string `json:"branch_name"`
@@ -470,6 +598,20 @@ var gitShowTool = mcp.Tool{
         "required": ["repo_path", "revision"]
     }`),
 	Handler: func(ctx context.Context, params mcp.CallToolParams) (mcp.CallToolResult, error) {
+		ctx, span := observability.StartSpan(ctx, fmt.Sprintf("%s.Handler", params.Name))
+		span.SetAttributes(
+			attribute.String("tool_name", params.Name),
+			attribute.String("tool_argument", string(params.Arguments)),
+		)
+		defer span.End()
+
+		var err error
+		defer func() {
+			if err != nil {
+				span.RecordError(err)
+			}
+		}()
+
 		var input struct {
 			RepoPath string `json:"repo_path"`
 			Revision string `json:"revision"`
@@ -504,6 +646,20 @@ var gitInitTool = mcp.Tool{
         "required": ["repo_path"]
     }`),
 	Handler: func(ctx context.Context, params mcp.CallToolParams) (mcp.CallToolResult, error) {
+		ctx, span := observability.StartSpan(ctx, fmt.Sprintf("%s.Handler", params.Name))
+		span.SetAttributes(
+			attribute.String("tool_name", params.Name),
+			attribute.String("tool_argument", string(params.Arguments)),
+		)
+		defer span.End()
+
+		var err error
+		defer func() {
+			if err != nil {
+				span.RecordError(err)
+			}
+		}()
+
 		var input struct {
 			RepoPath string `json:"repo_path"`
 		}
@@ -541,6 +697,20 @@ var gitCloneTool = mcp.Tool{
 		"required": ["repo_url", "target_dir"]
 	}`),
 	Handler: func(ctx context.Context, params mcp.CallToolParams) (mcp.CallToolResult, error) {
+		ctx, span := observability.StartSpan(ctx, fmt.Sprintf("%s.Handler", params.Name))
+		span.SetAttributes(
+			attribute.String("tool_name", params.Name),
+			attribute.String("tool_argument", string(params.Arguments)),
+		)
+		defer span.End()
+
+		var err error
+		defer func() {
+			if err != nil {
+				span.RecordError(err)
+			}
+		}()
+
 		var input struct {
 			RepoURL   string `json:"repo_url"`
 			TargetDir string `json:"target_dir"`
