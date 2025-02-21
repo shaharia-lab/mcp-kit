@@ -84,6 +84,8 @@ github.com/pmezard/go-difflib v1.0.0/go.mod h1:iKH77koFhYxTK1pcRnkKkqfTogsbg7gZN
 github.com/russross/blackfriday/v2 v2.1.0/go.mod h1:+Rmxgy9KzJVeS9/2gXHxylqXiyQDYRxCVz55jmeOWTM=
 github.com/shaharia-lab/goai v0.8.0 h1:CLG7ZJI6ukq897bMBYwwq//gFTN2F6/g3kv9N2oapD0=
 github.com/shaharia-lab/goai v0.8.0/go.mod h1:ss0GWMfN+TgDkZEFUOZM9j4SzZVc4zwGfQeksbn/d1Y=
+github.com/shaharia-lab/goai v0.9.0 h1:ZBrjEr6Zp1l4poOCsB66qdOnwOY4rfKqDR1mkYaC50c=
+github.com/shaharia-lab/goai v0.9.0/go.mod h1:ss0GWMfN+TgDkZEFUOZM9j4SzZVc4zwGfQeksbn/d1Y=
 github.com/sirupsen/logrus v1.9.3 h1:dueUQJ1C2q9oE3F7wvmSGAaVtTmUizReu6fjN8uqzbQ=
 github.com/sirupsen/logrus v1.9.3/go.mod h1:naHLuLoDiP4jHNo9R0sCBMtWGeIprob74mVsIT4qYEQ=
 github.com/spf13/cobra v1.8.1 h1:e5/vxKd/rZsfSJMUX1agtjeTDf+qv1/JdBF8gg5k9ZM=

@@ -10,7 +10,7 @@ require (
 	github.com/google/go-github/v60 v60.0.0
 	github.com/kelseyhightower/envconfig v1.4.0
 	github.com/lib/pq v1.10.9
-	github.com/shaharia-lab/goai v0.8.0
+	github.com/shaharia-lab/goai v0.9.0
 	github.com/sirupsen/logrus v1.9.3
 	github.com/spf13/cobra v1.8.1
 	go.opentelemetry.io/otel v1.34.0
@@ -58,5 +58,3 @@ require (
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20250115164207-1a7da9e5054f // indirect
 	google.golang.org/protobuf v1.36.3 // indirect
 )
-
-replace github.com/shaharia-lab/goai => /home/shaharia/Projects/goai
