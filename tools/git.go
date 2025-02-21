@@ -5,7 +5,12 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/shaharia-lab/goai/mcp"
+	"github.com/shaharia-lab/goai/observability"
+	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/codes"
+	"go.opentelemetry.io/otel/trace"
 	"os/exec"
+	"time"
 )
 
 var gitStatusTool = mcp.Tool{
@@ -22,24 +27,71 @@ var gitStatusTool = mcp.Tool{
         "required": ["repo_path"]
     }`),
 	Handler: func(ctx context.Context, params mcp.CallToolParams) (mcp.CallToolResult, error) {
+		ctx, span := observability.StartSpan(ctx, "GitStatusTool.Handler")
+		defer span.End()
+
+		var err error
+		defer func() {
+			if err != nil {
+				span.RecordError(err)
+				span.SetStatus(codes.Error, err.Error())
+			}
+		}()
+
+		// Parse the input
+		span.AddEvent("ParseInput")
 		var input struct {
 			RepoPath string `json:"repo_path"`
 		}
-		if err := json.Unmarshal(params.Arguments, &input); err != nil {
+		if err = json.Unmarshal(params.Arguments, &input); err != nil {
+			span.SetAttributes(attribute.String("error_stage", "json_unmarshal"))
 			return mcp.CallToolResult{}, err
 		}
 
+		span.SetAttributes(
+			attribute.String("repo_path", input.RepoPath),
+		)
+
+		// Execute git command
+		span.AddEvent("ExecuteGitCommand",
+			trace.WithAttributes(
+				attribute.String("command", "git"),
+				attribute.StringSlice("args", []string{"-C", input.RepoPath, "status"}),
+			),
+		)
+
+		cmdStart := time.Now()
 		cmd := exec.CommandContext(ctx, "git", "-C", input.RepoPath, "status")
 		output, err := cmd.CombinedOutput()
+		cmdDuration := time.Since(cmdStart)
+
+		span.SetAttributes(
+			attribute.Float64("cmd_execution_time_ms", float64(cmdDuration.Milliseconds())),
+		)
+
 		if err != nil {
+			span.SetAttributes(
+				attribute.String("error_stage", "git_command"),
+				attribute.String("cmd_output", string(output)),
+				attribute.Int("exit_code", cmd.ProcessState.ExitCode()),
+			)
 			return mcp.CallToolResult{}, fmt.Errorf("git status error: %w", err)
 		}
+
+		// Success
+		outputStr := string(output)
+		outputLen := len(outputStr)
+
+		span.SetAttributes(
+			attribute.Int("output_length", outputLen),
+			attribute.Bool("success", true),
+		)
 
 		return mcp.CallToolResult{
 			Content: []mcp.ToolResultContent{
 				{
 					Type: "text",
-					Text: string(output),
+					Text: outputStr,
 				},
 			},
 		}, nil

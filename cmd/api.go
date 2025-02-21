@@ -15,6 +15,7 @@ import (
 	"github.com/shaharia-lab/mcp-kit/observability"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
+	"go.opentelemetry.io/otel/trace"
 	"io/fs"
 	"os"
 	"time"
@@ -55,10 +56,16 @@ func NewAPICmd(logger *log.Logger) *cobra.Command {
 			}
 			defer cleanup()
 
-			ctx, span := observability.StartSpan(ctx, "main")
-			defer span.End()
+			ctx, cancel := context.WithCancel(ctx)
+			defer cancel()
+
+			ctx, serverSpan := observability.StartSpan(ctx, "server_lifecycle")
+			defer serverSpan.End()
 
 			l := goaiObs.NewDefaultLogger()
+
+			// Add span for MCP client initialization
+			clientCtx, clientSpan := observability.StartSpan(ctx, "mcp_client_init")
 
 			mcpClient := mcp.NewClient(mcp.NewSSETransport(l), mcp.ClientConfig{
 				ClientName:    "My MCP Kit Client",
@@ -73,13 +80,17 @@ func NewAPICmd(logger *log.Logger) *cobra.Command {
 			})
 			defer mcpClient.Close(ctx)
 
-			if err := mcpClient.Connect(ctx); err != nil {
+			if err := mcpClient.Connect(clientCtx); err != nil {
+				clientSpan.End()
 				log.Printf("Failed to connect to SSE: %v", err)
 				return fmt.Errorf("failed to connect to MCP server: %w", err)
 			}
+			clientSpan.End()
 
 			router := setupRouter(ctx, mcpClient, logger)
 			logger.Printf("Starting server on :8080")
+
+			observability.AddAttribute(ctx, "server.port", "8081")
 			return http.ListenAndServe(":8081", router)
 		},
 	}
@@ -95,8 +106,13 @@ func setupRouter(ctx context.Context, mcpClient *mcp.Client, logger *log.Logger)
 
 			observability.AddAttribute(requestCtx, "http.method", r.Method)
 			observability.AddAttribute(requestCtx, "http.url", r.URL.String())
+			observability.AddAttribute(requestCtx, "http.path", r.URL.Path)
+			observability.AddAttribute(requestCtx, "http.host", r.Host)
+
+			w = wrapResponseWriter(w, span)
 
 			next.ServeHTTP(w, r.WithContext(requestCtx))
+
 		})
 	})
 
@@ -138,21 +154,29 @@ func setupRouter(ctx context.Context, mcpClient *mcp.Client, logger *log.Logger)
 	// Handle other static files
 	r.Mount("/static/", http.StripPrefix("/static/", http.FileServer(http.FS(subFS))))
 
-	r.Post("/ask", handleAsk(ctx, mcpClient, logger))
+	r.Post("/ask", handleAsk(mcpClient, logger))
 
 	return r
 }
 
-func handleAsk(ctx context.Context, sseClient *mcp.Client, logger *log.Logger) http.HandlerFunc {
+func handleAsk(sseClient *mcp.Client, logger *log.Logger) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		ctx, span := observability.StartSpan(r.Context(), "handle_ask")
+		defer span.End()
+
 		var req QuestionRequest
 		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+			observability.AddAttribute(ctx, "error", err.Error())
+			defer span.End()
+
 			w.Header().Set("Content-Type", "application/json")
 			json.NewEncoder(w).Encode(map[string]string{
 				"error": "Invalid request body",
 			})
 			return
 		}
+		observability.AddAttribute(ctx, "question.length", len(req.Question))
+		observability.AddAttribute(ctx, "question.use_tools", req.UseTools)
 
 		reqOptions := []goai.RequestOption{
 			goai.WithMaxToken(1000),
@@ -160,9 +184,14 @@ func handleAsk(ctx context.Context, sseClient *mcp.Client, logger *log.Logger) h
 		}
 
 		if req.UseTools {
+			observability.AddAttribute(ctx, "tools.enabled", true)
+
 			logger.Println("Using tools provider")
 			toolsProvider := goai.NewToolsProvider()
 			if err := toolsProvider.AddMCPClient(sseClient); err != nil {
+				observability.AddAttribute(ctx, "error", err.Error())
+				span.End()
+
 				w.Header().Set("Content-Type", "application/json")
 				json.NewEncoder(w).Encode(map[string]string{
 					"error": "Failed to connect with MCP client",
@@ -172,23 +201,41 @@ func handleAsk(ctx context.Context, sseClient *mcp.Client, logger *log.Logger) h
 			reqOptions = append(reqOptions, goai.UseToolsProvider(toolsProvider))
 		}
 
+		llmSetupCtx, llmSetupSpan := observability.StartSpan(ctx, "setup_llm_provider")
+
 		llmProvider := goai.NewAnthropicLLMProvider(goai.AnthropicProviderConfig{
 			Client: goai.NewAnthropicClient(os.Getenv("ANTHROPIC_API_KEY")),
 			Model:  anthropic.ModelClaude3_5Sonnet20241022,
 		})
 		llm := goai.NewLLMRequest(goai.NewRequestConfig(reqOptions...), llmProvider)
 
-		messages, err := buildMessagesFromPromptTemplates(ctx, sseClient, req)
+		observability.AddAttribute(llmSetupCtx, "llm.model", anthropic.ModelClaude3_5Sonnet20241022)
+		llmSetupSpan.End()
+
+		// Span for building messages
+		messagesCtx, messagesSpan := observability.StartSpan(ctx, "build_messages")
+		messages, err := buildMessagesFromPromptTemplates(messagesCtx, sseClient, req)
+
 		if err != nil {
+			observability.AddAttribute(messagesCtx, "error", err.Error())
+			messagesSpan.End()
+
 			w.Header().Set("Content-Type", "application/json")
 			json.NewEncoder(w).Encode(map[string]string{
 				"error": err.Error(),
 			})
 			return
 		}
+		observability.AddAttribute(messagesCtx, "messages.count", len(messages))
+		messagesSpan.End()
 
-		response, err := llm.Generate(ctx, messages)
+		generateCtx, generateSpan := observability.StartSpan(ctx, "generate_response")
+		response, err := llm.Generate(generateCtx, messages)
+
 		if err != nil {
+			observability.AddAttribute(generateCtx, "error", err.Error())
+			generateSpan.End()
+
 			log.Printf("Failed to generate response: %v", err)
 			w.Header().Set("Content-Type", "application/json")
 			json.NewEncoder(w).Encode(map[string]string{
@@ -196,6 +243,10 @@ func handleAsk(ctx context.Context, sseClient *mcp.Client, logger *log.Logger) h
 			})
 			return
 		}
+
+		observability.AddAttribute(generateCtx, "response.input_tokens", response.TotalInputToken)
+		observability.AddAttribute(generateCtx, "response.output_tokens", response.TotalOutputToken)
+		generateSpan.End()
 
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(Response{
@@ -243,4 +294,21 @@ func initializeTracer(ctx context.Context, appName string, l *logrus.Logger) (fu
 	}
 	l.Info("Tracer initialized successfully")
 	return cleanup, nil
+}
+
+// Helper to track response status
+type responseWriterWrapper struct {
+	http.ResponseWriter
+	status int
+	span   trace.Span
+}
+
+func wrapResponseWriter(w http.ResponseWriter, span trace.Span) *responseWriterWrapper {
+	return &responseWriterWrapper{w, http.StatusOK, span}
+}
+
+func (rw *responseWriterWrapper) WriteHeader(code int) {
+	rw.status = code
+	observability.AddAttribute(context.Background(), "http.status_code", code)
+	rw.ResponseWriter.WriteHeader(code)
 }
