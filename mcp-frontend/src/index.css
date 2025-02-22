@@ -183,3 +183,22 @@
 .prose ol ul {
   list-style-type: circle;  /* Changes bullet style for nested unordered lists */
 }
+
+
+/* Tools button in chat box */
+.tools-toggle-button {
+  padding: 0.5rem 1rem;
+  font-size: 0.875rem;  /* 14px */
+  border-radius: 0.375rem;
+  background-color: #f3f4f6;
+  transition: background-color 0.2s;
+}
+
+.tools-toggle-button:hover {
+  background-color: #e5e7eb;
+}
+
+.tools-toggle-button.enabled {
+  background-color: #3b82f6;
+  color: white;
+}
