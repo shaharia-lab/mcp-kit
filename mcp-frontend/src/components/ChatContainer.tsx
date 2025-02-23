@@ -83,8 +83,6 @@ export const ChatContainer: React.FC<ChatContainerProps> = ({
         }
     };
 
-    const inputRef = useRef<HTMLTextAreaElement>(null);
-
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!inputValue.trim() || isLoading) return;
@@ -103,14 +101,12 @@ export const ChatContainer: React.FC<ChatContainerProps> = ({
                 question: inputValue,
                 useTools: toolsEnabled,
                 modelSettings,
-                ...(chatUuid && { chat_uuid: chatUuid }) // Include chat_uuid if it exists
+                ...(chatUuid && { chat_uuid: chatUuid })
             };
 
             const response = await fetch('http://localhost:8081/ask', {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
+                headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(payload),
             });
 
@@ -123,17 +119,11 @@ export const ChatContainer: React.FC<ChatContainerProps> = ({
                 throw new Error('Invalid response format from server');
             }
 
-            // Store the chat_uuid from the first response
             if (data.chat_uuid && !chatUuid) {
                 setChatUuid(data.chat_uuid);
             }
 
-            setMessages(prev => [...prev, {
-                content: data.answer,
-                isUser: false
-            }]);
-
-            inputRef.current?.focus();
+            setMessages(prev => [...prev, { content: data.answer, isUser: false }]);
 
         } catch (error) {
             console.error('Error:', error);
@@ -143,10 +133,8 @@ export const ChatContainer: React.FC<ChatContainerProps> = ({
             }]);
         } finally {
             setIsLoading(false);
-            inputRef.current?.focus();
         }
     };
-
 
     return (
         <div className="max-w-6xl mx-auto chat-container overflow-hidden flex flex-col h-full">
@@ -186,13 +174,11 @@ export const ChatContainer: React.FC<ChatContainerProps> = ({
 
 
                     <textarea
-                        ref={inputRef}
                         value={inputValue}
                         onChange={(e) => setInputValue(e.target.value)}
                         onKeyDown={handleKeyDown}
                         placeholder="Type your message... (Press Enter to send, Shift+Enter for new line)"
                         className="w-full min-h-[80px] p-3 rounded-lg border border-gray-300 focus:border-gray-400 focus:ring-1 focus:ring-gray-400 outline-none resize-none"
-                        disabled={isLoading}
                     />
                 </div>
             </form>
