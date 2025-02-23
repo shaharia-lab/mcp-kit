@@ -61,9 +61,10 @@ export const Sidebar: React.FC<SidebarProps> = ({
         <div
             className={`fixed top-0 left-0 h-full bg-white shadow-lg z-40 transition-all duration-300 transform ${
                 isOpen ? 'translate-x-0' : '-translate-x-full'
-            } sidebar-width`}
+            } sidebar-width flex flex-col`}
         >
-            <div className="p-4">
+            {/* Header section - fixed */}
+            <div className="p-4 flex-shrink-0">
                 <div className="flex items-center justify-between mb-6">
                     <h2 className="text-xl font-bold">Chat History</h2>
                     <button
@@ -75,86 +76,70 @@ export const Sidebar: React.FC<SidebarProps> = ({
                     </button>
                 </div>
 
-                {/* Chat History Section */}
-                <div className="space-y-4">
-                    <div className="border-b pb-4">
-                        <h3 className="text-sm font-semibold text-gray-500 mb-2">Recent Chats</h3>
-                        <ul className="space-y-2">
-                            <li
-                                className="hover:bg-gray-50 p-2 rounded cursor-pointer"
-                                onClick={() => onChatSelect?.('')}
-                            >
-                                <div className="text-sm font-medium">New Chat</div>
-                                <div className="text-xs text-gray-500">Start a new conversation</div>
-                            </li>
-                        </ul>
-                    </div>
-
-                    {/* Saved Chats */}
-                    <div>
-                        <h3 className="text-sm font-semibold text-gray-500 mb-2">Saved Chats</h3>
-                        {isLoading ? (
-                            <div className="text-sm text-gray-400 italic p-2">
-                                Loading...
-                            </div>
-                        ) : error ? (
-                            <div className="text-sm text-red-500 italic p-2">
-                                {error}
-                            </div>
-                        ) : (
-                            <ul className="space-y-2">
-                                {chatHistories.length === 0 ? (
-                                    <li className="text-sm text-gray-400 italic p-2">
-                                        No saved chats yet
-                                    </li>
-                                ) : (
-                                    chatHistories.map((chat) => {
-                                        const messagePreview = getFirstMessage(chat);
-                                        const messageDate = formatDate(chat.created_at);
-                                        const messageCount = chat.messages?.length ?? 0;
-
-                                        return (
-                                            <li
-                                                key={chat.uuid}
-                                                className={`hover:bg-gray-50 p-2 rounded cursor-pointer ${
-                                                    selectedChatId === chat.uuid ? 'bg-gray-100' : ''
-                                                }`}
-                                                onClick={() => onChatSelect?.(chat.uuid)}
-                                            >
-                                                <div className="text-sm font-medium">{getFirstMessage(chat)}</div>
-                                                <div className="text-xs text-gray-500">{formatDate(chat.created_at)}</div>
-                                            </li>
-
-                                        );
-                                    })
-                                )}
-                            </ul>
-                        )}
-                    </div>
+                {/* New Chat Section - fixed */}
+                <div className="border-b pb-4">
+                    <h3 className="text-sm font-semibold text-gray-500 mb-2">Recent Chats</h3>
+                    <ul className="space-y-2">
+                        <li
+                            className="hover:bg-gray-50 p-2 rounded cursor-pointer"
+                            onClick={() => onChatSelect?.('')}
+                        >
+                            <div className="text-sm font-medium">New Chat</div>
+                            <div className="text-xs text-gray-500">Start a new conversation</div>
+                        </li>
+                    </ul>
                 </div>
+            </div>
 
-                {/* Settings Section */}
-                <div className="absolute bottom-0 left-0 right-0 p-4 border-t">
-                    <div className="space-y-2">
-                        <button
-                            className="w-full text-left px-3 py-2 text-sm hover:bg-gray-50 rounded flex items-center gap-2"
-                        >
-                            <ArrowPathIcon className="h-5 w-5 text-gray-500" />
-                            Clear History
-                        </button>
-                        <button
-                            className="w-full text-left px-3 py-2 text-sm hover:bg-gray-50 rounded flex items-center gap-2"
-                        >
-                            <QuestionMarkCircleIcon className="h-5 w-5 text-gray-500" />
-                            Help & FAQ
-                        </button>
-                        <button
-                            className="w-full text-left px-3 py-2 text-sm hover:bg-gray-50 rounded flex items-center gap-2"
-                        >
-                            <Cog6ToothIcon className="h-5 w-5 text-gray-500" />
-                            Settings
-                        </button>
-                    </div>
+            {/* Scrollable chat histories section */}
+            <div className="flex-1 min-h-0 overflow-y-auto scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100">
+                <div className="p-4">
+                    <h3 className="text-sm font-semibold text-gray-500 mb-2">Saved Chats</h3>
+                    {isLoading ? (
+                        <div className="text-sm text-gray-400 italic p-2">
+                            Loading...
+                        </div>
+                    ) : error ? (
+                        <div className="text-sm text-red-500 italic p-2">
+                            {error}
+                        </div>
+                    ) : (
+                        <ul className="space-y-2">
+                            {chatHistories.map((chat) => (
+                                <li
+                                    key={chat.uuid}
+                                    className={`p-2 rounded cursor-pointer ${
+                                        selectedChatId === chat.uuid
+                                            ? 'hover:bg-blue-100'
+                                            : 'hover:bg-gray-50'
+                                    }`}
+                                    onClick={() => onChatSelect?.(chat.uuid)}
+                                >
+                                    <div className="text-sm font-medium">
+                                        {getFirstMessage(chat)}
+                                    </div>
+                                    <div className="text-xs text-gray-500">
+                                        {formatDate(chat.created_at)}
+                                    </div>
+                                </li>
+                            ))}
+                        </ul>
+                    )}
+                </div>
+            </div>
+
+            {/* Footer section - fixed */}
+            <div className="p-4 border-t flex-shrink-0">
+                <div className="flex space-x-4 justify-center">
+                    <button className="p-2 hover:bg-gray-100 rounded" aria-label="Refresh">
+                        <ArrowPathIcon className="h-5 w-5 text-gray-500" />
+                    </button>
+                    <button className="p-2 hover:bg-gray-100 rounded" aria-label="Help">
+                        <QuestionMarkCircleIcon className="h-5 w-5 text-gray-500" />
+                    </button>
+                    <button className="p-2 hover:bg-gray-100 rounded" aria-label="Settings">
+                        <Cog6ToothIcon className="h-5 w-5 text-gray-500" />
+                    </button>
                 </div>
             </div>
         </div>
