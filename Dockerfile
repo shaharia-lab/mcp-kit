@@ -1,24 +1,10 @@
 # syntax=docker/dockerfile:1
 
-# Stage 1: Build the frontend
-FROM node:20-alpine AS frontend-builder
+# Stage 1: Build frontend and backend
+FROM golang:1.23-alpine AS builder
 
-WORKDIR /app
-
-# Copy frontend directory with package files
-COPY ./mcp-frontend/package.json ./mcp-frontend/package-lock.json ./
-COPY ./mcp-frontend ./mcp-frontend
-
-# Install dependencies and build frontend
-WORKDIR /app/mcp-frontend
-RUN npm ci
-RUN npm run build
-
-# Stage 2: Build the Go application
-FROM golang:1.23-alpine AS backend-builder
-
-# Install necessary build tools and make
-RUN apk add --no-cache git make
+# Install necessary build tools and Node.js
+RUN apk add --no-cache git make nodejs npm
 
 # Set working directory
 WORKDIR /app
@@ -26,32 +12,24 @@ WORKDIR /app
 # Create a non-root user
 RUN adduser -D -g '' app
 
-# Copy go mod files
-COPY go.mod go.sum ./
-COPY Makefile ./
-
-# Download dependencies
-RUN go mod download
-
-# Copy source code and the frontend build
+# Copy the entire project
 COPY . .
-COPY --from=frontend-builder /app/mcp-frontend/dist ./cmd/static
 
-# Build the application using Make
-RUN make build
+# Install frontend dependencies and build both frontend and backend
+RUN cd mcp-frontend && npm ci && cd .. && make frontend-build && make build
 
-# Stage 3: Create the final image
+# Stage 2: Create the final image
 FROM alpine:3.19
 
 # Install necessary runtime dependencies
 RUN apk add --no-cache ca-certificates tzdata
 
 # Import the user and group files from builder
-COPY --from=backend-builder /etc/passwd /etc/passwd
+COPY --from=builder /etc/passwd /etc/passwd
 
-# Copy the binary from builder (updated path)
-COPY --from=backend-builder /app/build/mcp /usr/local/bin/mcp
-COPY --from=backend-builder /app/cmd/static /usr/local/bin/static
+# Copy the binary and static files from builder
+COPY --from=builder /app/build/mcp /usr/local/bin/mcp
+COPY --from=builder /app/cmd/static /usr/local/bin/static
 
 # Use non-root user
 USER app
@@ -61,8 +39,8 @@ ENV TZ=UTC \
     APP_USER=app \
     APP_PORT=8080
 
-# Expose the application port
-EXPOSE 8080
+# Expose both API and frontend ports
+EXPOSE 8080 8081
 
 # Set the entrypoint
 ENTRYPOINT ["/usr/local/bin/mcp"]
