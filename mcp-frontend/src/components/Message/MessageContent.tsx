@@ -5,7 +5,7 @@ interface MessageContentProps {
     content: string;
 }
 
-export const Content: React.FC<MessageContentProps> = ({ content }) => {
+export const MessageContent: React.FC<MessageContentProps> = ({ content }) => {
     const sanitizedContent = ContentParser.parse(content);
 
     return (

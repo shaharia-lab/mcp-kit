@@ -1,6 +1,7 @@
+// components/Message.tsx
 import React from 'react';
-import { Header } from './Header.tsx';
-import { Content } from './Content.tsx';
+import {MessageHeader} from "./MessageHeader.tsx";
+import {MessageContent} from "./MessageContent.tsx";
 
 interface MessageProps {
     content: string;
@@ -8,15 +9,6 @@ interface MessageProps {
 }
 
 export const Message: React.FC<MessageProps> = ({ content, isUser }) => {
-    const copyToClipboard = async () => {
-        try {
-            await navigator.clipboard.writeText(content);
-            // Add copy feedback if needed
-        } catch (err) {
-            console.error('Failed to copy text:', err);
-        }
-    };
-
     return (
         <div
             className={`message p-4 rounded-lg ${
@@ -25,11 +17,11 @@ export const Message: React.FC<MessageProps> = ({ content, isUser }) => {
             data-message-user={isUser}
             data-message-assistant={!isUser}
         >
-            <Header
+            <MessageHeader
                 isUser={isUser}
-                onCopy={copyToClipboard}
+                content={content}
             />
-            <Content content={content} />
+            <MessageContent content={content} />
         </div>
     );
 };
