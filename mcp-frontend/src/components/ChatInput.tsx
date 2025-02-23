@@ -1,18 +1,27 @@
 import React, { useState, KeyboardEvent } from 'react';
 import { ToolsToggle } from './ChatInputButton/ToolsToggle.tsx';
+import {LLMProviderToggle} from "./LLMProviderToggle.tsx";
 
 interface ChatInputProps {
     onSubmit: (message: string) => Promise<void>;
     isLoading: boolean;
     selectedTools: string[];
     onToolsChange: (tools: string[]) => void;
+    selectedProvider: string | null;
+    selectedModelId: string | null;
+    onProviderChange: (provider: string, modelId: string) => void;
 }
+
 export const ChatInput: React.FC<ChatInputProps> = ({
                                                         onSubmit,
                                                         isLoading,
                                                         selectedTools,
-                                                        onToolsChange
+                                                        onToolsChange,
+                                                        selectedProvider,    // Add this
+                                                        selectedModelId,     // Add this
+                                                        onProviderChange    // Add this
                                                     }) => {
+
     const [inputValue, setInputValue] = useState('');
 
     const handleKeyDown = (e: KeyboardEvent<HTMLTextAreaElement>) => {
@@ -38,6 +47,13 @@ export const ChatInput: React.FC<ChatInputProps> = ({
                         selectedTools={selectedTools}
                         onToolsChange={onToolsChange}
                     />
+
+                    <LLMProviderToggle
+                        selectedProvider={selectedProvider}
+                        selectedModelId={selectedModelId}
+                        onProviderChange={onProviderChange}
+                    />
+
                 </div>
 
                 <textarea

@@ -31,6 +31,14 @@ export const ChatContainer: React.FC<ChatContainerProps> = ({
     const messagesEndRef = useRef<HTMLDivElement>(null);
     const [chatUuid, setChatUuid] = useState<string | null>(null);
     const [selectedTools, setSelectedTools] = useState<string[]>([]);
+    const [selectedProvider, setSelectedProvider] = useState<string | null>(null);
+    const [selectedModelId, setSelectedModelId] = useState<string | null>(null);
+
+    const handleProviderChange = (provider: string, modelId: string) => {
+        setSelectedProvider(provider);
+        setSelectedModelId(modelId);
+    };
+
 
 
     const scrollToBottom = () => {
@@ -126,7 +134,11 @@ export const ChatContainer: React.FC<ChatContainerProps> = ({
                 isLoading={isLoading}
                 selectedTools={selectedTools}
                 onToolsChange={setSelectedTools}
+                selectedProvider={selectedProvider}
+                selectedModelId={selectedModelId}
+                onProviderChange={handleProviderChange}
             />
+
         </div>
     );
 };
