@@ -134,8 +134,8 @@ function App() {
             />
 
             <div className="flex flex-col h-screen">
-                <header className="bg-white shadow-sm">
-                    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex justify-between items-center">
+                <header className="bg-white shadow-sm w-full">
+                    <div className="w-full px-4 sm:px-6 lg:px-8 py-4 flex justify-between items-center">
                         <button
                             onClick={toggleSidebar}
                             className="p-2 rounded-md hover:bg-gray-100 focus:outline-none"
@@ -165,6 +165,7 @@ function App() {
                         </div>
                     </div>
                 </header>
+
 
                 <main className="flex-1 overflow-hidden">
                     {showWelcome ? (
