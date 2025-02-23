@@ -59,17 +59,7 @@ func NewServerCmd(logger *log.Logger) *cobra.Command {
 				return fmt.Errorf("failed to add prompts: %w", err)
 			}
 
-			selectedTools := make([]mcp.Tool, 0)
-			for _, tool := range tools.MCPToolsRegistry {
-				for _, enabledTool := range cfg.ToolsEnabled {
-					if tool.Name == enabledTool {
-						selectedTools = append(selectedTools, tool)
-						break
-					}
-				}
-			}
-
-			err = baseServer.AddTools(selectedTools...)
+			err = baseServer.AddTools(tools.MCPToolsRegistry...)
 			if err != nil {
 				return fmt.Errorf("failed to add tools: %w", err)
 			}
