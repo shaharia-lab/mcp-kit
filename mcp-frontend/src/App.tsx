@@ -8,6 +8,7 @@ import { ModelControls } from './components/ModelControls';
 import { ChatContainer } from './components/ChatContainer';
 import { WelcomeScreen } from './components/WelcomeScreen';
 import { ToolsToggle } from './components/ToolsToggle';
+import {Cog6ToothIcon} from "@heroicons/react/24/outline";
 
 interface ModelSettings {
     temperature: number;
@@ -137,17 +138,13 @@ function App() {
                     </button>
 
                     <div className="flex gap-2">
-                        <ToolsToggle
-                            enabled={toolsEnabled}
-                            onChange={setToolsEnabled}
-                        />
                         <button
                             id="chat-control-toggle"
                             onClick={toggleModelControls}
                             className="p-2 hover:bg-gray-100 rounded"
                             aria-label="Toggle model controls"
                         >
-                            ⚙️
+                            <Cog6ToothIcon className="h-5 w-5 text-gray-600" />
                         </button>
                     </div>
                 </div>

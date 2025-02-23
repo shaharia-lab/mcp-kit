@@ -1,4 +1,6 @@
 import React from 'react';
+import { ArrowPathIcon, QuestionMarkCircleIcon, Cog6ToothIcon } from '@heroicons/react/24/outline';
+
 
 interface SidebarProps {
     isOpen: boolean;
@@ -54,19 +56,19 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
                         <button
                             className="w-full text-left px-3 py-2 text-sm hover:bg-gray-50 rounded flex items-center gap-2"
                         >
-                            <span>🔄</span>
+                            <ArrowPathIcon className="h-5 w-5 text-gray-500" />
                             Clear History
                         </button>
                         <button
                             className="w-full text-left px-3 py-2 text-sm hover:bg-gray-50 rounded flex items-center gap-2"
                         >
-                            <span>❓</span>
+                            <QuestionMarkCircleIcon className="h-5 w-5 text-gray-500" />
                             Help & FAQ
                         </button>
                         <button
                             className="w-full text-left px-3 py-2 text-sm hover:bg-gray-50 rounded flex items-center gap-2"
                         >
-                            <span>⚙️</span>
+                            <Cog6ToothIcon className="h-5 w-5 text-gray-500" />
                             Settings
                         </button>
                     </div>
