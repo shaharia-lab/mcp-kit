@@ -9,10 +9,12 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/go-chi/cors"
+	"github.com/google/uuid"
 	"github.com/shaharia-lab/goai"
 	"github.com/shaharia-lab/goai/mcp"
 	goaiObs "github.com/shaharia-lab/goai/observability"
 	"github.com/shaharia-lab/mcp-kit/observability"
+	"github.com/shaharia-lab/mcp-kit/storage"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"go.opentelemetry.io/otel/trace"
@@ -33,6 +35,7 @@ type ModelSettings struct {
 	TopK        int64   `json:"topK"`
 }
 type QuestionRequest struct {
+	UUID          uuid.UUID     `json:"uuid"`
 	Question      string        `json:"question"`
 	UseTools      bool          `json:"useTools"`
 	ModelSettings ModelSettings `json:"modelSettings"`
@@ -93,7 +96,9 @@ func NewAPICmd(logger *log.Logger) *cobra.Command {
 			}
 			clientSpan.End()
 
-			router := setupRouter(ctx, mcpClient, logger)
+			inMemoryChatHistoryStorage := storage.NewInMemoryChatHistoryStorage()
+
+			router := setupRouter(ctx, mcpClient, logger, inMemoryChatHistoryStorage)
 			logger.Printf("Starting server on :8080")
 
 			observability.AddAttribute(ctx, "server.port", "8081")
@@ -102,7 +107,7 @@ func NewAPICmd(logger *log.Logger) *cobra.Command {
 	}
 }
 
-func setupRouter(ctx context.Context, mcpClient *mcp.Client, logger *log.Logger) *chi.Mux {
+func setupRouter(ctx context.Context, mcpClient *mcp.Client, logger *log.Logger, chatHistoryStorage storage.ChatHistoryStorage) *chi.Mux {
 	r := chi.NewRouter()
 
 	r.Use(func(next http.Handler) http.Handler {
@@ -160,12 +165,45 @@ func setupRouter(ctx context.Context, mcpClient *mcp.Client, logger *log.Logger)
 	// Handle other static files
 	r.Mount("/static/", http.StripPrefix("/static/", http.FileServer(http.FS(subFS))))
 
-	r.Post("/ask", handleAsk(mcpClient, logger))
+	r.Post("/ask", handleAsk(mcpClient, logger, chatHistoryStorage))
+	r.Get("/chats", handleListChats(logger, chatHistoryStorage))
 
 	return r
 }
 
-func handleAsk(sseClient *mcp.Client, logger *log.Logger) http.HandlerFunc {
+func handleListChats(logger *log.Logger, historyStorage storage.ChatHistoryStorage) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		chats, err := historyStorage.ListChatHistories()
+		if err != nil {
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusInternalServerError)
+			json.NewEncoder(w).Encode(map[string]string{
+				"error": "Failed to retrieve chat histories",
+			})
+			return
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+
+		response := struct {
+			Chats []storage.ChatHistory `json:"chats"`
+		}{
+			Chats: chats,
+		}
+
+		if err := json.NewEncoder(w).Encode(response); err != nil {
+			logger.Printf("Error encoding response: %v", err)
+			w.WriteHeader(http.StatusInternalServerError)
+			json.NewEncoder(w).Encode(map[string]string{
+				"error": "Failed to encode response",
+			})
+			return
+		}
+	}
+}
+
+func handleAsk(sseClient *mcp.Client, logger *log.Logger, historyStorage storage.ChatHistoryStorage) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		ctx, span := observability.StartSpan(r.Context(), "handle_ask")
 		defer span.End()
@@ -183,6 +221,51 @@ func handleAsk(sseClient *mcp.Client, logger *log.Logger) http.HandlerFunc {
 		}
 		observability.AddAttribute(ctx, "question.length", len(req.Question))
 		observability.AddAttribute(ctx, "question.use_tools", req.UseTools)
+
+		var chat *storage.ChatHistory
+		var err error
+
+		// Check if UUID is nil (zero UUID)
+		if req.UUID == uuid.Nil {
+			// Create new chat if UUID is nil
+			chat, err = historyStorage.CreateChat()
+			if err != nil {
+				w.Header().Set("Content-Type", "application/json")
+				w.WriteHeader(http.StatusInternalServerError)
+				json.NewEncoder(w).Encode(map[string]string{
+					"error": "Failed to create new chat",
+				})
+				return
+			}
+		} else {
+			// Get existing chat if UUID is provided
+			chat, err = historyStorage.GetChat(req.UUID)
+			if err != nil {
+				w.Header().Set("Content-Type", "application/json")
+				w.WriteHeader(http.StatusNotFound)
+				json.NewEncoder(w).Encode(map[string]string{
+					"error": "Chat not found",
+				})
+				return
+			}
+		}
+
+		// Add message to the chat
+		err = historyStorage.AddMessage(chat.UUID, storage.Message{
+			LLMMessage: goai.LLMMessage{
+				Role: goai.UserRole,
+				Text: req.Question,
+			},
+			GeneratedAt: time.Now(),
+		})
+		if err != nil {
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusInternalServerError)
+			json.NewEncoder(w).Encode(map[string]string{
+				"error": "Failed to add message to chat history",
+			})
+			return
+		}
 
 		reqOptions := []goai.RequestOption{
 			goai.WithMaxToken(1000),
@@ -269,6 +352,21 @@ func handleAsk(sseClient *mcp.Client, logger *log.Logger) http.HandlerFunc {
 			w.Header().Set("Content-Type", "application/json")
 			json.NewEncoder(w).Encode(map[string]string{
 				"error": "Failed to generate response",
+			})
+			return
+		}
+
+		err = historyStorage.AddMessage(chat.UUID, storage.Message{
+			LLMMessage: goai.LLMMessage{
+				Role: goai.SystemRole,
+				Text: response.Text,
+			},
+			GeneratedAt: time.Now(),
+		})
+		if err != nil {
+			w.Header().Set("Content-Type", "application/json")
+			json.NewEncoder(w).Encode(map[string]string{
+				"error": "Failed to add message to chat history",
 			})
 			return
 		}
