@@ -1,6 +1,7 @@
 import React, {useState, KeyboardEvent, useRef, useEffect} from 'react';
 import { Message } from './Message';
 import {WrenchScrewdriverIcon} from "@heroicons/react/16/solid";
+import {chatService} from "../services/chatService.ts";
 
 interface ModelSettings {
     temperature: number;
@@ -52,13 +53,7 @@ export const ChatContainer: React.FC<ChatContainerProps> = ({
             }
 
             try {
-                const response = await fetch(`http://localhost:8081/chat/${selectedChatId}`);
-                if (!response.ok) {
-                    throw new Error('Failed to load chat history');
-                }
-
-                const data = await response.json();
-                // Transform the messages to match our ChatMessage format
+                const data = await chatService.loadChatHistory(selectedChatId);
                 const formattedMessages = data.messages.map((msg: any) => ({
                     content: msg.Text,
                     isUser: msg.IsUser
@@ -68,7 +63,6 @@ export const ChatContainer: React.FC<ChatContainerProps> = ({
                 setChatUuid(selectedChatId);
             } catch (error) {
                 console.error('Error loading chat history:', error);
-                // Optionally show an error message to the user
             }
         };
 
