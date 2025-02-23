@@ -4,15 +4,14 @@ import { ToolsToggle } from './ChatInputButton/ToolsToggle.tsx';
 interface ChatInputProps {
     onSubmit: (message: string) => Promise<void>;
     isLoading: boolean;
-    toolsEnabled: boolean;
-    onToolsToggle: (enabled: boolean) => void;
+    selectedTools: string[];
+    onToolsChange: (tools: string[]) => void;
 }
-
 export const ChatInput: React.FC<ChatInputProps> = ({
                                                         onSubmit,
                                                         isLoading,
-                                                        toolsEnabled,
-                                                        onToolsToggle
+                                                        selectedTools,
+                                                        onToolsChange
                                                     }) => {
     const [inputValue, setInputValue] = useState('');
 
@@ -36,8 +35,8 @@ export const ChatInput: React.FC<ChatInputProps> = ({
             <div className="flex flex-col gap-2">
                 <div className="flex gap-2">
                     <ToolsToggle
-                        toolsEnabled={toolsEnabled}
-                        onToolsToggle={onToolsToggle}
+                        selectedTools={selectedTools}
+                        onToolsChange={onToolsChange}
                     />
                 </div>
 

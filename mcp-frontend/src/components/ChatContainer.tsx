@@ -1,7 +1,7 @@
 import React, {useState, useRef, useEffect} from 'react';
 import {chatService} from "../services/chatService.ts";
-import {ChatInput} from "./ChatInput.tsx";
 import {Message} from "./Message/Message.tsx";
+import {ChatInput} from "./ChatInput.tsx";
 
 interface ModelSettings {
     temperature: number;
@@ -16,22 +16,23 @@ interface ChatMessage {
 }
 
 interface ChatContainerProps {
-    toolsEnabled: boolean;
+    selectedTools: string[];
     modelSettings: ModelSettings;
     selectedChatId?: string; // Add this prop
 }
 
 
 export const ChatContainer: React.FC<ChatContainerProps> = ({
-                                                                toolsEnabled: initialToolsEnabled,
+                                                                selectedTools: initialSelectedTools,
                                                                 modelSettings,
                                                                 selectedChatId
                                                             }) => {
     const [messages, setMessages] = useState<ChatMessage[]>([]);
     const [isLoading, setIsLoading] = useState(false);
-    const [toolsEnabled, setToolsEnabled] = useState(initialToolsEnabled);
     const messagesEndRef = useRef<HTMLDivElement>(null);
     const [chatUuid, setChatUuid] = useState<string | null>(null);
+    const [selectedTools, setSelectedTools] = useState<string[]>([]);
+
 
     const scrollToBottom = () => {
         messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -77,9 +78,9 @@ export const ChatContainer: React.FC<ChatContainerProps> = ({
         setMessages(prev => [...prev, newMessage]);
 
         try {
-            const payload = {
+            const payload: ChatPayload = {
                 question: message,
-                useTools: toolsEnabled,
+                selectedTools,
                 modelSettings,
                 ...(chatUuid && { chat_uuid: chatUuid })
             };
@@ -105,7 +106,7 @@ export const ChatContainer: React.FC<ChatContainerProps> = ({
     return (
         <div className="max-w-6xl mx-auto chat-container overflow-hidden flex flex-col h-full">
             <div className="flex-1 overflow-y-auto p-4 space-y-4 scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100 hover:scrollbar-thumb-gray-400">
-                {messages.map((message, index) => (
+            {messages.map((message, index) => (
                     <Message
                         key={index}
                         content={message.content}
@@ -124,8 +125,8 @@ export const ChatContainer: React.FC<ChatContainerProps> = ({
             <ChatInput
                 onSubmit={handleMessageSubmit}
                 isLoading={isLoading}
-                toolsEnabled={toolsEnabled}
-                onToolsToggle={setToolsEnabled}
+                selectedTools={selectedTools}
+                onToolsChange={setSelectedTools}
             />
         </div>
     );

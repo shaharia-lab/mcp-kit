@@ -5,7 +5,7 @@ interface ChatResponse {
 
 interface ChatPayload {
     question: string;
-    useTools: boolean;
+    selectedTools: string[];  // Replace useTools with selectedTools
     modelSettings: {
         temperature: number;
         maxTokens: number;
@@ -14,6 +14,7 @@ interface ChatPayload {
     };
     chat_uuid?: string;
 }
+
 
 export const chatService = {
     async sendMessage(payload: ChatPayload): Promise<ChatResponse> {
