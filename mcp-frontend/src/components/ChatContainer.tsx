@@ -1,7 +1,7 @@
 import React, {useState, useRef, useEffect} from 'react';
-import { Message } from './Message';
 import {chatService} from "../services/chatService.ts";
 import {ChatInput} from "./ChatInput.tsx";
+import {Message} from "./Message/Message.tsx";
 
 interface ModelSettings {
     temperature: number;
