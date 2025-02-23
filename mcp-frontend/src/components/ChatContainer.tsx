@@ -1,4 +1,4 @@
-import React, { useState, KeyboardEvent } from 'react';
+import React, {useState, KeyboardEvent, useRef, useEffect} from 'react';
 import { Message } from './Message';
 import {WrenchScrewdriverIcon} from "@heroicons/react/16/solid";
 
@@ -24,6 +24,16 @@ export const ChatContainer: React.FC<ChatContainerProps> = ({ toolsEnabled: init
     const [inputValue, setInputValue] = useState('');
     const [isLoading, setIsLoading] = useState(false);
     const [toolsEnabled, setToolsEnabled] = useState(initialToolsEnabled);
+    const messagesEndRef = useRef<HTMLDivElement>(null);
+
+    const scrollToBottom = () => {
+        messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    };
+
+    useEffect(() => {
+        scrollToBottom();
+    }, [messages, isLoading]);
+
 
     const handleKeyDown = (e: KeyboardEvent<HTMLTextAreaElement>) => {
         if (e.key === 'Enter' && !e.shiftKey) {
@@ -84,7 +94,7 @@ export const ChatContainer: React.FC<ChatContainerProps> = ({ toolsEnabled: init
 
     return (
         <div className="max-w-6xl mx-auto chat-container overflow-hidden flex flex-col h-full">
-            <div className="flex-1 overflow-y-auto p-4 space-y-4">
+            <div className="flex-1 overflow-y-auto p-4 space-y-4 scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100 hover:scrollbar-thumb-gray-400">
                 {messages.map((msg, index) => (
                     <Message
                         key={index}
@@ -100,6 +110,7 @@ export const ChatContainer: React.FC<ChatContainerProps> = ({ toolsEnabled: init
                         </div>
                     </div>
                 )}
+                <div ref={messagesEndRef} />
             </div>
 
             <form onSubmit={handleSubmit} className="p-4 border-t border-gray-200">
