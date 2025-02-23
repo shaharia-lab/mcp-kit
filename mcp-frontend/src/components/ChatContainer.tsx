@@ -84,8 +84,8 @@ export const ChatContainer: React.FC<ChatContainerProps> = ({ toolsEnabled: init
 
     };
     return (
-        <div className="chat-container overflow-hidden flex flex-col">
-            <div className="flex-1 overflow-y-auto p-4 space-y-4">
+        <div className="max-w-6xl mx-auto chat-container overflow-hidden flex flex-col">
+        <div className="flex-1 overflow-y-auto p-4 space-y-4">
                 {messages.map((msg, index) => (
                     <Message
                         key={index}

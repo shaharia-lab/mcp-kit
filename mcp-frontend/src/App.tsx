@@ -51,7 +51,7 @@ function initializeMarked() {
 function App() {
     const [sidebarOpen, setSidebarOpen] = useState(false);
     const [modelControlsOpen, setModelControlsOpen] = useState(false);
-    const [toolsEnabled, setToolsEnabled] = useState(false);
+    const [toolsEnabled] = useState(false);
     const [showWelcome, setShowWelcome] = useState(true);
     const [modelSettings, setModelSettings] = useState<ModelSettings>({
         temperature: 0.5,

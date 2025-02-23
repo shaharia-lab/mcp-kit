@@ -17,7 +17,6 @@ import (
 	"github.com/spf13/cobra"
 	"go.opentelemetry.io/otel/trace"
 	"io/fs"
-	"os"
 	"time"
 
 	"log"
@@ -227,12 +226,12 @@ func handleAsk(sseClient *mcp.Client, logger *log.Logger) http.HandlerFunc {
 
 		llmSetupCtx, llmSetupSpan := observability.StartSpan(ctx, "setup_llm_provider")
 
-		llmProvider := goai.NewAnthropicLLMProvider(goai.AnthropicProviderConfig{
+		/*llmProvider := goai.NewAnthropicLLMProvider(goai.AnthropicProviderConfig{
 			Client: goai.NewAnthropicClient(os.Getenv("ANTHROPIC_API_KEY")),
 			Model:  anthropic.ModelClaude3_5Sonnet20241022,
 		})
 		llm := goai.NewLLMRequest(goai.NewRequestConfig(reqOptions...), llmProvider)
-
+		*/
 		observability.AddAttribute(llmSetupCtx, "llm.model", anthropic.ModelClaude3_5Sonnet20241022)
 		llmSetupSpan.End()
 
@@ -254,7 +253,13 @@ func handleAsk(sseClient *mcp.Client, logger *log.Logger) http.HandlerFunc {
 		messagesSpan.End()
 
 		generateCtx, generateSpan := observability.StartSpan(ctx, "generate_response")
-		response, err := llm.Generate(generateCtx, messages)
+		//response, err := llm.Generate(generateCtx, messages)
+		response := goai.LLMResponse{
+			Text:             "# Hello! 👋\n\nI'm your AI assistant, ready to help you. To provide the most useful assistance, I can help you with:\n\n- Answering questions\n- Solving problems\n- Explaining concepts\n- Writing and reviewing code\n- General discussion and information\n\n## How can I help you today?\n\nPlease feel free to ask any specific question or let me know what kind of assistance you need. I'll make sure to:\n1. Understand your request clearly\n2. Ask for any needed clarification\n3. Provide well-formatted, helpful responses",
+			TotalInputToken:  10,
+			TotalOutputToken: 10,
+			CompletionTime:   2,
+		}
 
 		if err != nil {
 			observability.AddAttribute(generateCtx, "error", err.Error())

@@ -1,6 +1,7 @@
 import React from 'react';
 import { marked } from 'marked';
 import DOMPurify from 'dompurify';
+import {ClipboardDocumentIcon} from "@heroicons/react/16/solid";
 
 interface MessageProps {
     content: string;
@@ -50,8 +51,9 @@ export const Message: React.FC<MessageProps> = ({ content, isUser }) => {
                         className="copy-button text-gray-500 hover:text-gray-700"
                         title="Copy message"
                     >
-                        📋
+                        <ClipboardDocumentIcon className="h-5 w-5" />
                     </button>
+
                 )}
             </div>
             <div
