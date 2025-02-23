@@ -3,6 +3,12 @@ interface ChatResponse {
     chat_uuid?: string;
 }
 
+interface LLMProvider {
+    provider: string;
+    modelId: string;
+}
+
+
 interface ChatPayload {
     question: string;
     selectedTools: string[];  // Replace useTools with selectedTools
@@ -13,6 +19,8 @@ interface ChatPayload {
         topK: number;
     };
     chat_uuid?: string;
+    llmProvider?: LLMProvider;
+
 }
 
 

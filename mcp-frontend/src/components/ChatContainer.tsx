@@ -2,6 +2,7 @@ import React, {useState, useRef, useEffect} from 'react';
 import {chatService} from "../services/chatService.ts";
 import {Message} from "./Message/Message.tsx";
 import {ChatInput} from "./ChatInput.tsx";
+import { ChatPayload } from '../types/chat';
 
 interface ModelSettings {
     temperature: number;
@@ -89,8 +90,15 @@ export const ChatContainer: React.FC<ChatContainerProps> = ({
                 question: message,
                 selectedTools,
                 modelSettings,
-                ...(chatUuid && { chat_uuid: chatUuid })
+                ...(chatUuid && { chat_uuid: chatUuid }),
+                ...(selectedProvider && selectedModelId && {
+                    llmProvider: {
+                        provider: selectedProvider,
+                        modelId: selectedModelId
+                    }
+                })
             };
+
 
             const data = await chatService.sendMessage(payload);
 
