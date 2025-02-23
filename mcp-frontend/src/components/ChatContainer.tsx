@@ -23,7 +23,6 @@ interface ChatContainerProps {
 
 
 export const ChatContainer: React.FC<ChatContainerProps> = ({
-                                                                selectedTools: initialSelectedTools,
                                                                 modelSettings,
                                                                 selectedChatId
                                                             }) => {
