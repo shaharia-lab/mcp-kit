@@ -35,16 +35,17 @@ type ModelSettings struct {
 	TopK        int64   `json:"topK"`
 }
 type QuestionRequest struct {
-	UUID          uuid.UUID     `json:"uuid"`
+	ChatUUID      uuid.UUID     `json:"chat_uuid"`
 	Question      string        `json:"question"`
 	UseTools      bool          `json:"useTools"`
 	ModelSettings ModelSettings `json:"modelSettings"`
 }
 
 type Response struct {
-	Answer      string `json:"answer"`
-	InputToken  int    `json:"input_token"`
-	OutputToken int    `json:"output_token"`
+	ChatUUID    uuid.UUID `json:"chat_uuid"`
+	Answer      string    `json:"answer"`
+	InputToken  int       `json:"input_token"`
+	OutputToken int       `json:"output_token"`
 }
 
 func NewAPICmd(logger *log.Logger) *cobra.Command {
@@ -225,9 +226,9 @@ func handleAsk(sseClient *mcp.Client, logger *log.Logger, historyStorage storage
 		var chat *storage.ChatHistory
 		var err error
 
-		// Check if UUID is nil (zero UUID)
-		if req.UUID == uuid.Nil {
-			// Create new chat if UUID is nil
+		// Check if ChatUUID is nil (zero ChatUUID)
+		if req.ChatUUID == uuid.Nil {
+			// Create new chat if ChatUUID is nil
 			chat, err = historyStorage.CreateChat()
 			if err != nil {
 				w.Header().Set("Content-Type", "application/json")
@@ -238,8 +239,8 @@ func handleAsk(sseClient *mcp.Client, logger *log.Logger, historyStorage storage
 				return
 			}
 		} else {
-			// Get existing chat if UUID is provided
-			chat, err = historyStorage.GetChat(req.UUID)
+			logger.Printf("ChatUUID: %s", req.ChatUUID)
+			chat, err = historyStorage.GetChat(req.ChatUUID)
 			if err != nil {
 				w.Header().Set("Content-Type", "application/json")
 				w.WriteHeader(http.StatusNotFound)
@@ -377,6 +378,7 @@ func handleAsk(sseClient *mcp.Client, logger *log.Logger, historyStorage storage
 
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(Response{
+			ChatUUID:    chat.UUID,
 			Answer:      response.Text,
 			InputToken:  response.TotalInputToken,
 			OutputToken: response.TotalOutputToken,

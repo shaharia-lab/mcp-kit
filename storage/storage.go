@@ -26,12 +26,12 @@ type ChatHistoryStorage interface {
 	// AddMessage adds a new message to an existing conversation
 	AddMessage(chatID uuid.UUID, message Message) error
 
-	// GetChat retrieves a conversation by its UUID
+	// GetChat retrieves a conversation by its ChatUUID
 	GetChat(id uuid.UUID) (*ChatHistory, error)
 
 	// ListChatHistories returns all stored conversations
 	ListChatHistories() ([]ChatHistory, error)
 
-	// DeleteChat removes a conversation by its UUID
+	// DeleteChat removes a conversation by its ChatUUID
 	DeleteChat(id uuid.UUID) error
 }

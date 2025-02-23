@@ -25,6 +25,8 @@ export const ChatContainer: React.FC<ChatContainerProps> = ({ toolsEnabled: init
     const [isLoading, setIsLoading] = useState(false);
     const [toolsEnabled, setToolsEnabled] = useState(initialToolsEnabled);
     const messagesEndRef = useRef<HTMLDivElement>(null);
+    const [chatUuid, setChatUuid] = useState<string | null>(null);
+
 
     const scrollToBottom = () => {
         messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -56,16 +58,19 @@ export const ChatContainer: React.FC<ChatContainerProps> = ({ toolsEnabled: init
         setIsLoading(true);
 
         try {
+            const payload = {
+                question: inputValue,
+                useTools: toolsEnabled,
+                modelSettings,
+                ...(chatUuid && { chat_uuid: chatUuid }) // Include chat_uuid if it exists
+            };
+
             const response = await fetch('http://localhost:8081/ask', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                 },
-                body: JSON.stringify({
-                    question: inputValue,
-                    useTools: toolsEnabled,
-                    modelSettings
-                }),
+                body: JSON.stringify(payload),
             });
 
             if (!response.ok) {
@@ -75,6 +80,11 @@ export const ChatContainer: React.FC<ChatContainerProps> = ({ toolsEnabled: init
             const data = await response.json();
             if (!data || typeof data.answer !== 'string') {
                 throw new Error('Invalid response format from server');
+            }
+
+            // Store the chat_uuid from the first response
+            if (data.chat_uuid && !chatUuid) {
+                setChatUuid(data.chat_uuid);
             }
 
             setMessages(prev => [...prev, {
@@ -91,6 +101,7 @@ export const ChatContainer: React.FC<ChatContainerProps> = ({ toolsEnabled: init
             setIsLoading(false);
         }
     };
+
 
     return (
         <div className="max-w-6xl mx-auto chat-container overflow-hidden flex flex-col h-full">
