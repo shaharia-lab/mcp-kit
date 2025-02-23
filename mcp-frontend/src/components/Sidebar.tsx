@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { ArrowPathIcon, QuestionMarkCircleIcon, Cog6ToothIcon } from '@heroicons/react/24/outline';
 import {ChatHistory} from "../types";
 import {fetchChatHistories} from "../api";
+import {SidebarHeader} from "./sidebar/SidebarHeader.tsx";
 
 interface SidebarProps {
     isOpen: boolean;
@@ -63,20 +64,10 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 isOpen ? 'translate-x-0' : '-translate-x-full'
             } sidebar-width flex flex-col`}
         >
-            {/* Header section - fixed */}
-            <div className="p-4 flex-shrink-0">
-                <div className="flex items-center justify-between mb-6">
-                    <h2 className="text-xl font-bold">Chat History</h2>
-                    <button
-                        onClick={onClose}
-                        className="p-2 hover:bg-gray-100 rounded"
-                        aria-label="Close sidebar"
-                    >
-                        ✕
-                    </button>
-                </div>
+            <SidebarHeader onClose={onClose} />
 
-                {/* New Chat Section - fixed */}
+            {/* New Chat Section - fixed */}
+            <div className="p-4 flex-shrink-0">
                 <div className="border-b pb-4">
                     <h3 className="text-sm font-semibold text-gray-500 mb-2">Recent Chats</h3>
                     <ul className="space-y-2">
