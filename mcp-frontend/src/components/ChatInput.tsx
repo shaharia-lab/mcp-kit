@@ -1,6 +1,5 @@
-// components/ChatInput.tsx
 import React, { useState, KeyboardEvent } from 'react';
-import { WrenchScrewdriverIcon } from "@heroicons/react/16/solid";
+import { ToolsToggle } from './ChatInputButton/ToolsToggle.tsx';
 
 interface ChatInputProps {
     onSubmit: (message: string) => Promise<void>;
@@ -35,18 +34,12 @@ export const ChatInput: React.FC<ChatInputProps> = ({
     return (
         <form onSubmit={handleSubmit} className="p-4 border-t border-gray-200">
             <div className="flex flex-col gap-2">
-                <button
-                    type="button"
-                    onClick={() => onToolsToggle(!toolsEnabled)}
-                    className={`px-3 py-1.5 text-sm rounded-lg transition-colors duration-200 w-fit flex items-center gap-2 ${
-                        toolsEnabled
-                            ? 'bg-gray-800 text-white hover:bg-gray-700'
-                            : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-                    }`}
-                >
-                    <WrenchScrewdriverIcon className="h-4 w-4" />
-                    Tools {toolsEnabled ? 'Enabled' : 'Disabled'}
-                </button>
+                <div className="flex gap-2">
+                    <ToolsToggle
+                        toolsEnabled={toolsEnabled}
+                        onToolsToggle={onToolsToggle}
+                    />
+                </div>
 
                 <textarea
                     value={inputValue}
