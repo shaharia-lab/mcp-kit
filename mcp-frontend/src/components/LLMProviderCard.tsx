@@ -1,4 +1,3 @@
-// components/LLMProviderCard.tsx
 import React from 'react';
 import { Provider } from '../types/llm';
 
@@ -14,16 +13,16 @@ export const LLMProviderCard: React.FC<LLMProviderCardProps> = ({
                                                                     onModelSelect,
                                                                 }) => {
     return (
-        <div className="border rounded-lg p-4 bg-white shadow-sm">
+        <div className="bg-white shadow-sm rounded-lg p-4">
             <h3 className="text-lg font-semibold mb-3 text-gray-800">{provider.name}</h3>
-            <div className="space-y-3">
+            <div className="space-y-2">
                 {provider.models.map((model) => (
                     <div
                         key={model.modelId}
                         className={`p-3 rounded-lg cursor-pointer transition-all ${
                             selectedModelId === model.modelId
-                                ? 'bg-blue-50 border-2 border-blue-500'
-                                : 'border hover:border-blue-300 border-gray-200'
+                                ? 'bg-blue-50 ring-2 ring-blue-500'
+                                : 'hover:bg-gray-50'
                         }`}
                         onClick={() => onModelSelect(model.modelId)}
                     >
