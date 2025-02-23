@@ -52,7 +52,7 @@ export const ToolsModal: React.FC<ToolsModalProps> = ({
 
     return (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-            <div className="bg-white rounded-lg shadow-xl w-full max-w-2xl p-6"> {/* Increased width */}
+            <div className="bg-white rounded-lg shadow-xl w-full max-w-5xl p-6"> {/* Increased max width */}
                 <div className="flex justify-between items-center mb-6">
                     <h2 className="text-xl font-semibold text-gray-800">Available Tools</h2>
                     <button
@@ -65,15 +65,17 @@ export const ToolsModal: React.FC<ToolsModalProps> = ({
 
                 <SearchBar value={searchQuery} onChange={setSearchQuery} />
 
-                <div className="space-y-4 max-h-[70vh] overflow-y-auto scrollbar-thin scrollbar-thumb-gray-400 scrollbar-track-gray-100">
-                    {filteredAndSortedTools.map((tool) => (
-                        <ToolItem
-                            key={tool.name}
-                            tool={tool}
-                            isSelected={selectedTools.includes(tool.name)}
-                            onToggle={handleToolToggle}
-                        />
-                    ))}
+                <div className="max-h-[50vh] overflow-y-auto scrollbar-thin scrollbar-thumb-gray-400 scrollbar-track-gray-100">
+                    <div className="grid grid-cols-3 gap-4"> {/* New grid layout */}
+                        {filteredAndSortedTools.map((tool) => (
+                            <ToolItem
+                                key={tool.name}
+                                tool={tool}
+                                isSelected={selectedTools.includes(tool.name)}
+                                onToggle={handleToolToggle}
+                            />
+                        ))}
+                    </div>
                 </div>
 
                 <div className="mt-6 flex justify-end space-x-3">
