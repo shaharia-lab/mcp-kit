@@ -27,9 +27,16 @@ import (
 //go:embed static/*
 var staticFiles embed.FS
 
+type ModelSettings struct {
+	Temperature float64 `json:"temperature"`
+	MaxTokens   int64   `json:"maxTokens"`
+	TopP        float64 `json:"topP"`
+	TopK        int64   `json:"topK"`
+}
 type QuestionRequest struct {
-	Question string `json:"question"`
-	UseTools bool   `json:"useTools"`
+	Question      string        `json:"question"`
+	UseTools      bool          `json:"useTools"`
+	ModelSettings ModelSettings `json:"modelSettings"`
 }
 
 type Response struct {
@@ -181,6 +188,23 @@ func handleAsk(sseClient *mcp.Client, logger *log.Logger) http.HandlerFunc {
 		reqOptions := []goai.RequestOption{
 			goai.WithMaxToken(1000),
 			goai.WithTemperature(0.5),
+		}
+
+		if req.ModelSettings.Temperature != 0 {
+			reqOptions = append(reqOptions, goai.WithTemperature(req.ModelSettings.Temperature))
+		}
+
+		log.Printf("MaxTokens: %d", req.ModelSettings.MaxTokens)
+		if req.ModelSettings.MaxTokens != 0 {
+			reqOptions = append(reqOptions, goai.WithMaxToken(req.ModelSettings.MaxTokens))
+		}
+
+		if req.ModelSettings.TopP != 0 {
+			reqOptions = append(reqOptions, goai.WithTopP(req.ModelSettings.TopP))
+		}
+
+		if req.ModelSettings.TopK != 0 {
+			reqOptions = append(reqOptions, goai.WithTopK(req.ModelSettings.TopK))
 		}
 
 		if req.UseTools {

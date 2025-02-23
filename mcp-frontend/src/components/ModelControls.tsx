@@ -1,15 +1,46 @@
 import React, { useState } from 'react';
 
+interface ModelSettings {
+    temperature: number;
+    maxTokens: number;
+    topP: number;
+    topK: number;
+}
+
+const defaultSettings: ModelSettings = {
+    temperature: 0.7,
+    maxTokens: 2000,
+    topP: 0.5,
+    topK: 40
+};
+
 interface ModelControlsProps {
     isOpen: boolean;
     onClose: () => void;
+    onSave: (settings: ModelSettings) => void;
+    initialSettings: ModelSettings;
 }
 
-export const ModelControls: React.FC<ModelControlsProps> = ({ isOpen, onClose }) => {
-    const [temperature, setTemperature] = useState(0.7);
-    const [maxTokens, setMaxTokens] = useState(2000);
-    const [frequencyPenalty, setFrequencyPenalty] = useState(0);
-    const [presencePenalty, setPresencePenalty] = useState(0);
+export const ModelControls: React.FC<ModelControlsProps> = ({
+                                                                isOpen,
+                                                                onClose,
+                                                                onSave,
+                                                                initialSettings = defaultSettings  // Provide default value here
+                                                            }) => {
+    const [temperature, setTemperature] = useState(initialSettings.temperature);
+    const [maxTokens, setMaxTokens] = useState(initialSettings.maxTokens);
+    const [topP, setTopP] = useState(initialSettings.topP);
+    const [topK, setTopK] = useState(initialSettings.topK);
+
+    const handleSave = () => {
+        onSave({
+            temperature,
+            maxTokens,
+            topP,
+            topK
+        });
+    };
+
 
     return (
         <div
@@ -54,9 +85,9 @@ export const ModelControls: React.FC<ModelControlsProps> = ({ isOpen, onClose })
                     </label>
                     <input
                         type="range"
-                        min="100"
-                        max="4000"
-                        step="100"
+                        min="50"
+                        max="50000"
+                        step="50"
                         value={maxTokens}
                         onChange={(e) => setMaxTokens(parseInt(e.target.value))}
                         className="w-full"
@@ -66,15 +97,15 @@ export const ModelControls: React.FC<ModelControlsProps> = ({ isOpen, onClose })
                 {/* Frequency Penalty Control */}
                 <div className="mb-4">
                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                        Frequency Penalty: {frequencyPenalty}
+                        TopP: {topP}
                     </label>
                     <input
                         type="range"
-                        min="-2"
-                        max="2"
+                        min="0"
+                        max="1"
                         step="0.1"
-                        value={frequencyPenalty}
-                        onChange={(e) => setFrequencyPenalty(parseFloat(e.target.value))}
+                        value={topP}
+                        onChange={(e) => setTopP(parseFloat(e.target.value))}
                         className="w-full"
                     />
                 </div>
@@ -82,25 +113,27 @@ export const ModelControls: React.FC<ModelControlsProps> = ({ isOpen, onClose })
                 {/* Presence Penalty Control */}
                 <div className="mb-4">
                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                        Presence Penalty: {presencePenalty}
+                        TopK: {topK}
                     </label>
                     <input
                         type="range"
-                        min="-2"
-                        max="2"
-                        step="0.1"
-                        value={presencePenalty}
-                        onChange={(e) => setPresencePenalty(parseFloat(e.target.value))}
+                        min="1"
+                        max="100"
+                        step="1"
+                        value={topK}
+                        onChange={(e) => setTopK(parseInt(e.target.value))}
                         className="w-full"
                     />
                 </div>
 
                 {/* Save Button */}
                 <button
+                    onClick={handleSave}
                     className="w-full bg-blue-600 text-white py-2 px-4 rounded hover:bg-blue-700 transition-colors"
                 >
                     Save Changes
                 </button>
+
             </div>
         </div>
     );

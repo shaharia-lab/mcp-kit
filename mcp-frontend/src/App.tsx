@@ -12,8 +12,8 @@ import { ToolsToggle } from './components/ToolsToggle';
 interface ModelSettings {
     temperature: number;
     maxTokens: number;
-    frequencyPenalty: number;
-    presencePenalty: number;
+    topP: number;
+    topK: number;
 }
 
 function initializeMarked() {
@@ -53,10 +53,10 @@ function App() {
     const [toolsEnabled, setToolsEnabled] = useState(false);
     const [showWelcome, setShowWelcome] = useState(true);
     const [modelSettings, setModelSettings] = useState<ModelSettings>({
-        temperature: 0.7,
+        temperature: 0.5,
         maxTokens: 2000,
-        frequencyPenalty: 0,
-        presencePenalty: 0
+        topP: 0.5,
+        topK: 50
     });
 
     useEffect(() => {
@@ -86,17 +86,17 @@ function App() {
     const handleModelControlsSave = (settings: ModelSettings) => {
         try {
             // Validate settings
-            if (settings.temperature < 0 || settings.temperature > 1) {
-                throw new Error('Temperature must be between 0 and 1');
+            if (settings.temperature < 0 || settings.temperature > 2) {
+                throw new Error('Temperature must be between 0 and 2');
             }
-            if (settings.maxTokens < 1 || settings.maxTokens > 4000) {
-                throw new Error('Max tokens must be between 1 and 4000');
+            if (settings.maxTokens < 50 || settings.maxTokens > 50000) {
+                throw new Error('Max tokens must be between 50 and 50000');
             }
-            if (settings.frequencyPenalty < -2 || settings.frequencyPenalty > 2) {
-                throw new Error('Frequency penalty must be between -2 and 2');
+            if (settings.topP < 0 || settings.topP > 1) {
+                throw new Error('TopP must be between 0 and 1');
             }
-            if (settings.presencePenalty < -2 || settings.presencePenalty > 2) {
-                throw new Error('Presence penalty must be between -2 and 2');
+            if (settings.topK < 1 || settings.topK > 100) {
+                throw new Error('TopK must be between 1 and 100');
             }
 
             setModelSettings(settings);
@@ -117,11 +117,13 @@ function App() {
 
             <Sidebar isOpen={sidebarOpen} onClose={toggleSidebar} />
             <ModelControls
+                key={JSON.stringify(modelSettings)}
                 isOpen={modelControlsOpen}
                 onClose={toggleModelControls}
                 onSave={handleModelControlsSave}
                 initialSettings={modelSettings}
             />
+
 
             <main className="relative">
                 <div className="flex items-center justify-between p-4">

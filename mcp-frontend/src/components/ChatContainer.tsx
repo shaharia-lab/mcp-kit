@@ -4,8 +4,8 @@ import { Message } from './Message';
 interface ModelSettings {
     temperature: number;
     maxTokens: number;
-    frequencyPenalty: number;
-    presencePenalty: number;
+    topP: number;
+    topK: number;
 }
 
 interface ChatMessage {
@@ -49,9 +49,9 @@ export const ChatContainer: React.FC<ChatContainerProps> = ({ toolsEnabled: init
                     useTools: toolsEnabled,
                     modelSettings: {
                         temperature: modelSettings.temperature,
-                        max_tokens: modelSettings.maxTokens,
-                        frequency_penalty: modelSettings.frequencyPenalty,
-                        presence_penalty: modelSettings.presencePenalty
+                        maxTokens: modelSettings.maxTokens,
+                        topP: modelSettings.topP,
+                        topK: modelSettings.topK
                     }
                 }),
             });
