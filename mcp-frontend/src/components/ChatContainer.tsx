@@ -67,14 +67,6 @@ export const ChatContainer: React.FC<ChatContainerProps> = ({
         loadChatHistory();
     }, [selectedChatId]);
 
-
-    const handleKeyDown = (e: KeyboardEvent<HTMLTextAreaElement>) => {
-        if (e.key === 'Enter' && !e.shiftKey) {
-            e.preventDefault();
-            handleSubmit(e);
-        }
-    };
-
     const handleMessageSubmit = async (message: string) => {
         setIsLoading(true);
 
