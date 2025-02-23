@@ -1,6 +1,5 @@
-import React, {useState, KeyboardEvent, useRef, useEffect} from 'react';
+import React, {useState, useRef, useEffect} from 'react';
 import { Message } from './Message';
-import {WrenchScrewdriverIcon} from "@heroicons/react/16/solid";
 import {chatService} from "../services/chatService.ts";
 import {ChatInput} from "./ChatInput.tsx";
 
