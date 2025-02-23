@@ -3,6 +3,7 @@ import { ArrowPathIcon, QuestionMarkCircleIcon, Cog6ToothIcon } from '@heroicons
 import {ChatHistory} from "../types";
 import {fetchChatHistories} from "../api";
 import {SidebarHeader} from "./sidebar/SidebarHeader.tsx";
+import {NewChatSection} from "./sidebar/NewChatSection.tsx";
 
 interface SidebarProps {
     isOpen: boolean;
@@ -65,22 +66,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
             } sidebar-width flex flex-col`}
         >
             <SidebarHeader onClose={onClose} />
-
-            {/* New Chat Section - fixed */}
-            <div className="p-4 flex-shrink-0">
-                <div className="border-b pb-4">
-                    <h3 className="text-sm font-semibold text-gray-500 mb-2">Recent Chats</h3>
-                    <ul className="space-y-2">
-                        <li
-                            className="hover:bg-gray-50 p-2 rounded cursor-pointer"
-                            onClick={() => onChatSelect?.('')}
-                        >
-                            <div className="text-sm font-medium">New Chat</div>
-                            <div className="text-xs text-gray-500">Start a new conversation</div>
-                        </li>
-                    </ul>
-                </div>
-            </div>
+            <NewChatSection onChatSelect={onChatSelect ?? (() => {})} />
 
             {/* Scrollable chat histories section */}
             <div className="flex-1 min-h-0 overflow-y-auto scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100">
