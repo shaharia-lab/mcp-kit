@@ -1,3 +1,4 @@
 /.idea
 /vendor
 /mcp-frontend/node_modules
+/cmd/static/

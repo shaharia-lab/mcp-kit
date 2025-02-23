@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { marked } from 'marked';
 import DOMPurify from 'dompurify';
 import hljs from 'highlight.js';
@@ -18,19 +18,9 @@ interface ModelSettings {
 
 function initializeMarked() {
     marked.setOptions({
-        highlight: (code: string, language: string) => {
-            if (language && hljs.getLanguage(language)) {
-                try {
-                    return hljs.highlight(code, { language }).value;
-                } catch (e) {
-                    console.error('Highlight.js error:', e);
-                    return code;
-                }
-            }
-            return hljs.highlightAuto(code).value;
-        },
+        renderer: new marked.Renderer(),
         breaks: true,
-        gfm: true
+        gfm: true,
     });
 
     DOMPurify.setConfig({
@@ -43,12 +33,19 @@ function initializeMarked() {
         ALLOWED_ATTR: ['href', 'target', 'class', 'id', 'src', 'alt', 'title', 'style'],
         ALLOW_DATA_ATTR: false
     });
+
+    const renderer = new marked.Renderer();
+    renderer.code = ({ text, lang, }) => {
+        const validLanguage = lang && hljs.getLanguage(lang) ? lang : 'plaintext';
+        const highlighted = hljs.highlight(text, { language: validLanguage }).value;
+        return `<pre><code class="hljs language-${validLanguage}">${highlighted}</code></pre>`;
+    };
+    marked.use({ renderer });
 }
 
 function App() {
     const [sidebarOpen, setSidebarOpen] = useState(false);
     const [modelControlsOpen, setModelControlsOpen] = useState(false);
-    const [toolsEnabled] = useState(false);
     const [showWelcome, setShowWelcome] = useState(true);
     const [selectedChatId, setSelectedChatId] = useState<string | undefined>();
     const [modelSettings, setModelSettings] = useState<ModelSettings>({
@@ -167,11 +164,11 @@ function App() {
 
                 <main className="flex-1 overflow-hidden">
                     {showWelcome ? (
-                        <WelcomeScreen onStart={() => setShowWelcome(false)} />
+                        <WelcomeScreen onStart={() => setShowWelcome(false)}/>
 
                     ) : (
                         <ChatContainer
-                            toolsEnabled={toolsEnabled}
+                            selectedTools={[]}
                             modelSettings={modelSettings}
                             selectedChatId={selectedChatId}
                         />
