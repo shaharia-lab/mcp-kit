@@ -4,6 +4,7 @@ import {ChatHistory} from "../types";
 import {fetchChatHistories} from "../api";
 import {SidebarHeader} from "./sidebar/SidebarHeader.tsx";
 import {NewChatSection} from "./sidebar/NewChatSection.tsx";
+import {ChatHistoryList} from "./sidebar/ChatHistoryList.tsx";
 
 interface SidebarProps {
     isOpen: boolean;
@@ -68,42 +69,15 @@ export const Sidebar: React.FC<SidebarProps> = ({
             <SidebarHeader onClose={onClose} />
             <NewChatSection onChatSelect={onChatSelect ?? (() => {})} />
 
-            {/* Scrollable chat histories section */}
-            <div className="flex-1 min-h-0 overflow-y-auto scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100">
-                <div className="p-4">
-                    <h3 className="text-sm font-semibold text-gray-500 mb-2">Saved Chats</h3>
-                    {isLoading ? (
-                        <div className="text-sm text-gray-400 italic p-2">
-                            Loading...
-                        </div>
-                    ) : error ? (
-                        <div className="text-sm text-red-500 italic p-2">
-                            {error}
-                        </div>
-                    ) : (
-                        <ul className="space-y-2">
-                            {chatHistories.map((chat) => (
-                                <li
-                                    key={chat.uuid}
-                                    className={`p-2 rounded cursor-pointer ${
-                                        selectedChatId === chat.uuid
-                                            ? 'hover:bg-blue-100'
-                                            : 'hover:bg-gray-50'
-                                    }`}
-                                    onClick={() => onChatSelect?.(chat.uuid)}
-                                >
-                                    <div className="text-sm font-medium">
-                                        {getFirstMessage(chat)}
-                                    </div>
-                                    <div className="text-xs text-gray-500">
-                                        {formatDate(chat.created_at)}
-                                    </div>
-                                </li>
-                            ))}
-                        </ul>
-                    )}
-                </div>
-            </div>
+            <ChatHistoryList
+                isLoading={isLoading}
+                error={error}
+                chatHistories={chatHistories}
+                selectedChatId={selectedChatId}
+                onChatSelect={onChatSelect}
+                getFirstMessage={getFirstMessage}
+                formatDate={formatDate}
+            />
 
             {/* Footer section - fixed */}
             <div className="p-4 border-t flex-shrink-0">
