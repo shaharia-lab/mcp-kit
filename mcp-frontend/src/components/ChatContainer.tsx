@@ -17,9 +17,16 @@ interface ChatMessage {
 interface ChatContainerProps {
     toolsEnabled: boolean;
     modelSettings: ModelSettings;
+    selectedChatId?: string; // Add this prop
 }
 
-export const ChatContainer: React.FC<ChatContainerProps> = ({ toolsEnabled: initialToolsEnabled, modelSettings }) => {
+
+export const ChatContainer: React.FC<ChatContainerProps> = ({
+                                                                toolsEnabled: initialToolsEnabled,
+                                                                modelSettings,
+                                                                selectedChatId
+                                                            }) => {
+
     const [messages, setMessages] = useState<ChatMessage[]>([]);
     const [inputValue, setInputValue] = useState('');
     const [isLoading, setIsLoading] = useState(false);
@@ -36,6 +43,38 @@ export const ChatContainer: React.FC<ChatContainerProps> = ({ toolsEnabled: init
         scrollToBottom();
     }, [messages, isLoading]);
 
+    useEffect(() => {
+        const loadChatHistory = async () => {
+            if (!selectedChatId) {
+                setMessages([]); // Clear messages for new chat
+                setChatUuid(null);
+                return;
+            }
+
+            try {
+                const response = await fetch(`http://localhost:8081/chat/${selectedChatId}`);
+                if (!response.ok) {
+                    throw new Error('Failed to load chat history');
+                }
+
+                const data = await response.json();
+                // Transform the messages to match our ChatMessage format
+                const formattedMessages = data.messages.map((msg: any) => ({
+                    content: msg.Text,
+                    isUser: msg.IsUser
+                }));
+
+                setMessages(formattedMessages);
+                setChatUuid(selectedChatId);
+            } catch (error) {
+                console.error('Error loading chat history:', error);
+                // Optionally show an error message to the user
+            }
+        };
+
+        loadChatHistory();
+    }, [selectedChatId]);
+
 
     const handleKeyDown = (e: KeyboardEvent<HTMLTextAreaElement>) => {
         if (e.key === 'Enter' && !e.shiftKey) {
@@ -43,6 +82,8 @@ export const ChatContainer: React.FC<ChatContainerProps> = ({ toolsEnabled: init
             handleSubmit(e);
         }
     };
+
+    const inputRef = useRef<HTMLTextAreaElement>(null);
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -91,6 +132,9 @@ export const ChatContainer: React.FC<ChatContainerProps> = ({ toolsEnabled: init
                 content: data.answer,
                 isUser: false
             }]);
+
+            inputRef.current?.focus();
+
         } catch (error) {
             console.error('Error:', error);
             setMessages(prev => [...prev, {
@@ -99,6 +143,7 @@ export const ChatContainer: React.FC<ChatContainerProps> = ({ toolsEnabled: init
             }]);
         } finally {
             setIsLoading(false);
+            inputRef.current?.focus();
         }
     };
 
@@ -141,6 +186,7 @@ export const ChatContainer: React.FC<ChatContainerProps> = ({ toolsEnabled: init
 
 
                     <textarea
+                        ref={inputRef}
                         value={inputValue}
                         onChange={(e) => setInputValue(e.target.value)}
                         onKeyDown={handleKeyDown}

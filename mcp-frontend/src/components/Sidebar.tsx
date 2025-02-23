@@ -116,21 +116,15 @@ export const Sidebar: React.FC<SidebarProps> = ({
                                         return (
                                             <li
                                                 key={chat.uuid}
-                                                onClick={() => onChatSelect?.(chat.uuid)}
-                                                className={`p-2 rounded cursor-pointer transition-colors ${
-                                                    selectedChatId === chat.uuid
-                                                        ? 'bg-blue-50 hover:bg-blue-100'
-                                                        : 'hover:bg-gray-50'
+                                                className={`hover:bg-gray-50 p-2 rounded cursor-pointer ${
+                                                    selectedChatId === chat.uuid ? 'bg-gray-100' : ''
                                                 }`}
+                                                onClick={() => onChatSelect?.(chat.uuid)}
                                             >
-                                                <div className="text-sm font-medium truncate">
-                                                    {messagePreview}
-                                                </div>
-                                                <div className="text-xs text-gray-500 flex justify-between items-center mt-1">
-                                                    <span>{messageDate}</span>
-                                                    <span>{messageCount} messages</span>
-                                                </div>
+                                                <div className="text-sm font-medium">{getFirstMessage(chat)}</div>
+                                                <div className="text-xs text-gray-500">{formatDate(chat.created_at)}</div>
                                             </li>
+
                                         );
                                     })
                                 )}

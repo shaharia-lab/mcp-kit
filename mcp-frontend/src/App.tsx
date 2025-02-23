@@ -8,7 +8,7 @@ import { ModelControls } from './components/ModelControls';
 import { ChatContainer } from './components/ChatContainer';
 import { WelcomeScreen } from './components/WelcomeScreen';
 import { ToolsToggle } from './components/ToolsToggle';
-import {Cog6ToothIcon} from "@heroicons/react/24/outline";
+import { Cog6ToothIcon } from "@heroicons/react/24/outline";
 
 interface ModelSettings {
     temperature: number;
@@ -18,7 +18,6 @@ interface ModelSettings {
 }
 
 function initializeMarked() {
-    // Using the correct types for marked options
     marked.setOptions({
         highlight: (code: string, language: string) => {
             if (language && hljs.getLanguage(language)) {
@@ -35,7 +34,6 @@ function initializeMarked() {
         gfm: true
     });
 
-    // Configure DOMPurify
     DOMPurify.setConfig({
         ALLOWED_TAGS: [
             'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'p', 'br', 'hr',
@@ -53,6 +51,7 @@ function App() {
     const [modelControlsOpen, setModelControlsOpen] = useState(false);
     const [toolsEnabled] = useState(false);
     const [showWelcome, setShowWelcome] = useState(true);
+    const [selectedChatId, setSelectedChatId] = useState<string | undefined>();
     const [modelSettings, setModelSettings] = useState<ModelSettings>({
         temperature: 0.5,
         maxTokens: 2000,
@@ -63,7 +62,6 @@ function App() {
     useEffect(() => {
         initializeMarked();
 
-        // Initialize highlight.js
         hljs.configure({
             ignoreUnescapedHTML: true,
             languages: [
@@ -86,7 +84,6 @@ function App() {
 
     const handleModelControlsSave = (settings: ModelSettings) => {
         try {
-            // Validate settings
             if (settings.temperature < 0 || settings.temperature > 2) {
                 throw new Error('Temperature must be between 0 and 2');
             }
@@ -108,15 +105,26 @@ function App() {
         }
     };
 
+    const handleChatSelect = (chatId: string) => {
+        setSelectedChatId(chatId);
+        setShowWelcome(false); // Hide welcome screen when chat is selected
+        toggleSidebar(); // Close sidebar after selection
+    };
+
     return (
         <div className="bg-gray-50 min-h-screen">
-            {/* Overlay */}
             <div
                 className={`fixed inset-0 bg-black bg-opacity-50 z-30 ${!sidebarOpen && 'hidden'}`}
                 onClick={toggleSidebar}
             />
 
-            <Sidebar isOpen={sidebarOpen} onClose={toggleSidebar} />
+            <Sidebar
+                isOpen={sidebarOpen}
+                onClose={toggleSidebar}
+                onChatSelect={handleChatSelect}
+                selectedChatId={selectedChatId}
+            />
+
             <ModelControls
                 key={JSON.stringify(modelSettings)}
                 isOpen={modelControlsOpen}
@@ -125,39 +133,52 @@ function App() {
                 initialSettings={modelSettings}
             />
 
-
-            <main className="relative">
-                <div className="flex items-center justify-between p-4">
-                    <button
-                        id="sidebar-toggle"
-                        onClick={toggleSidebar}
-                        className="p-2 hover:bg-gray-100 rounded"
-                        aria-label="Toggle sidebar"
-                    >
-                        ☰
-                    </button>
-
-                    <div className="flex gap-2">
+            <div className="flex flex-col h-screen">
+                <header className="bg-white shadow-sm">
+                    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex justify-between items-center">
                         <button
-                            id="chat-control-toggle"
-                            onClick={toggleModelControls}
-                            className="p-2 hover:bg-gray-100 rounded"
-                            aria-label="Toggle model controls"
+                            onClick={toggleSidebar}
+                            className="p-2 rounded-md hover:bg-gray-100 focus:outline-none"
                         >
-                            <Cog6ToothIcon className="h-5 w-5 text-gray-600" />
+                            <svg
+                                className="h-6 w-6"
+                                fill="none"
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth="2"
+                                viewBox="0 0 24 24"
+                                stroke="currentColor"
+                            >
+                                <path d="M4 6h16M4 12h16M4 18h16"></path>
+                            </svg>
                         </button>
-                    </div>
-                </div>
 
-                {showWelcome ? (
-                    <WelcomeScreen onStart={() => setShowWelcome(false)} />
-                ) : (
-                    <ChatContainer
-                        toolsEnabled={toolsEnabled}
-                        modelSettings={modelSettings}
-                    />
-                )}
-            </main>
+                        <div className="flex items-center space-x-4">
+                            <ToolsToggle />
+                            <button
+                                onClick={toggleModelControls}
+                                className="p-2 rounded-md hover:bg-gray-100 focus:outline-none"
+                                title="Model Settings"
+                            >
+                                <Cog6ToothIcon className="h-6 w-6" />
+                            </button>
+                        </div>
+                    </div>
+                </header>
+
+                <main className="flex-1 overflow-hidden">
+                    {showWelcome ? (
+                        <WelcomeScreen onStart={() => setShowWelcome(false)} />
+
+                    ) : (
+                        <ChatContainer
+                            toolsEnabled={toolsEnabled}
+                            modelSettings={modelSettings}
+                            selectedChatId={selectedChatId}
+                        />
+                    )}
+                </main>
+            </div>
         </div>
     );
 }

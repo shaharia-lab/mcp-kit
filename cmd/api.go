@@ -168,40 +168,9 @@ func setupRouter(ctx context.Context, mcpClient *mcp.Client, logger *log.Logger,
 
 	r.Post("/ask", handleAsk(mcpClient, logger, chatHistoryStorage))
 	r.Get("/chats", handleListChats(logger, chatHistoryStorage))
+	r.Get("/chat/{chatId}", handleGetChat(logger, chatHistoryStorage))
 
 	return r
-}
-
-func handleListChats(logger *log.Logger, historyStorage storage.ChatHistoryStorage) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		chats, err := historyStorage.ListChatHistories()
-		if err != nil {
-			w.Header().Set("Content-Type", "application/json")
-			w.WriteHeader(http.StatusInternalServerError)
-			json.NewEncoder(w).Encode(map[string]string{
-				"error": "Failed to retrieve chat histories",
-			})
-			return
-		}
-
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusOK)
-
-		response := struct {
-			Chats []storage.ChatHistory `json:"chats"`
-		}{
-			Chats: chats,
-		}
-
-		if err := json.NewEncoder(w).Encode(response); err != nil {
-			logger.Printf("Error encoding response: %v", err)
-			w.WriteHeader(http.StatusInternalServerError)
-			json.NewEncoder(w).Encode(map[string]string{
-				"error": "Failed to encode response",
-			})
-			return
-		}
-	}
 }
 
 func handleAsk(sseClient *mcp.Client, logger *log.Logger, historyStorage storage.ChatHistoryStorage) http.HandlerFunc {
@@ -383,6 +352,87 @@ func handleAsk(sseClient *mcp.Client, logger *log.Logger, historyStorage storage
 			InputToken:  response.TotalInputToken,
 			OutputToken: response.TotalOutputToken,
 		})
+	}
+}
+
+func handleListChats(logger *log.Logger, historyStorage storage.ChatHistoryStorage) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		chats, err := historyStorage.ListChatHistories()
+		if err != nil {
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusInternalServerError)
+			json.NewEncoder(w).Encode(map[string]string{
+				"error": "Failed to retrieve chat histories",
+			})
+			return
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+
+		response := struct {
+			Chats []storage.ChatHistory `json:"chats"`
+		}{
+			Chats: chats,
+		}
+
+		if err := json.NewEncoder(w).Encode(response); err != nil {
+			logger.Printf("Error encoding response: %v", err)
+			w.WriteHeader(http.StatusInternalServerError)
+			json.NewEncoder(w).Encode(map[string]string{
+				"error": "Failed to encode response",
+			})
+			return
+		}
+	}
+}
+
+func handleGetChat(logger *log.Logger, historyStorage storage.ChatHistoryStorage) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		// Extract chat UUID from URL
+		chatUUID := chi.URLParam(r, "chatId")
+		if chatUUID == "" {
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusBadRequest)
+			json.NewEncoder(w).Encode(map[string]string{
+				"error": "Chat ID is required",
+			})
+			return
+		}
+
+		parsedChatUUID, err := uuid.Parse(chatUUID)
+		if err != nil {
+			logger.Printf("Failed to parse chat UUID: %v", err)
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusBadRequest)
+			json.NewEncoder(w).Encode(map[string]string{
+				"error": "Invalid chat ID",
+			})
+			return
+		}
+
+		// Get chat history from storage
+		chat, err := historyStorage.GetChat(parsedChatUUID)
+		if err != nil {
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusNotFound)
+			json.NewEncoder(w).Encode(map[string]string{
+				"error": "Chat not found",
+			})
+			return
+		}
+
+		// Return the chat history
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		if err := json.NewEncoder(w).Encode(chat); err != nil {
+			logger.Printf("Error encoding response: %v", err)
+			w.WriteHeader(http.StatusInternalServerError)
+			json.NewEncoder(w).Encode(map[string]string{
+				"error": "Failed to encode response",
+			})
+			return
+		}
 	}
 }
 
