@@ -48,6 +48,12 @@ type Response struct {
 	OutputToken int       `json:"output_token"`
 }
 
+// ToolInfo represents the simplified tool information to be returned by the API
+type ToolInfo struct {
+	Name        string `json:"name"`
+	Description string `json:"description"`
+}
+
 func NewAPICmd(logger *log.Logger) *cobra.Command {
 	return &cobra.Command{
 		Use:   "api",
@@ -99,7 +105,13 @@ func NewAPICmd(logger *log.Logger) *cobra.Command {
 
 			inMemoryChatHistoryStorage := storage.NewInMemoryChatHistoryStorage()
 
-			router := setupRouter(ctx, mcpClient, logger, inMemoryChatHistoryStorage)
+			toolsProvider := goai.NewToolsProvider()
+			if err := toolsProvider.AddMCPClient(mcpClient); err != nil {
+				log.Printf("Failed to add MCP client to tools provider: %v", err)
+				return fmt.Errorf("failed to add MCP client to tools provider: %w", err)
+			}
+
+			router := setupRouter(ctx, mcpClient, logger, inMemoryChatHistoryStorage, toolsProvider)
 			logger.Printf("Starting server on :8080")
 
 			observability.AddAttribute(ctx, "server.port", "8081")
@@ -108,7 +120,7 @@ func NewAPICmd(logger *log.Logger) *cobra.Command {
 	}
 }
 
-func setupRouter(ctx context.Context, mcpClient *mcp.Client, logger *log.Logger, chatHistoryStorage storage.ChatHistoryStorage) *chi.Mux {
+func setupRouter(ctx context.Context, mcpClient *mcp.Client, logger *log.Logger, chatHistoryStorage storage.ChatHistoryStorage, toolsProvider *goai.ToolsProvider) *chi.Mux {
 	r := chi.NewRouter()
 
 	r.Use(func(next http.Handler) http.Handler {
@@ -166,14 +178,15 @@ func setupRouter(ctx context.Context, mcpClient *mcp.Client, logger *log.Logger,
 	// Handle other static files
 	r.Mount("/static/", http.StripPrefix("/static/", http.FileServer(http.FS(subFS))))
 
-	r.Post("/ask", handleAsk(mcpClient, logger, chatHistoryStorage))
+	r.Post("/ask", handleAsk(mcpClient, logger, chatHistoryStorage, toolsProvider))
 	r.Get("/chats", handleListChats(logger, chatHistoryStorage))
 	r.Get("/chat/{chatId}", handleGetChat(logger, chatHistoryStorage))
+	r.Get("/api/tools", handleListTools(toolsProvider))
 
 	return r
 }
 
-func handleAsk(sseClient *mcp.Client, logger *log.Logger, historyStorage storage.ChatHistoryStorage) http.HandlerFunc {
+func handleAsk(sseClient *mcp.Client, logger *log.Logger, historyStorage storage.ChatHistoryStorage, toolsProvider *goai.ToolsProvider) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		ctx, span := observability.StartSpan(r.Context(), "handle_ask")
 		defer span.End()
@@ -263,17 +276,6 @@ func handleAsk(sseClient *mcp.Client, logger *log.Logger, historyStorage storage
 			observability.AddAttribute(ctx, "tools.enabled", true)
 
 			logger.Println("Using tools provider")
-			toolsProvider := goai.NewToolsProvider()
-			if err := toolsProvider.AddMCPClient(sseClient); err != nil {
-				observability.AddAttribute(ctx, "error", err.Error())
-				span.End()
-
-				w.Header().Set("Content-Type", "application/json")
-				json.NewEncoder(w).Encode(map[string]string{
-					"error": "Failed to connect with MCP client",
-				})
-				return
-			}
 			reqOptions = append(reqOptions, goai.UseToolsProvider(toolsProvider))
 		}
 
@@ -431,6 +433,36 @@ func handleGetChat(logger *log.Logger, historyStorage storage.ChatHistoryStorage
 			json.NewEncoder(w).Encode(map[string]string{
 				"error": "Failed to encode response",
 			})
+			return
+		}
+	}
+}
+
+func handleListTools(toolsProvider *goai.ToolsProvider) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		ctx, span := observability.StartSpan(r.Context(), "handle_list_tools")
+		defer span.End()
+
+		tools, err := toolsProvider.ListTools(ctx)
+		if err != nil {
+			http.Error(w, fmt.Sprintf("Failed to get tools: %v", err), http.StatusInternalServerError)
+			span.RecordError(err)
+			return
+		}
+
+		// Convert to simplified format
+		toolInfos := make([]ToolInfo, len(tools))
+		for i, tool := range tools {
+			toolInfos[i] = ToolInfo{
+				Name:        tool.Name,
+				Description: tool.Description,
+			}
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		if err := json.NewEncoder(w).Encode(toolInfos); err != nil {
+			http.Error(w, fmt.Sprintf("Failed to encode response: %v", err), http.StatusInternalServerError)
+			span.RecordError(err)
 			return
 		}
 	}
