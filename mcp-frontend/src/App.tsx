@@ -7,7 +7,6 @@ import { Sidebar } from './components/Sidebar';
 import { ModelControls } from './components/ModelControls';
 import { ChatContainer } from './components/ChatContainer';
 import { WelcomeScreen } from './components/WelcomeScreen';
-import { ToolsToggle } from './components/ToolsToggle';
 import { Cog6ToothIcon } from "@heroicons/react/24/outline";
 
 interface ModelSettings {
@@ -154,7 +153,6 @@ function App() {
                         </button>
 
                         <div className="flex items-center space-x-4">
-                            <ToolsToggle />
                             <button
                                 onClick={toggleModelControls}
                                 className="p-2 rounded-md hover:bg-gray-100 focus:outline-none"
