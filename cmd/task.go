@@ -10,12 +10,11 @@ import (
 	"github.com/shaharia-lab/mcp-kit/internal/config"
 	"github.com/shaharia-lab/mcp-kit/internal/tools"
 	"github.com/spf13/cobra"
-	"log"
 	"os"
 	"strings"
 )
 
-func NewTaskCmd(logger *log.Logger) *cobra.Command {
+func NewTaskCmd() *cobra.Command {
 	return &cobra.Command{
 		Use:   "task",
 		Short: "Ask a question or give a task to the LLM model",
