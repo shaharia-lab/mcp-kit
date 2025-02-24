@@ -13,6 +13,7 @@ import (
 	"github.com/shaharia-lab/goai"
 	"github.com/shaharia-lab/goai/mcp"
 	goaiObs "github.com/shaharia-lab/goai/observability"
+	handlers "github.com/shaharia-lab/mcp-kit/internal/handler"
 	"github.com/shaharia-lab/mcp-kit/observability"
 	"github.com/shaharia-lab/mcp-kit/storage"
 	"github.com/sirupsen/logrus"
@@ -175,14 +176,7 @@ func setupRouter(ctx context.Context, mcpClient *mcp.Client, logger *log.Logger,
 		w.Write(content)
 	})
 
-	r.Get("/llm-providers", func(w http.ResponseWriter, r *http.Request) {
-		providers := getLLMProviders()
-		w.Header().Set("Content-Type", "application/json")
-		if err := json.NewEncoder(w).Encode(providers); err != nil {
-			http.Error(w, "Failed to encode response", http.StatusInternalServerError)
-			return
-		}
-	})
+	r.Get("/llm-providers", handlers.LLMProvidersHandler)
 
 	// Handle other static files
 	r.Mount("/static/", http.StripPrefix("/static/", http.FileServer(http.FS(subFS))))
@@ -531,60 +525,4 @@ func (rw *responseWriterWrapper) WriteHeader(code int) {
 	rw.status = code
 	observability.AddAttribute(context.Background(), "http.status_code", code)
 	rw.ResponseWriter.WriteHeader(code)
-}
-
-// Model represents an LLM model's information
-type Model struct {
-	Name        string `json:"name"`
-	Description string `json:"description"`
-	ModelID     string `json:"modelId"`
-}
-
-// Provider represents an LLM provider and its available models
-type Provider struct {
-	Name   string  `json:"name"`
-	Models []Model `json:"models"`
-}
-
-// SupportedLLMProviders represents the response structure for the API endpoint
-type SupportedLLMProviders struct {
-	Providers []Provider `json:"providers"`
-}
-
-// getLLMProviders returns a list of supported LLM providers and their models
-func getLLMProviders() SupportedLLMProviders {
-	return SupportedLLMProviders{
-		Providers: []Provider{
-			{
-				Name: "Anthropic",
-				Models: []Model{
-					{
-						Name:        "Claude 3 Sonnet",
-						Description: "Advanced language model optimized for reliability and thoughtful responses",
-						ModelID:     "claude-3-sonnet-20240229",
-					},
-					{
-						Name:        "Claude 2.1",
-						Description: "Powerful language model for general-purpose tasks",
-						ModelID:     "claude-2.1",
-					},
-				},
-			},
-			{
-				Name: "OpenAI",
-				Models: []Model{
-					{
-						Name:        "GPT-4 Turbo",
-						Description: "Most capable GPT-4 model for various tasks",
-						ModelID:     "gpt-4-turbo-preview",
-					},
-					{
-						Name:        "GPT-3.5 Turbo",
-						Description: "Efficient model balancing performance and speed",
-						ModelID:     "gpt-3.5-turbo",
-					},
-				},
-			},
-		},
-	}
 }
