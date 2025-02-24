@@ -8,7 +8,6 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/go-chi/cors"
-	"github.com/google/uuid"
 	"github.com/shaharia-lab/goai"
 	"github.com/shaharia-lab/goai/mcp"
 	goaiObs "github.com/shaharia-lab/goai/observability"
@@ -162,92 +161,11 @@ func setupRouter(ctx context.Context, mcpClient *mcp.Client, logger *log.Logger,
 	r.Mount("/static/", http.StripPrefix("/static/", http.FileServer(http.FS(subFS))))
 
 	r.Post("/ask", chat.HandleAsk(mcpClient, logger, chatHistoryStorage, toolsProvider))
-	r.Get("/chats", handleListChats(logger, chatHistoryStorage))
-	r.Get("/chat/{chatId}", handleGetChat(logger, chatHistoryStorage))
+	r.Get("/chats", chat.ChatHistoryListsHandler(logger, chatHistoryStorage))
+	r.Get("/chat/{chatId}", chat.GetChatHandler(logger, chatHistoryStorage))
 	r.Get("/api/tools", handleListTools(toolsProvider))
 
 	return r
-}
-
-func handleListChats(logger *log.Logger, historyStorage storage.ChatHistoryStorage) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		chats, err := historyStorage.ListChatHistories()
-		if err != nil {
-			w.Header().Set("Content-Type", "application/json")
-			w.WriteHeader(http.StatusInternalServerError)
-			json.NewEncoder(w).Encode(map[string]string{
-				"error": "Failed to retrieve chat histories",
-			})
-			return
-		}
-
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusOK)
-
-		response := struct {
-			Chats []storage.ChatHistory `json:"chats"`
-		}{
-			Chats: chats,
-		}
-
-		if err := json.NewEncoder(w).Encode(response); err != nil {
-			logger.Printf("Error encoding response: %v", err)
-			w.WriteHeader(http.StatusInternalServerError)
-			json.NewEncoder(w).Encode(map[string]string{
-				"error": "Failed to encode response",
-			})
-			return
-		}
-	}
-}
-
-func handleGetChat(logger *log.Logger, historyStorage storage.ChatHistoryStorage) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		// Extract chat UUID from URL
-		chatUUID := chi.URLParam(r, "chatId")
-		if chatUUID == "" {
-			w.Header().Set("Content-Type", "application/json")
-			w.WriteHeader(http.StatusBadRequest)
-			json.NewEncoder(w).Encode(map[string]string{
-				"error": "Chat ID is required",
-			})
-			return
-		}
-
-		parsedChatUUID, err := uuid.Parse(chatUUID)
-		if err != nil {
-			logger.Printf("Failed to parse chat UUID: %v", err)
-			w.Header().Set("Content-Type", "application/json")
-			w.WriteHeader(http.StatusBadRequest)
-			json.NewEncoder(w).Encode(map[string]string{
-				"error": "Invalid chat ID",
-			})
-			return
-		}
-
-		// Get chat history from storage
-		chat, err := historyStorage.GetChat(parsedChatUUID)
-		if err != nil {
-			w.Header().Set("Content-Type", "application/json")
-			w.WriteHeader(http.StatusNotFound)
-			json.NewEncoder(w).Encode(map[string]string{
-				"error": "Chat not found",
-			})
-			return
-		}
-
-		// Return the chat history
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusOK)
-		if err := json.NewEncoder(w).Encode(chat); err != nil {
-			logger.Printf("Error encoding response: %v", err)
-			w.WriteHeader(http.StatusInternalServerError)
-			json.NewEncoder(w).Encode(map[string]string{
-				"error": "Failed to encode response",
-			})
-			return
-		}
-	}
 }
 
 func handleListTools(toolsProvider *goai.ToolsProvider) http.HandlerFunc {
