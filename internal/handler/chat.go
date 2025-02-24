@@ -4,6 +4,8 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"github.com/shaharia-lab/mcp-kit/internal/observability"
+	"github.com/shaharia-lab/mcp-kit/internal/storage"
 	"log"
 	"net/http"
 	"time"
@@ -11,8 +13,6 @@ import (
 	"github.com/google/uuid"
 	"github.com/shaharia-lab/goai"
 	"github.com/shaharia-lab/goai/mcp"
-	"github.com/shaharia-lab/mcp-kit/observability"
-	"github.com/shaharia-lab/mcp-kit/storage"
 )
 
 type ModelSettings struct {

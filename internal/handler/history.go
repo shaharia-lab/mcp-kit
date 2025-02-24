@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
-	"github.com/shaharia-lab/mcp-kit/storage"
+	"github.com/shaharia-lab/mcp-kit/internal/storage"
 	"log"
 	"net/http"
 )

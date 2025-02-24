@@ -4,8 +4,8 @@ import (
 	"github.com/shaharia-lab/goai"
 	"github.com/shaharia-lab/goai/mcp"
 	goaiObs "github.com/shaharia-lab/goai/observability"
-	"github.com/shaharia-lab/mcp-kit/config"
-	"github.com/shaharia-lab/mcp-kit/storage"
+	"github.com/shaharia-lab/mcp-kit/internal/config"
+	"github.com/shaharia-lab/mcp-kit/internal/storage"
 	"log"
 	"time"
 )
