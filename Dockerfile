@@ -1,10 +1,27 @@
-# syntax=docker/dockerfile:1
-
 # Stage 1: Build frontend and backend
-FROM golang:1.23-alpine AS builder
+# Change from golang:1.23-alpine to use a Node.js 20 base image first
+FROM node:20-alpine AS frontend-builder
 
-# Install necessary build tools and Node.js
-RUN apk add --no-cache git make nodejs npm
+# Set working directory
+WORKDIR /app
+
+# Copy package files first to leverage Docker cache
+COPY mcp-frontend/package*.json ./mcp-frontend/
+
+# Install frontend dependencies
+RUN cd mcp-frontend && npm ci
+
+# Copy the rest of the frontend files
+COPY mcp-frontend ./mcp-frontend/
+
+# Build frontend
+RUN cd mcp-frontend && npm run build
+
+# Now use golang image for backend
+FROM golang:1.23-alpine AS backend-builder
+
+# Install necessary build tools
+RUN apk add --no-cache git make
 
 # Set working directory
 WORKDIR /app
@@ -12,24 +29,25 @@ WORKDIR /app
 # Create a non-root user
 RUN adduser -D -g '' app
 
-# Copy the entire project
+# Copy the entire project including the built frontend
+COPY --from=frontend-builder /app/mcp-frontend/dist ./mcp-frontend/dist
 COPY . .
 
-# Install frontend dependencies and build both frontend and backend
-RUN cd mcp-frontend && npm ci && cd .. && make frontend-build && make build
+# Build backend
+RUN make build
 
-# Stage 2: Create the final image
+# Stage 3: Create the final image
 FROM alpine:3.19
 
 # Install necessary runtime dependencies
 RUN apk add --no-cache ca-certificates tzdata
 
 # Import the user and group files from builder
-COPY --from=builder /etc/passwd /etc/passwd
+COPY --from=backend-builder /etc/passwd /etc/passwd
 
 # Copy the binary and static files from builder
-COPY --from=builder /app/build/mcp /usr/local/bin/mcp
-COPY --from=builder /app/cmd/static /usr/local/bin/static
+COPY --from=backend-builder /app/build/mcp /usr/local/bin/mcp
+COPY --from=backend-builder /app/cmd/static /usr/local/bin/static
 
 # Use non-root user
 USER app

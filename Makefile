@@ -31,6 +31,8 @@ LDFLAGS := -w -s
 all: clean build test
 
 wire:
+	@echo "Checking wire installation..."
+	@which wire >/dev/null 2>&1 || (echo "Installing wire..." && go install github.com/google/wire/cmd/wire@latest)
 	@echo "Generating wire_gen.go..."
 	@cd cmd && wire
 	@echo "Wire generation complete"
