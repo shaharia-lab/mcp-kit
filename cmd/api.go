@@ -3,7 +3,6 @@ package cmd
 import (
 	"context"
 	"embed"
-	"encoding/json"
 	"fmt"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
@@ -12,7 +11,6 @@ import (
 	"github.com/shaharia-lab/goai/mcp"
 	goaiObs "github.com/shaharia-lab/goai/observability"
 	handlers "github.com/shaharia-lab/mcp-kit/internal/handler"
-	"github.com/shaharia-lab/mcp-kit/internal/handler/chat"
 	"github.com/shaharia-lab/mcp-kit/observability"
 	"github.com/shaharia-lab/mcp-kit/storage"
 	"github.com/sirupsen/logrus"
@@ -160,42 +158,12 @@ func setupRouter(ctx context.Context, mcpClient *mcp.Client, logger *log.Logger,
 	// Handle other static files
 	r.Mount("/static/", http.StripPrefix("/static/", http.FileServer(http.FS(subFS))))
 
-	r.Post("/ask", chat.HandleAsk(mcpClient, logger, chatHistoryStorage, toolsProvider))
-	r.Get("/chats", chat.ChatHistoryListsHandler(logger, chatHistoryStorage))
-	r.Get("/chat/{chatId}", chat.GetChatHandler(logger, chatHistoryStorage))
-	r.Get("/api/tools", handleListTools(toolsProvider))
+	r.Post("/ask", handlers.HandleAsk(mcpClient, logger, chatHistoryStorage, toolsProvider))
+	r.Get("/chats", handlers.ChatHistoryListsHandler(logger, chatHistoryStorage))
+	r.Get("/chat/{chatId}", handlers.GetChatHandler(logger, chatHistoryStorage))
+	r.Get("/api/tools", handlers.ListToolsHandler(toolsProvider))
 
 	return r
-}
-
-func handleListTools(toolsProvider *goai.ToolsProvider) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		ctx, span := observability.StartSpan(r.Context(), "handle_list_tools")
-		defer span.End()
-
-		tools, err := toolsProvider.ListTools(ctx)
-		if err != nil {
-			http.Error(w, fmt.Sprintf("Failed to get tools: %v", err), http.StatusInternalServerError)
-			span.RecordError(err)
-			return
-		}
-
-		// Convert to simplified format
-		toolInfos := make([]ToolInfo, len(tools))
-		for i, tool := range tools {
-			toolInfos[i] = ToolInfo{
-				Name:        tool.Name,
-				Description: tool.Description,
-			}
-		}
-
-		w.Header().Set("Content-Type", "application/json")
-		if err := json.NewEncoder(w).Encode(toolInfos); err != nil {
-			http.Error(w, fmt.Sprintf("Failed to encode response: %v", err), http.StatusInternalServerError)
-			span.RecordError(err)
-			return
-		}
-	}
 }
 
 func initializeTracer(ctx context.Context, appName string, l *logrus.Logger) (func(), error) {
