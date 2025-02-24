@@ -16,7 +16,6 @@ func InitializeAPI(ctx context.Context) (*Container, func(), error) {
 		ProvideMCPClient,
 		ProvideToolsProvider,
 		ProvideChatHistoryStorage,
-		ProvideRouter,
 		ProvideConfig,
 	))
 }

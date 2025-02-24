@@ -19,14 +19,13 @@ func InitializeAPI(ctx context.Context) (*Container, func(), error) {
 	if err != nil {
 		return nil, nil, err
 	}
-	client := ProvideMCPClient(logger, config)
+	client := ProvideMCPClient(config)
 	toolsProvider, err := ProvideToolsProvider(client)
 	if err != nil {
 		return nil, nil, err
 	}
 	chatHistoryStorage := ProvideChatHistoryStorage()
-	mux := ProvideRouter(client, logger, chatHistoryStorage, toolsProvider)
-	container := NewContainer(logger, client, toolsProvider, chatHistoryStorage, mux, config)
+	container := NewContainer(logger, client, toolsProvider, chatHistoryStorage, config)
 	return container, func() {
 	}, nil
 }

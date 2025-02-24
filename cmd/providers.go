@@ -1,7 +1,6 @@
 package cmd
 
 import (
-	"github.com/go-chi/chi/v5"
 	"github.com/shaharia-lab/goai"
 	"github.com/shaharia-lab/goai/mcp"
 	goaiObs "github.com/shaharia-lab/goai/observability"
@@ -17,7 +16,6 @@ type Container struct {
 	MCPClient          *mcp.Client
 	ToolsProvider      *goai.ToolsProvider
 	ChatHistoryStorage storage.ChatHistoryStorage
-	Router             *chi.Mux
 	Config             *config.Config
 }
 
@@ -29,7 +27,7 @@ func ProvideConfig() (*config.Config, error) {
 	return loadConfig()
 }
 
-func ProvideMCPClient(logger *log.Logger, cfg *config.Config) *mcp.Client {
+func ProvideMCPClient(cfg *config.Config) *mcp.Client {
 	l := goaiObs.NewDefaultLogger()
 	return mcp.NewClient(mcp.NewSSETransport(l), mcp.ClientConfig{
 		ClientName:    "My MCP Kit Client",
@@ -56,21 +54,11 @@ func ProvideChatHistoryStorage() storage.ChatHistoryStorage {
 	return storage.NewInMemoryChatHistoryStorage()
 }
 
-func ProvideRouter(
-	mcpClient *mcp.Client,
-	logger *log.Logger,
-	storage storage.ChatHistoryStorage,
-	toolsProvider *goai.ToolsProvider,
-) *chi.Mux {
-	return setupRouter(mcpClient, logger, storage, toolsProvider)
-}
-
 func NewContainer(
 	logger *log.Logger,
 	mcpClient *mcp.Client,
 	toolsProvider *goai.ToolsProvider,
 	chatHistoryStorage storage.ChatHistoryStorage,
-	router *chi.Mux,
 	config *config.Config,
 ) *Container {
 	return &Container{
@@ -78,7 +66,6 @@ func NewContainer(
 		MCPClient:          mcpClient,
 		ToolsProvider:      toolsProvider,
 		ChatHistoryStorage: chatHistoryStorage,
-		Router:             router,
 		Config:             config,
 	}
 }

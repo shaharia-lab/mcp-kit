@@ -30,6 +30,13 @@ type ToolInfo struct {
 	Description string `json:"description"`
 }
 
+type RouterDependencies struct {
+	MCPClient          *mcp.Client
+	Logger             *log.Logger
+	ChatHistoryStorage storage.ChatHistoryStorage
+	ToolsProvider      *goai.ToolsProvider
+}
+
 func NewAPICmd() *cobra.Command {
 	return &cobra.Command{
 		Use:   "api",
@@ -72,10 +79,15 @@ func NewAPICmd() *cobra.Command {
 			defer container.MCPClient.Close(ctx)
 
 			container.Logger.Printf("Starting server on :8081")
-			observability.AddAttribute(ctx, "server.port", "8081")
+			observability.AddAttribute(ctx, "server.port", container.Config.APIServerPort)
 
 			// Start the server
-			return http.ListenAndServe(":8081", container.Router)
+			return http.ListenAndServe(fmt.Sprintf(":%d", container.Config.APIServerPort), setupRouter(
+				container.MCPClient,
+				container.Logger,
+				container.ChatHistoryStorage,
+				container.ToolsProvider,
+			))
 		},
 	}
 }
@@ -83,6 +95,7 @@ func NewAPICmd() *cobra.Command {
 func setupRouter(mcpClient *mcp.Client, logger *log.Logger, chatHistoryStorage storage.ChatHistoryStorage, toolsProvider *goai.ToolsProvider) *chi.Mux {
 	r := chi.NewRouter()
 
+	// Tracing middleware remains the same
 	r.Use(func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			requestCtx, span := observability.StartSpan(r.Context(), "http_request")
@@ -96,7 +109,6 @@ func setupRouter(mcpClient *mcp.Client, logger *log.Logger, chatHistoryStorage s
 			w = wrapResponseWriter(w, span)
 
 			next.ServeHTTP(w, r.WithContext(requestCtx))
-
 		})
 	})
 
@@ -121,7 +133,7 @@ func setupRouter(mcpClient *mcp.Client, logger *log.Logger, chatHistoryStorage s
 	// Create a sub-filesystem to handle the static directory correctly
 	subFS, err := fs.Sub(staticFiles, "static")
 	if err != nil {
-		log.Fatal(err)
+		logger.Fatal("Failed to create sub filesystem")
 	}
 
 	// Handle /static route to serve index.html
