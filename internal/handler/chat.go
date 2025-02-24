@@ -22,11 +22,17 @@ type ModelSettings struct {
 	TopK        int64   `json:"topK"`
 }
 
+type LLMProvider struct {
+	Provider string `json:"provider"`
+	ModelID  string `json:"modelId"`
+}
+
 type QuestionRequest struct {
 	ChatUUID      uuid.UUID     `json:"chat_uuid"`
 	Question      string        `json:"question"`
 	UseTools      bool          `json:"useTools"`
 	ModelSettings ModelSettings `json:"modelSettings"`
+	LLMProvider   LLMProvider   `json:"llmProvider"`
 }
 
 type Response struct {
@@ -45,6 +51,16 @@ func HandleAsk(sseClient *mcp.Client, logger *log.Logger, historyStorage storage
 		var req QuestionRequest
 		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 			writeErrorResponse(w, http.StatusBadRequest, "Invalid request body", err, ctx, span)
+			return
+		}
+
+		if req.Question == "" {
+			writeErrorResponse(w, http.StatusBadRequest, "Question cannot be empty", nil, ctx, span)
+			return
+		}
+
+		if req.LLMProvider.Provider == "" || req.LLMProvider.ModelID == "" {
+			writeErrorResponse(w, http.StatusBadRequest, "LLM provider is required", nil, ctx, span)
 			return
 		}
 
@@ -207,7 +223,9 @@ func prepareLLMRequestOptions(req QuestionRequest) []goai.RequestOption {
 }
 
 func writeErrorResponse(w http.ResponseWriter, status int, message string, err error, ctx context.Context, span interface{}) {
-	observability.AddAttribute(ctx, "error", err.Error())
+	if err != nil {
+		observability.AddAttribute(ctx, "error", err.Error())
+	}
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(status)
 	json.NewEncoder(w).Encode(map[string]string{
