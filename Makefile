@@ -6,6 +6,18 @@ DOCKER_IMAGE := $(APP_NAME)
 DOCKER_TAG := latest
 FRONTEND_DIR := mcp-frontend
 
+VERSION ?= $(shell git describe --tags --always --dirty)
+GIT_COMMIT ?= $(shell git rev-parse --short HEAD)
+BUILD_TIME ?= $(shell date -u '+%Y-%m-%d_%H:%M:%S')
+GO_VERSION = $(shell go version | cut -d ' ' -f 3)
+
+# Enhanced build flags
+LDFLAGS := -w -s \
+	-X 'main.Version=$(VERSION)' \
+	-X 'main.GitCommit=$(GIT_COMMIT)' \
+	-X 'main.BuildTime=$(BUILD_TIME)' \
+	-X 'main.GoVersion=$(GO_VERSION)'
+
 # Go related variables
 GOBASE := $(shell pwd)
 GOBIN := $(GOBASE)/bin
@@ -14,9 +26,14 @@ GOFILES := $(shell find . -type f -name '*.go' -not -path "./vendor/*")
 # Build flags
 LDFLAGS := -w -s
 
-.PHONY: all build clean test lint docker-build run help frontend-dev frontend-build frontend-install
+.PHONY: all build clean test lint docker-build run help frontend-dev frontend-build frontend-install wire
 
 all: clean build test
+
+wire:
+	@echo "Generating wire_gen.go..."
+	@cd cmd && wire
+	@echo "Wire generation complete"
 
 # Run the API server
 run-api:
@@ -54,9 +71,19 @@ dev-all:
 	@make -j 3 dev-api dev-server frontend-dev
 
 # Build the application
-build:
-	@echo "Building $(APP_NAME)..."
-	@CGO_ENABLED=0 go build -ldflags="$(LDFLAGS)" -o $(BUILD_DIR)/$(APP_NAME)
+build: wire
+	@echo "Building optimized binary for $(APP_NAME)..."
+	@CGO_ENABLED=0 go build \
+		-trimpath \
+		-ldflags="$(LDFLAGS)" \
+		-a \
+		-installsuffix cgo \
+		-o $(BUILD_DIR)/$(APP_NAME)
+
+# Add a development build target (faster builds for development)
+build-dev: wire
+	@echo "Building development binary for $(APP_NAME)..."
+	@go build -o $(BUILD_DIR)/$(APP_NAME)
 
 # Clean build artifacts
 clean:
@@ -128,6 +155,7 @@ build-all: build frontend-build
 # Show help
 help:
 	@echo "Available targets:"
+	@echo "  wire            - Generate wire_gen.go file"
 	@echo "  build           - Build the backend application"
 	@echo "  clean           - Clean build artifacts"
 	@echo "  test            - Run tests"

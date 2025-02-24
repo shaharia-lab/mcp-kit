@@ -9,7 +9,6 @@ import (
 	"github.com/go-chi/cors"
 	"github.com/shaharia-lab/goai"
 	"github.com/shaharia-lab/goai/mcp"
-	goaiObs "github.com/shaharia-lab/goai/observability"
 	handlers "github.com/shaharia-lab/mcp-kit/internal/handler"
 	"github.com/shaharia-lab/mcp-kit/observability"
 	"github.com/shaharia-lab/mcp-kit/storage"
@@ -17,7 +16,6 @@ import (
 	"github.com/spf13/cobra"
 	"go.opentelemetry.io/otel/trace"
 	"io/fs"
-	"time"
 
 	"log"
 	"net/http"
@@ -38,62 +36,46 @@ func NewAPICmd(logger *log.Logger) *cobra.Command {
 		Short: "Start the API server",
 		Long:  "Start the API server with LLM endpoints",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			cfg, err := loadConfig()
-			if err != nil {
-				return err
-			}
-
 			ctx := context.Background()
+
+			// Initialize tracer
 			cleanup, err := initializeTracer(ctx, "mcp-kit", logrus.New())
 			if err != nil {
-				return err
+				return fmt.Errorf("failed to initialize tracer: %w", err)
 			}
 			defer cleanup()
 
+			// Create context with cancellation
 			ctx, cancel := context.WithCancel(ctx)
 			defer cancel()
 
+			// Add server lifecycle span
 			ctx, serverSpan := observability.StartSpan(ctx, "server_lifecycle")
 			defer serverSpan.End()
 
-			l := goaiObs.NewDefaultLogger()
+			// Initialize all dependencies using Wire
+			container, cleanup, err := InitializeAPI(ctx)
+			if err != nil {
+				return fmt.Errorf("failed to initialize application: %w", err)
+			}
+			defer cleanup()
 
-			// Add span for MCP client initialization
+			// Connect MCP client with span
 			clientCtx, clientSpan := observability.StartSpan(ctx, "mcp_client_init")
-
-			mcpClient := mcp.NewClient(mcp.NewSSETransport(l), mcp.ClientConfig{
-				ClientName:    "My MCP Kit Client",
-				ClientVersion: "1.0.0",
-				Logger:        l,
-				RetryDelay:    5 * time.Second,
-				MaxRetries:    3,
-				SSE: mcp.SSEConfig{
-					URL: cfg.MCPServerURL,
-				},
-				RequestTimeout: 60 * time.Second,
-			})
-			defer mcpClient.Close(ctx)
-
-			if err := mcpClient.Connect(clientCtx); err != nil {
+			if err := container.MCPClient.Connect(clientCtx); err != nil {
 				clientSpan.End()
-				log.Printf("Failed to connect to SSE: %v", err)
 				return fmt.Errorf("failed to connect to MCP server: %w", err)
 			}
 			clientSpan.End()
 
-			inMemoryChatHistoryStorage := storage.NewInMemoryChatHistoryStorage()
+			// Ensure cleanup on shutdown
+			defer container.MCPClient.Close(ctx)
 
-			toolsProvider := goai.NewToolsProvider()
-			if err := toolsProvider.AddMCPClient(mcpClient); err != nil {
-				log.Printf("Failed to add MCP client to tools provider: %v", err)
-				return fmt.Errorf("failed to add MCP client to tools provider: %w", err)
-			}
-
-			router := setupRouter(ctx, mcpClient, logger, inMemoryChatHistoryStorage, toolsProvider)
-			logger.Printf("Starting server on :8080")
-
+			container.Logger.Printf("Starting server on :8081")
 			observability.AddAttribute(ctx, "server.port", "8081")
-			return http.ListenAndServe(":8081", router)
+
+			// Start the server
+			return http.ListenAndServe(":8081", container.Router)
 		},
 	}
 }
