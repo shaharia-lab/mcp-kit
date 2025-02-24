@@ -23,7 +23,7 @@ func NewRootCmd() *cobra.Command {
 
 	root.AddCommand(NewServerCmd(l))
 	root.AddCommand(NewTaskCmd(l))
-	root.AddCommand(NewAPICmd(l))
+	root.AddCommand(NewAPICmd())
 
 	return root
 }

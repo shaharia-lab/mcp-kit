@@ -30,7 +30,7 @@ type ToolInfo struct {
 	Description string `json:"description"`
 }
 
-func NewAPICmd(logger *log.Logger) *cobra.Command {
+func NewAPICmd() *cobra.Command {
 	return &cobra.Command{
 		Use:   "api",
 		Short: "Start the API server",
@@ -80,7 +80,7 @@ func NewAPICmd(logger *log.Logger) *cobra.Command {
 	}
 }
 
-func setupRouter(ctx context.Context, mcpClient *mcp.Client, logger *log.Logger, chatHistoryStorage storage.ChatHistoryStorage, toolsProvider *goai.ToolsProvider) *chi.Mux {
+func setupRouter(mcpClient *mcp.Client, logger *log.Logger, chatHistoryStorage storage.ChatHistoryStorage, toolsProvider *goai.ToolsProvider) *chi.Mux {
 	r := chi.NewRouter()
 
 	r.Use(func(next http.Handler) http.Handler {

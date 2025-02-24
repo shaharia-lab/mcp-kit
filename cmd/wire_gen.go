@@ -25,7 +25,7 @@ func InitializeAPI(ctx context.Context) (*Container, func(), error) {
 		return nil, nil, err
 	}
 	chatHistoryStorage := ProvideChatHistoryStorage()
-	mux := ProvideRouter(ctx, client, logger, chatHistoryStorage, toolsProvider)
+	mux := ProvideRouter(client, logger, chatHistoryStorage, toolsProvider)
 	container := NewContainer(logger, client, toolsProvider, chatHistoryStorage, mux, config)
 	return container, func() {
 	}, nil

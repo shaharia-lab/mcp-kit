@@ -1,7 +1,6 @@
 package cmd
 
 import (
-	"context"
 	"github.com/go-chi/chi/v5"
 	"github.com/shaharia-lab/goai"
 	"github.com/shaharia-lab/goai/mcp"
@@ -58,13 +57,12 @@ func ProvideChatHistoryStorage() storage.ChatHistoryStorage {
 }
 
 func ProvideRouter(
-	ctx context.Context,
 	mcpClient *mcp.Client,
 	logger *log.Logger,
 	storage storage.ChatHistoryStorage,
 	toolsProvider *goai.ToolsProvider,
 ) *chi.Mux {
-	return setupRouter(ctx, mcpClient, logger, storage, toolsProvider)
+	return setupRouter(mcpClient, logger, storage, toolsProvider)
 }
 
 func NewContainer(
