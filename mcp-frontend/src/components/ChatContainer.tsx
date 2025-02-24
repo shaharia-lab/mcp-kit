@@ -3,6 +3,7 @@ import {chatService} from "../services/chatService.ts";
 import {Message} from "./Message/Message.tsx";
 import {ChatInput} from "./ChatInput.tsx";
 import { ChatPayload } from '../types/chat';
+import {useNotification} from "../context/NotificationContext.tsx";
 
 interface ModelSettings {
     temperature: number;
@@ -27,6 +28,7 @@ export const ChatContainer: React.FC<ChatContainerProps> = ({
                                                                 modelSettings,
                                                                 selectedChatId
                                                             }) => {
+    const { addNotification } = useNotification();
     const [messages, setMessages] = useState<ChatMessage[]>([]);
     const [isLoading, setIsLoading] = useState(false);
     const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -109,10 +111,7 @@ export const ChatContainer: React.FC<ChatContainerProps> = ({
         } catch (error) {
             console.error('Error:', error);
             const errorMessage = error instanceof Error ? error.message : "Sorry, there was an error processing your request.";
-            setMessages(prev => [...prev, {
-                content: errorMessage,
-                isUser: false
-            }]);
+            addNotification('error', errorMessage);
         } finally {
             setIsLoading(false);
         }
