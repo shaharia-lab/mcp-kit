@@ -170,6 +170,7 @@ var fileSystemWriteFile = mcp.Tool{
 			Path    string `json:"path"`
 			Content string `json:"content"`
 		}
+
 		if err := json.Unmarshal(params.Arguments, &input); err != nil {
 			return mcp.CallToolResult{}, err
 		}
@@ -177,6 +178,10 @@ var fileSystemWriteFile = mcp.Tool{
 		if err := ioutil.WriteFile(input.Path, []byte(input.Content), 0644); err != nil {
 			return mcp.CallToolResult{}, err
 		}
+
+		span.SetAttributes(
+			attribute.String("path_to_write", input.Path),
+		)
 
 		return mcp.CallToolResult{
 			Content: []mcp.ToolResultContent{

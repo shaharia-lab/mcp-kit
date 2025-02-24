@@ -31,7 +31,7 @@ type LLMProvider struct {
 type QuestionRequest struct {
 	ChatUUID      uuid.UUID     `json:"chat_uuid"`
 	Question      string        `json:"question"`
-	UseTools      bool          `json:"useTools"`
+	SelectedTools []string      `json:"selectedTools"`
 	ModelSettings ModelSettings `json:"modelSettings"`
 	LLMProvider   LLMProvider   `json:"llmProvider"`
 }
@@ -72,7 +72,7 @@ func HandleAsk(sseClient *mcp.Client, logger *log.Logger, historyStorage storage
 		}
 
 		observability.AddAttribute(ctx, "question.length", len(req.Question))
-		observability.AddAttribute(ctx, "question.use_tools", req.UseTools)
+		observability.AddAttribute(ctx, "question.use_tools", req.SelectedTools)
 		observability.AddAttribute(ctx, "model.temperature", req.ModelSettings.Temperature)
 		observability.AddAttribute(ctx, "model.max_tokens", req.ModelSettings.MaxTokens)
 		observability.AddAttribute(ctx, "model.top_p", req.ModelSettings.TopP)
@@ -96,14 +96,15 @@ func HandleAsk(sseClient *mcp.Client, logger *log.Logger, historyStorage storage
 		// Prepare options for the LLM request
 		reqOptions := prepareLLMRequestOptions(req)
 
-		if req.UseTools {
+		if len(req.SelectedTools) > 0 {
 			logger.Println("Using tools provider")
 			reqOptions = append(reqOptions, goai.UseToolsProvider(toolsProvider))
 			observability.AddAttribute(ctx, "tools.enabled", true)
+			reqOptions = append(reqOptions, goai.WithAllowedTools(req.SelectedTools))
 		}
 
 		builder := llm.NewLLMBuilder(ctx)
-		_, err = builder.BuildProvider(llm.ProviderConfig{
+		llmProvider, err := builder.BuildProvider(llm.ProviderConfig{
 			Provider: req.LLMProvider.Provider,
 			ModelID:  req.LLMProvider.ModelID,
 		})
@@ -112,7 +113,7 @@ func HandleAsk(sseClient *mcp.Client, logger *log.Logger, historyStorage storage
 			return
 		}
 
-		//llm := goai.NewLLMRequest(goai.NewRequestConfig(reqOptions...), llmProvider)
+		llmCompletion := goai.NewLLMRequest(goai.NewRequestConfig(reqOptions...), llmProvider)
 
 		// Span for building messages
 		messagesCtx, messagesSpan := observability.StartSpan(ctx, "build_messages")
@@ -127,8 +128,8 @@ func HandleAsk(sseClient *mcp.Client, logger *log.Logger, historyStorage storage
 		messagesSpan.End()
 
 		// Generate a response using the LLM
-		/*generateCtx, generateSpan := observability.StartSpan(ctx, "generate_response")
-		response, err := llm.Generate(generateCtx, messages)
+		generateCtx, generateSpan := observability.StartSpan(ctx, "generate_response")
+		response, err := llmCompletion.Generate(generateCtx, messages)
 		if err != nil {
 			observability.AddAttribute(generateCtx, "error", err.Error())
 			generateSpan.End()
@@ -137,14 +138,14 @@ func HandleAsk(sseClient *mcp.Client, logger *log.Logger, historyStorage storage
 			writeErrorResponse(w, http.StatusInternalServerError, "Failed to generate response", err, generateCtx, span)
 			return
 		}
-		generateSpan.End()*/
+		generateSpan.End()
 
-		response := goai.LLMResponse{
+		/*response := goai.LLMResponse{
 			Text:             "# Hello! 👋\n\nI'm your AI assistant, ready to help you. To provide the most useful assistance, I can help you with:\n\n- Answering questions\n- Solving problems\n- Explaining concepts\n- Writing and reviewing code\n- General discussion and information\n\n## How can I help you today?\n\nPlease feel free to ask any specific question or let me know what kind of assistance you need. I'll make sure to:\n1. Understand your request clearly\n2. Ask for any needed clarification\n3. Provide well-formatted, helpful responses",
 			TotalInputToken:  10,
 			TotalOutputToken: 10,
 			CompletionTime:   2,
-		}
+		}*/
 
 		// Add assistant response to chat history
 		err = historyStorage.AddMessage(chat.UUID, storage.Message{
@@ -249,7 +250,7 @@ func writeErrorResponse(w http.ResponseWriter, status int, message string, err e
 
 func buildMessagesFromPromptTemplates(ctx context.Context, sseClient *mcp.Client, req QuestionRequest) ([]goai.LLMMessage, error) {
 	promptName := "llm_general"
-	if req.UseTools {
+	if len(req.SelectedTools) > 0 {
 		promptName = "llm_with_tools"
 	}
 	log.Printf("Fetching prompt: %s", promptName)

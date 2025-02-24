@@ -20,6 +20,8 @@ var MCPToolsRegistry = []mcp.Tool{
 	gitShowTool,
 	gitInitTool,
 	gitCloneTool,
+	gitReadLocalFileTool,
+	gitApplyPatchTool,
 	// GitHub tools
 	githubCreateRepository,
 	githubCreateIssue,

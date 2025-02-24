@@ -22,7 +22,7 @@ func ListToolsHandler(toolsProvider *goai.ToolsProvider) http.HandlerFunc {
 		defer span.End()
 
 		// Get the tools from the provider
-		tools, err := toolsProvider.ListTools(ctx)
+		tools, err := toolsProvider.ListTools(ctx, []string{})
 		if err != nil {
 			http.Error(w, fmt.Sprintf("Failed to get tools: %v", err), http.StatusInternalServerError)
 			span.RecordError(err)

@@ -112,3 +112,5 @@ CREATE INDEX IF NOT EXISTS idx_customers_username ON customers(username);
 CREATE INDEX IF NOT EXISTS idx_profiles_customer_id ON profiles(customer_id);
 CREATE INDEX IF NOT EXISTS idx_profiles_city_country ON profiles(city, country);
 ```
+## Additional Information
+This is a dummy text line 1 for testing purposes.
