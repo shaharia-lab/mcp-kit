@@ -3,6 +3,7 @@ package handlers
 import (
 	"encoding/json"
 	"github.com/anthropics/anthropic-sdk-go"
+	"github.com/openai/openai-go"
 	"net/http"
 )
 
@@ -22,6 +23,19 @@ type Provider struct {
 // SupportedLLMProviders represents the response structure for the API endpoint
 type SupportedLLMProviders struct {
 	Providers []Provider `json:"providers"`
+}
+
+func (s SupportedLLMProviders) IsSupported(providerName string, modelID string) bool {
+	for _, provider := range s.Providers {
+		if provider.Name == providerName {
+			for _, model := range provider.Models {
+				if model.ModelID == modelID {
+					return true
+				}
+			}
+		}
+	}
+	return false
 }
 
 // getLLMProviders retrieves a list of supported LLM providers.
@@ -94,27 +108,27 @@ func getLLMProviders() SupportedLLMProviders {
 					{
 						Name:        "GPT-4o Latest",
 						Description: "Latest GPT-4o model",
-						ModelID:     "chatgpt-4o-latest",
+						ModelID:     openai.ChatModelChatgpt4oLatest,
 					},
 					{
 						Name:        "GPT-4o Mini",
 						Description: "Optimized GPT-4o Mini model",
-						ModelID:     "gpt-4o-mini",
+						ModelID:     openai.ChatModelGPT4oMini,
 					},
 					{
 						Name:        "GPT-4",
 						Description: "Standard GPT-4 model",
-						ModelID:     "gpt-4",
+						ModelID:     openai.ChatModelGPT4,
 					},
 					{
 						Name:        "GPT-4 Turbo",
 						Description: "Most capable GPT-4 model for various tasks",
-						ModelID:     "gpt-4-turbo",
+						ModelID:     openai.ChatModelGPT4Turbo,
 					},
 					{
 						Name:        "GPT-3.5 Turbo",
 						Description: "Efficient model balancing performance and speed",
-						ModelID:     "gpt-3.5-turbo",
+						ModelID:     openai.ChatModelGPT3_5Turbo,
 					},
 				},
 			},

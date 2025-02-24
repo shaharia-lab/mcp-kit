@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/shaharia-lab/mcp-kit/internal/observability"
+	"github.com/shaharia-lab/mcp-kit/internal/service/llm"
 	"github.com/shaharia-lab/mcp-kit/internal/storage"
 	"log"
 	"net/http"
@@ -64,18 +65,32 @@ func HandleAsk(sseClient *mcp.Client, logger *log.Logger, historyStorage storage
 			return
 		}
 
+		supportedLLMProviders := getLLMProviders()
+		if supportedLLMProviders.IsSupported(req.LLMProvider.Provider, req.LLMProvider.ModelID) == false {
+			writeErrorResponse(w, http.StatusBadRequest, "LLM provider or model is not supported", nil, ctx, span)
+			return
+		}
+
 		observability.AddAttribute(ctx, "question.length", len(req.Question))
 		observability.AddAttribute(ctx, "question.use_tools", req.UseTools)
+		observability.AddAttribute(ctx, "model.temperature", req.ModelSettings.Temperature)
+		observability.AddAttribute(ctx, "model.max_tokens", req.ModelSettings.MaxTokens)
+		observability.AddAttribute(ctx, "model.top_p", req.ModelSettings.TopP)
+		observability.AddAttribute(ctx, "model.top_k", req.ModelSettings.TopK)
+		observability.AddAttribute(ctx, "llm.provider", req.LLMProvider.Provider)
+		observability.AddAttribute(ctx, "llm.model_id", req.LLMProvider.ModelID)
 
 		// Retrieve or create chat history
 		chat, err := getOrInitializeChat(req, historyStorage, logger, w, ctx)
 		if err != nil {
-			return // Error response is handled inside the function
+			writeErrorResponse(w, http.StatusInternalServerError, "Failed to get or create chat history", err, ctx, span)
+			return
 		}
 
 		// Add user message to chat history
 		if err := addUserMessageToHistory(req.Question, chat.UUID, historyStorage, w); err != nil {
-			return // Error response is handled inside the function
+			writeErrorResponse(w, http.StatusInternalServerError, "Failed to add user message to chat history", err, ctx, span)
+			return
 		}
 
 		// Prepare options for the LLM request
@@ -87,18 +102,17 @@ func HandleAsk(sseClient *mcp.Client, logger *log.Logger, historyStorage storage
 			observability.AddAttribute(ctx, "tools.enabled", true)
 		}
 
-		// Setup the LLM provider (Anthropic example)
-		/*llmSetupCtx, llmSetupSpan := observability.StartSpan(ctx, "setup_llm_provider")
-
-		// Uncomment this code if using an Anthropic provider:
-		llmProvider := goai.NewAnthropicLLMProvider(goai.AnthropicProviderConfig{
-			Client: goai.NewAnthropicClient(os.Getenv("ANTHROPIC_API_KEY")),
-			Model:  anthropic.ModelClaude3_5Sonnet20241022,
+		builder := llm.NewLLMBuilder(ctx)
+		_, err = builder.BuildProvider(llm.ProviderConfig{
+			Provider: req.LLMProvider.Provider,
+			ModelID:  req.LLMProvider.ModelID,
 		})
-		llm := goai.NewLLMRequest(goai.NewRequestConfig(reqOptions...), llmProvider)
+		if err != nil {
+			writeErrorResponse(w, http.StatusInternalServerError, err.Error(), nil, ctx, span)
+			return
+		}
 
-		observability.AddAttribute(llmSetupCtx, "llm.model", anthropic.ModelClaude3_5Sonnet20241022)
-		llmSetupSpan.End()*/
+		//llm := goai.NewLLMRequest(goai.NewRequestConfig(reqOptions...), llmProvider)
 
 		// Span for building messages
 		messagesCtx, messagesSpan := observability.StartSpan(ctx, "build_messages")
