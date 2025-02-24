@@ -5,7 +5,6 @@ import (
 	"embed"
 	"encoding/json"
 	"fmt"
-	"github.com/anthropics/anthropic-sdk-go"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/go-chi/cors"
@@ -14,6 +13,7 @@ import (
 	"github.com/shaharia-lab/goai/mcp"
 	goaiObs "github.com/shaharia-lab/goai/observability"
 	handlers "github.com/shaharia-lab/mcp-kit/internal/handler"
+	"github.com/shaharia-lab/mcp-kit/internal/handler/chat"
 	"github.com/shaharia-lab/mcp-kit/observability"
 	"github.com/shaharia-lab/mcp-kit/storage"
 	"github.com/sirupsen/logrus"
@@ -28,26 +28,6 @@ import (
 
 //go:embed static/*
 var staticFiles embed.FS
-
-type ModelSettings struct {
-	Temperature float64 `json:"temperature"`
-	MaxTokens   int64   `json:"maxTokens"`
-	TopP        float64 `json:"topP"`
-	TopK        int64   `json:"topK"`
-}
-type QuestionRequest struct {
-	ChatUUID      uuid.UUID     `json:"chat_uuid"`
-	Question      string        `json:"question"`
-	UseTools      bool          `json:"useTools"`
-	ModelSettings ModelSettings `json:"modelSettings"`
-}
-
-type Response struct {
-	ChatUUID    uuid.UUID `json:"chat_uuid"`
-	Answer      string    `json:"answer"`
-	InputToken  int       `json:"input_token"`
-	OutputToken int       `json:"output_token"`
-}
 
 // ToolInfo represents the simplified tool information to be returned by the API
 type ToolInfo struct {
@@ -181,183 +161,12 @@ func setupRouter(ctx context.Context, mcpClient *mcp.Client, logger *log.Logger,
 	// Handle other static files
 	r.Mount("/static/", http.StripPrefix("/static/", http.FileServer(http.FS(subFS))))
 
-	r.Post("/ask", handleAsk(mcpClient, logger, chatHistoryStorage, toolsProvider))
+	r.Post("/ask", chat.HandleAsk(mcpClient, logger, chatHistoryStorage, toolsProvider))
 	r.Get("/chats", handleListChats(logger, chatHistoryStorage))
 	r.Get("/chat/{chatId}", handleGetChat(logger, chatHistoryStorage))
 	r.Get("/api/tools", handleListTools(toolsProvider))
 
 	return r
-}
-
-func handleAsk(sseClient *mcp.Client, logger *log.Logger, historyStorage storage.ChatHistoryStorage, toolsProvider *goai.ToolsProvider) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		ctx, span := observability.StartSpan(r.Context(), "handle_ask")
-		defer span.End()
-
-		var req QuestionRequest
-		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-			observability.AddAttribute(ctx, "error", err.Error())
-			defer span.End()
-
-			w.Header().Set("Content-Type", "application/json")
-			json.NewEncoder(w).Encode(map[string]string{
-				"error": "Invalid request body",
-			})
-			return
-		}
-		observability.AddAttribute(ctx, "question.length", len(req.Question))
-		observability.AddAttribute(ctx, "question.use_tools", req.UseTools)
-
-		var chat *storage.ChatHistory
-		var err error
-
-		// Check if ChatUUID is nil (zero ChatUUID)
-		if req.ChatUUID == uuid.Nil {
-			// Create new chat if ChatUUID is nil
-			chat, err = historyStorage.CreateChat()
-			if err != nil {
-				w.Header().Set("Content-Type", "application/json")
-				w.WriteHeader(http.StatusInternalServerError)
-				json.NewEncoder(w).Encode(map[string]string{
-					"error": "Failed to create new chat",
-				})
-				return
-			}
-		} else {
-			logger.Printf("ChatUUID: %s", req.ChatUUID)
-			chat, err = historyStorage.GetChat(req.ChatUUID)
-			if err != nil {
-				w.Header().Set("Content-Type", "application/json")
-				w.WriteHeader(http.StatusNotFound)
-				json.NewEncoder(w).Encode(map[string]string{
-					"error": "Chat not found",
-				})
-				return
-			}
-		}
-
-		// Add message to the chat
-		err = historyStorage.AddMessage(chat.UUID, storage.Message{
-			LLMMessage: goai.LLMMessage{
-				Role: goai.UserRole,
-				Text: req.Question,
-			},
-			GeneratedAt: time.Now(),
-		})
-		if err != nil {
-			w.Header().Set("Content-Type", "application/json")
-			w.WriteHeader(http.StatusInternalServerError)
-			json.NewEncoder(w).Encode(map[string]string{
-				"error": "Failed to add message to chat history",
-			})
-			return
-		}
-
-		reqOptions := []goai.RequestOption{
-			goai.WithMaxToken(1000),
-			goai.WithTemperature(0.5),
-		}
-
-		if req.ModelSettings.Temperature != 0 {
-			reqOptions = append(reqOptions, goai.WithTemperature(req.ModelSettings.Temperature))
-		}
-
-		log.Printf("MaxTokens: %d", req.ModelSettings.MaxTokens)
-		if req.ModelSettings.MaxTokens != 0 {
-			reqOptions = append(reqOptions, goai.WithMaxToken(req.ModelSettings.MaxTokens))
-		}
-
-		if req.ModelSettings.TopP != 0 {
-			reqOptions = append(reqOptions, goai.WithTopP(req.ModelSettings.TopP))
-		}
-
-		if req.ModelSettings.TopK != 0 {
-			reqOptions = append(reqOptions, goai.WithTopK(req.ModelSettings.TopK))
-		}
-
-		if req.UseTools {
-			observability.AddAttribute(ctx, "tools.enabled", true)
-
-			logger.Println("Using tools provider")
-			reqOptions = append(reqOptions, goai.UseToolsProvider(toolsProvider))
-		}
-
-		llmSetupCtx, llmSetupSpan := observability.StartSpan(ctx, "setup_llm_provider")
-
-		/*llmProvider := goai.NewAnthropicLLMProvider(goai.AnthropicProviderConfig{
-			Client: goai.NewAnthropicClient(os.Getenv("ANTHROPIC_API_KEY")),
-			Model:  anthropic.ModelClaude3_5Sonnet20241022,
-		})
-		llm := goai.NewLLMRequest(goai.NewRequestConfig(reqOptions...), llmProvider)
-		*/
-		observability.AddAttribute(llmSetupCtx, "llm.model", anthropic.ModelClaude3_5Sonnet20241022)
-		llmSetupSpan.End()
-
-		// Span for building messages
-		messagesCtx, messagesSpan := observability.StartSpan(ctx, "build_messages")
-		messages, err := buildMessagesFromPromptTemplates(messagesCtx, sseClient, req)
-
-		if err != nil {
-			observability.AddAttribute(messagesCtx, "error", err.Error())
-			messagesSpan.End()
-
-			w.Header().Set("Content-Type", "application/json")
-			json.NewEncoder(w).Encode(map[string]string{
-				"error": err.Error(),
-			})
-			return
-		}
-		observability.AddAttribute(messagesCtx, "messages.count", len(messages))
-		messagesSpan.End()
-
-		generateCtx, generateSpan := observability.StartSpan(ctx, "generate_response")
-		//response, err := llm.Generate(generateCtx, messages)
-		response := goai.LLMResponse{
-			Text:             "# Hello! 👋\n\nI'm your AI assistant, ready to help you. To provide the most useful assistance, I can help you with:\n\n- Answering questions\n- Solving problems\n- Explaining concepts\n- Writing and reviewing code\n- General discussion and information\n\n## How can I help you today?\n\nPlease feel free to ask any specific question or let me know what kind of assistance you need. I'll make sure to:\n1. Understand your request clearly\n2. Ask for any needed clarification\n3. Provide well-formatted, helpful responses",
-			TotalInputToken:  10,
-			TotalOutputToken: 10,
-			CompletionTime:   2,
-		}
-
-		if err != nil {
-			observability.AddAttribute(generateCtx, "error", err.Error())
-			generateSpan.End()
-
-			log.Printf("Failed to generate response: %v", err)
-			w.Header().Set("Content-Type", "application/json")
-			json.NewEncoder(w).Encode(map[string]string{
-				"error": "Failed to generate response",
-			})
-			return
-		}
-
-		err = historyStorage.AddMessage(chat.UUID, storage.Message{
-			LLMMessage: goai.LLMMessage{
-				Role: goai.SystemRole,
-				Text: response.Text,
-			},
-			GeneratedAt: time.Now(),
-		})
-		if err != nil {
-			w.Header().Set("Content-Type", "application/json")
-			json.NewEncoder(w).Encode(map[string]string{
-				"error": "Failed to add message to chat history",
-			})
-			return
-		}
-
-		observability.AddAttribute(generateCtx, "response.input_tokens", response.TotalInputToken)
-		observability.AddAttribute(generateCtx, "response.output_tokens", response.TotalOutputToken)
-		generateSpan.End()
-
-		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(Response{
-			ChatUUID:    chat.UUID,
-			Answer:      response.Text,
-			InputToken:  response.TotalInputToken,
-			OutputToken: response.TotalOutputToken,
-		})
-	}
 }
 
 func handleListChats(logger *log.Logger, historyStorage storage.ChatHistoryStorage) http.HandlerFunc {
@@ -469,34 +278,6 @@ func handleListTools(toolsProvider *goai.ToolsProvider) http.HandlerFunc {
 			return
 		}
 	}
-}
-
-func buildMessagesFromPromptTemplates(ctx context.Context, sseClient *mcp.Client, req QuestionRequest) ([]goai.LLMMessage, error) {
-	promptName := "llm_general"
-	if req.UseTools {
-		promptName = "llm_with_tools"
-	}
-	log.Printf("Fetching prompt: %s", promptName)
-
-	promptMessages, err := sseClient.GetPrompt(ctx, mcp.GetPromptParams{
-		Name: promptName,
-		Arguments: json.RawMessage(`{
-        "question": ` + fmt.Sprintf("%q", req.Question) + `
-    }`),
-	})
-
-	if err != nil {
-		return nil, fmt.Errorf("failed to fetch prompts from MCP server. Error: %w", err)
-	}
-
-	var messages []goai.LLMMessage
-	for _, p := range promptMessages {
-		messages = append(messages, goai.LLMMessage{
-			Role: goai.LLMMessageRole(p.Role),
-			Text: p.Content.Text,
-		})
-	}
-	return messages, nil
 }
 
 func initializeTracer(ctx context.Context, appName string, l *logrus.Logger) (func(), error) {
