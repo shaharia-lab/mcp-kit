@@ -9,17 +9,52 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  build-frontend:
+    name: Build Frontend
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: 'mcp-frontend/package-lock.json'
+
+      - name: Install Frontend Dependencies
+        run: cd mcp-frontend && npm ci
+
+      - name: Build Frontend
+        run: cd mcp-frontend && npm run build
+
+      - name: Upload Frontend Build
+        uses: actions/upload-artifact@v4
+        with:
+          name: frontend-build
+          path: cmd/static
+          retention-days: 1
+
   unit-test:
     name: Backend Unit Tests
+    needs: [build-frontend]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 20
+
+      - name: Download Frontend Build
+        uses: actions/download-artifact@v4
+        with:
+          name: frontend-build
+          path: cmd/static
+
       - name: Set up Go
         uses: actions/setup-go@v4
         with:
           go-version: '1.23'
+
       - name: Run Backend Tests
         run: make test
 
@@ -80,39 +115,6 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
 
-  release:
-    name: Test Release
-    needs:
-      - docker-build
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v3
-        with:
-          fetch-depth: 0
-
-      - uses: actions/setup-go@v3
-        with:
-          go-version: '^1.23'
-
-      - uses: docker/login-action@v1
-        with:
-          registry: ghcr.io
-          username: ${{ github.repository_owner }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Create temporary tag
-        run: |
-          git config user.name "GitHub Actions"
-          git config user.email "actions@github.com"
-          git tag -a v${{ github.run_number }}.0.0 -m "Test tag for GoReleaser"
-
-      - uses: goreleaser/goreleaser-action@v6
-        with:
-          version: '~> v2'
-          args: release --skip=publish --clean --fail-fast --verbose
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
   docker-build:
     name: Docker Build
     needs:
@@ -137,3 +139,42 @@ jobs:
       - name: Cleanup
         if: always()
         run: docker image rm mcp:${{ github.event.pull_request.number }}-${{ github.sha }}
+
+  release:
+    name: Test Release
+    needs:
+      - docker-build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-go@v3
+        with:
+          go-version: '^1.23'
+
+      - name: Download Frontend Build
+        uses: actions/download-artifact@v4
+        with:
+          name: frontend-build
+          path: cmd/static
+
+      - uses: docker/login-action@v1
+        with:
+          registry: ghcr.io
+          username: ${{ github.repository_owner }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Create temporary tag
+        run: |
+          git config user.name "GitHub Actions"
+          git config user.email "actions@github.com"
+          git tag -a v${{ github.run_number }}.0.0 -m "Test tag for GoReleaser"
+
+      - uses: goreleaser/goreleaser-action@v6
+        with:
+          version: '~> v2'
+          args: release --skip=publish --clean --fail-fast --verbose
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
