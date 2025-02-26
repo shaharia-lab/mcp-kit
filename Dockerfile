@@ -1,39 +1,22 @@
-# Stage 1: Build frontend and backend
-# Change from golang:1.23-alpine to use a Node.js 20 base image first
+# Stage 1: Build frontend
 FROM node:20-alpine AS frontend-builder
 
-# Set working directory
 WORKDIR /app
 
-# Copy package files first to leverage Docker cache
 COPY mcp-frontend/package*.json ./mcp-frontend/
-
-# Install frontend dependencies
 RUN cd mcp-frontend && npm ci
-
-# Copy the rest of the frontend files
 COPY mcp-frontend ./mcp-frontend/
-
-# Build frontend
 RUN cd mcp-frontend && npm run build
 
-# Now use golang image for backend
 FROM golang:1.23-alpine AS backend-builder
-
-# Install necessary build tools
 RUN apk add --no-cache git make
 
-# Set working directory
 WORKDIR /app
-
-# Create a non-root user
 RUN adduser -D -g '' app
 
-# Copy the entire project including the built frontend
-COPY --from=frontend-builder /app/mcp-frontend/dist ./mcp-frontend/dist
 COPY . .
+COPY --from=frontend-builder /app/cmd/static ./cmd/static
 
-# Build backend
 RUN make build
 
 # Stage 3: Create the final image
@@ -54,11 +37,7 @@ USER app
 
 # Set environment variables
 ENV TZ=UTC \
-    APP_USER=app \
-    APP_PORT=8080
-
-# Expose both API and frontend ports
-EXPOSE 8080 8081
+    APP_USER=app
 
 # Set the entrypoint
 ENTRYPOINT ["/usr/local/bin/mcp"]
