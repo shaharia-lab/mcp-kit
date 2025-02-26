@@ -26,4 +26,4 @@ jobs:
         run: npm install -g @openapitools/openapi-generator-cli
 
       - name: Validate OpenAPI schema
-        run: openapi-generator-cli validate -i backend/openapi.yaml
+        run: openapi-generator-cli validate -i openapi.yaml
