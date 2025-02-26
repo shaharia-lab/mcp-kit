@@ -25,15 +25,6 @@ func TestReadFileTool(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// Find read_file tool
-	var readFileTool mcp.Tool
-	for _, tool := range FilesystemTools {
-		if tool.Name == "read_file" {
-			readFileTool = tool
-			break
-		}
-	}
-
 	// Prepare test input
 	args, err := json.Marshal(map[string]string{
 		"path": testFile,
@@ -43,7 +34,7 @@ func TestReadFileTool(t *testing.T) {
 	}
 
 	// Execute tool
-	result, err := readFileTool.Handler(context.Background(), mcp.CallToolParams{
+	result, err := fileSystemReadFile.Handler(context.Background(), mcp.CallToolParams{
 		Arguments: args,
 	})
 
@@ -69,15 +60,6 @@ func TestWriteFileTool(t *testing.T) {
 	testFile := filepath.Join(tmpDir, "write_test.txt")
 	testContent := "Test content"
 
-	// Find write_file tool
-	var writeFileTool mcp.Tool
-	for _, tool := range FilesystemTools {
-		if tool.Name == "write_file" {
-			writeFileTool = tool
-			break
-		}
-	}
-
 	// Prepare test input
 	args, err := json.Marshal(map[string]string{
 		"path":    testFile,
@@ -88,7 +70,7 @@ func TestWriteFileTool(t *testing.T) {
 	}
 
 	// Execute tool
-	_, err = writeFileTool.Handler(context.Background(), mcp.CallToolParams{
+	_, err = fileSystemWriteFile.Handler(context.Background(), mcp.CallToolParams{
 		Arguments: args,
 	})
 
@@ -121,15 +103,6 @@ func TestGetFileInfoTool(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// Find get_file_info tool
-	var getFileInfoTool mcp.Tool
-	for _, tool := range FilesystemTools {
-		if tool.Name == "get_file_info" {
-			getFileInfoTool = tool
-			break
-		}
-	}
-
 	// Prepare test input
 	args, err := json.Marshal(map[string]string{
 		"path": testFile,
@@ -139,7 +112,7 @@ func TestGetFileInfoTool(t *testing.T) {
 	}
 
 	// Execute tool
-	result, err := getFileInfoTool.Handler(context.Background(), mcp.CallToolParams{
+	result, err := fileSystemGetFileInfo.Handler(context.Background(), mcp.CallToolParams{
 		Arguments: args,
 	})
 
@@ -184,15 +157,6 @@ func TestListDirectoryTool(t *testing.T) {
 		}
 	}
 
-	// Find list_directory tool
-	var listDirTool mcp.Tool
-	for _, tool := range FilesystemTools {
-		if tool.Name == "list_directory" {
-			listDirTool = tool
-			break
-		}
-	}
-
 	// Prepare test input
 	args, err := json.Marshal(map[string]string{
 		"path": tmpDir,
@@ -202,7 +166,7 @@ func TestListDirectoryTool(t *testing.T) {
 	}
 
 	// Execute tool
-	result, err := listDirTool.Handler(context.Background(), mcp.CallToolParams{
+	result, err := fileSystemListDirectory.Handler(context.Background(), mcp.CallToolParams{
 		Arguments: args,
 	})
 

@@ -1,0 +1,29 @@
+name: OpenAPI Schema Validation
+
+on:
+  pull_request:
+    paths:
+      - 'openapi.yaml'
+  push:
+    branches:
+      - main
+    paths:
+      - 'openapi.yaml'
+
+jobs:
+  validate-openapi:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '20'
+
+      - name: Install OpenAPI validator
+        run: npm install -g @openapitools/openapi-generator-cli
+
+      - name: Validate OpenAPI schema
+        run: openapi-generator-cli validate -i backend/openapi.yaml
