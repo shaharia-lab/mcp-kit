@@ -20,7 +20,7 @@ jobs:
         run: make backend-test
 
       - name: Publish artifacts
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: coverage-${{ github.sha }}
           path: coverage.out
@@ -43,7 +43,7 @@ jobs:
         run: make frontend-test
 
       - name: Publish artifacts
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: frontend-coverage-${{ github.sha }}
           path: frontend/smarty-pants/coverage/lcov.info

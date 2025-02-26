@@ -24,7 +24,7 @@ jobs:
         run: make test
 
       - name: Publish artifacts
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: coverage-pr${{ github.event.pull_request.number }}-${{ github.sha }}
           path: coverage.out
