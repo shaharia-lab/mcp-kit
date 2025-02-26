@@ -93,14 +93,14 @@ docker run -d \
   --name mcp-server \
   -p 8080:8080 \
   -e MCP_SERVER_PORT=8080 \
-  -e GITHUB_TOKEN={GITHUB_TOKEN} \
+  -e GITHUB_TOKEN=$GITHUB_TOKEN \
   ghcr.io/shaharia-lab/mcp-kit:$VERSION server
 
 # Run API server
 docker run -d \
   --name mcp-client \
   --add-host=host.docker.internal:host-gateway \
-  -e ANTHROPIC_API_KEY={ANTHROPIC_API_KEY} \
+  -e ANTHROPIC_API_KEY=$ANTHROPIC_API_KEY \
   -e MCP_SERVER_URL=http://host.docker.internal:8080/events \
   -p 8081:8081 \
   ghcr.io/shaharia-lab/mcp-kit:$VERSION api
