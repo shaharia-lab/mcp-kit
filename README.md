@@ -15,6 +15,8 @@ This toolkit offers a standardized way for AI models to communicate with externa
 *   **Chat History**: Implements in-memory storage for maintaining chat history.
 *   **LLM Providers**: Supports Anthropic, OpenAI, Amazon Bedrock, Cohere, Meta Llama, Mistral, and DeepSeek models. You can integrate more models easily.
 
+<video src="https://github.com/user-attachments/assets/81804a29-e896-4f65-a929-05ac6a6aa92a" controls title="MCP Kit in action"></video>
+
 ## Architecture
 
 The MCP Kit follows a client-server architecture:
