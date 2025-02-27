@@ -73,7 +73,7 @@ dev-all:
 	@make -j 3 dev-api dev-server frontend-dev
 
 # Build the application
-build: wire
+build: frontend-build wire
 	@echo "Building optimized binary for $(APP_NAME)..."
 	@CGO_ENABLED=0 go build \
 		-trimpath \
@@ -96,7 +96,7 @@ clean:
 	@rm -rf $(FRONTEND_DIR)/dist
 
 # Run tests
-test:
+test: frontend-build
 	@echo "Running tests..."
 	@go test -v ./...
 
