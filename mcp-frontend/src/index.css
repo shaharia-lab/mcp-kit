@@ -72,12 +72,6 @@
 .prose h3 { font-size: 1.5rem; }
 .prose h4 { font-size: 1.25rem; }
 
-/* Paragraphs and Lists */
-.prose p {
-  margin-top: 1.25em;
-  margin-bottom: 1.25em;
-}
-
 .prose ul, .prose ol {
   margin-top: 1.25em;
   margin-bottom: 1.25em;
@@ -201,4 +195,33 @@
 .tools-toggle-button.enabled {
   background-color: #3b82f6;
   color: white;
+}
+
+/* Add to your global CSS file (e.g., src/index.css or src/styles.css) */
+.footnote-ref {
+  font-size: 0.7em;
+  vertical-align: super;
+  line-height: 0;
+}
+
+.footnotes {
+  margin-top: 1.5rem;
+  font-size: 0.875rem;
+  color: rgb(107, 114, 128);
+  border-top: 1px solid rgb(229, 231, 235);
+  padding-top: 1rem;
+}
+
+.footnotes summary {
+  cursor: pointer;
+  color: rgb(107, 114, 128);
+  font-weight: 500;
+}
+
+.footnotes ol {
+  margin-top: 0.5rem;
+}
+
+.footnotes li {
+  margin-bottom: 0.25rem;
 }

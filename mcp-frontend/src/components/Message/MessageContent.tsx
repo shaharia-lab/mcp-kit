@@ -19,9 +19,11 @@ export const MessageContent: React.FC<MessageContentProps> = ({ content }) => {
     }, [content]);
 
     return (
-        <div
-            className="prose"
-            dangerouslySetInnerHTML={{ __html: sanitizedContent }}
-        />
+        <div className="message-content">
+            <div
+                className="prose max-w-none"
+                dangerouslySetInnerHTML={{ __html: sanitizedContent }}
+            />
+        </div>
     );
 };
