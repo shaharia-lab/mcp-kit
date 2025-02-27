@@ -20,6 +20,36 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql/data
 
+  mcp-server:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: mcp-server
+    ports:
+      - "8080:8080"
+    environment:
+      - MCP_SERVER_PORT=8080
+      - GITHUB_TOKEN=${GITHUB_TOKEN}
+    command: server
+    networks:
+      - mcp-network
+
+  mcp-client:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: mcp-client
+    ports:
+      - "8081:8081"
+    environment:
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
+      - MCP_SERVER_URL=http://mcp-server:8080/events
+    command: api
+    depends_on:
+      - mcp-server
+    networks:
+      - mcp-network
+
 networks:
   mcp-network:
     name: mcp-network
