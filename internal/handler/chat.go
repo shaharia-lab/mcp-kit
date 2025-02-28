@@ -4,9 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/shaharia-lab/mcp-kit/internal/observability"
-	"github.com/shaharia-lab/mcp-kit/internal/service/llm"
-	"github.com/shaharia-lab/mcp-kit/internal/storage"
 	"log"
 	"net/http"
 	"time"
@@ -14,6 +11,13 @@ import (
 	"github.com/google/uuid"
 	"github.com/shaharia-lab/goai"
 	"github.com/shaharia-lab/goai/mcp"
+	"github.com/shaharia-lab/mcp-kit/internal/observability"
+	"github.com/shaharia-lab/mcp-kit/internal/service/llm"
+	"github.com/shaharia-lab/mcp-kit/internal/storage"
+)
+
+const (
+	MaxChatHistoryMessages = 20 // Configurable max number of messages to retain
 )
 
 type ModelSettings struct {
@@ -81,14 +85,41 @@ func HandleAsk(sseClient *mcp.Client, logger *log.Logger, historyStorage storage
 		observability.AddAttribute(ctx, "llm.model_id", req.LLMProvider.ModelID)
 
 		// Retrieve or create chat history
-		chat, err := getOrInitializeChat(req, historyStorage, logger, w, ctx)
+		chat, err := getOrInitializeChat(req, historyStorage, logger, ctx)
 		if err != nil {
 			writeErrorResponse(w, http.StatusInternalServerError, "Failed to get or create chat history", err, ctx, span)
 			return
 		}
 
+		// Retrieve chat history and truncate it to the last MaxChatHistoryMessages
+		messages, err := getTruncatedChatHistory(chat.UUID, historyStorage)
+		if err != nil {
+			writeErrorResponse(w, http.StatusInternalServerError, "Failed to retrieve chat history", err, ctx, span)
+			return
+		}
+
+		// Build the initial prompt template if this is the first message in the chat
+		if len(messages) == 0 {
+			promptMessages, err := buildMessagesFromPromptTemplates(ctx, sseClient, req)
+			if err != nil {
+				writeErrorResponse(w, http.StatusInternalServerError, "Failed to build prompt templates", err, ctx, span)
+				return
+			}
+			messages = append(messages, promptMessages...)
+		}
+
+		// Add the new user question to the history
+		userMessage := goai.LLMMessage{
+			Role: goai.UserRole,
+			Text: req.Question,
+		}
+		messages = append(messages, userMessage)
+
 		// Add user message to chat history
-		if err := addUserMessageToHistory(req.Question, chat.UUID, historyStorage, w); err != nil {
+		if err := historyStorage.AddMessage(chat.UUID, storage.Message{
+			LLMMessage:  userMessage,
+			GeneratedAt: time.Now(),
+		}); err != nil {
 			writeErrorResponse(w, http.StatusInternalServerError, "Failed to add user message to chat history", err, ctx, span)
 			return
 		}
@@ -115,20 +146,9 @@ func HandleAsk(sseClient *mcp.Client, logger *log.Logger, historyStorage storage
 
 		llmCompletion := goai.NewLLMRequest(goai.NewRequestConfig(reqOptions...), llmProvider)
 
-		// Span for building messages
-		messagesCtx, messagesSpan := observability.StartSpan(ctx, "build_messages")
-		messages, err := buildMessagesFromPromptTemplates(messagesCtx, sseClient, req)
-		if err != nil {
-			observability.AddAttribute(messagesCtx, "error", err.Error())
-			messagesSpan.End()
-			writeErrorResponse(w, http.StatusInternalServerError, err.Error(), err, ctx, nil)
-			return
-		}
-		observability.AddAttribute(messagesCtx, "messages.count", len(messages))
-		messagesSpan.End()
-
 		// Generate a response using the LLM
 		generateCtx, generateSpan := observability.StartSpan(ctx, "generate_response")
+		observability.AddAttribute(generateCtx, "HandleAsk.total_messages", len(messages))
 		response, err := llmCompletion.Generate(generateCtx, messages)
 		if err != nil {
 			observability.AddAttribute(generateCtx, "error", err.Error())
@@ -139,13 +159,6 @@ func HandleAsk(sseClient *mcp.Client, logger *log.Logger, historyStorage storage
 			return
 		}
 		generateSpan.End()
-
-		/*response := goai.LLMResponse{
-			Text:             "# Hello! 👋\n\nI'm your AI assistant, ready to help you. To provide the most useful assistance, I can help you with:\n\n- Answering questions\n- Solving problems\n- Explaining concepts\n- Writing and reviewing code\n- General discussion and information\n\n## How can I help you today?\n\nPlease feel free to ask any specific question or let me know what kind of assistance you need. I'll make sure to:\n1. Understand your request clearly\n2. Ask for any needed clarification\n3. Provide well-formatted, helpful responses",
-			TotalInputToken:  10,
-			TotalOutputToken: 10,
-			CompletionTime:   2,
-		}*/
 
 		// Add assistant response to chat history
 		err = historyStorage.AddMessage(chat.UUID, storage.Message{
@@ -176,40 +189,84 @@ func HandleAsk(sseClient *mcp.Client, logger *log.Logger, historyStorage storage
 }
 
 // Helper Function Implementations
-func getOrInitializeChat(req QuestionRequest, historyStorage storage.ChatHistoryStorage, logger *log.Logger, w http.ResponseWriter, ctx context.Context) (*storage.ChatHistory, error) {
+func getOrInitializeChat(req QuestionRequest, historyStorage storage.ChatHistoryStorage, logger *log.Logger, ctx context.Context) (*storage.ChatHistory, error) {
 	var chat *storage.ChatHistory
 	var err error
 
 	if req.ChatUUID == uuid.Nil {
 		chat, err = historyStorage.CreateChat()
 		if err != nil {
-			writeErrorResponse(w, http.StatusInternalServerError, "Failed to create new chat", err, ctx, nil)
-			return nil, err
+			return nil, fmt.Errorf("failed to create chat")
 		}
 	} else {
 		logger.Printf("ChatUUID: %s", req.ChatUUID)
 		chat, err = historyStorage.GetChat(req.ChatUUID)
 		if err != nil {
-			writeErrorResponse(w, http.StatusNotFound, "Chat not found", err, ctx, nil)
-			return nil, err
+			return nil, fmt.Errorf("failed to get chat")
 		}
 	}
 
 	return chat, nil
 }
 
-func addUserMessageToHistory(question string, chatUUID uuid.UUID, historyStorage storage.ChatHistoryStorage, w http.ResponseWriter) error {
-	err := historyStorage.AddMessage(chatUUID, storage.Message{
-		LLMMessage: goai.LLMMessage{
-			Role: goai.UserRole,
-			Text: question,
-		},
-		GeneratedAt: time.Now(),
-	})
+func getTruncatedChatHistory(chatUUID uuid.UUID, historyStorage storage.ChatHistoryStorage) ([]goai.LLMMessage, error) {
+	// Retrieve all messages for the chat
+	chatHistory, err := historyStorage.GetChat(chatUUID)
 	if err != nil {
-		writeErrorResponse(w, http.StatusInternalServerError, "Failed to add message to chat history", err, nil, nil)
+		return nil, err
 	}
-	return err
+
+	if chatHistory == nil {
+		return []goai.LLMMessage{}, nil
+	}
+
+	messages := chatHistory.Messages
+	var result []goai.LLMMessage
+
+	// Determine the starting index for truncation
+	startIdx := 0
+	if len(messages) > MaxChatHistoryMessages {
+		startIdx = len(messages) - MaxChatHistoryMessages
+	}
+
+	// Convert Message to goai.LLMMessage
+	for _, msg := range messages[startIdx:] {
+		llmMsg := goai.LLMMessage{
+			Role: msg.Role,
+			Text: msg.Text,
+		}
+		result = append(result, llmMsg)
+	}
+
+	return result, nil
+}
+
+func buildMessagesFromPromptTemplates(ctx context.Context, sseClient *mcp.Client, req QuestionRequest) ([]goai.LLMMessage, error) {
+	promptName := "llm_general"
+	if len(req.SelectedTools) > 0 {
+		promptName = "llm_with_tools_v3"
+	}
+	log.Printf("Fetching prompt: %s", promptName)
+
+	promptMessages, err := sseClient.GetPrompt(ctx, mcp.GetPromptParams{
+		Name: promptName,
+		Arguments: json.RawMessage(`{
+        "question": ` + fmt.Sprintf("%q", req.Question) + `
+    }`),
+	})
+
+	if err != nil {
+		return nil, fmt.Errorf("failed to fetch prompts from MCP server. Error: %w", err)
+	}
+
+	var messages []goai.LLMMessage
+	for _, p := range promptMessages {
+		messages = append(messages, goai.LLMMessage{
+			Role: goai.LLMMessageRole(p.Role),
+			Text: p.Content.Text,
+		})
+	}
+	return messages, nil
 }
 
 func prepareLLMRequestOptions(req QuestionRequest) []goai.RequestOption {
@@ -246,32 +303,4 @@ func writeErrorResponse(w http.ResponseWriter, status int, message string, err e
 	json.NewEncoder(w).Encode(map[string]string{
 		"error": message,
 	})
-}
-
-func buildMessagesFromPromptTemplates(ctx context.Context, sseClient *mcp.Client, req QuestionRequest) ([]goai.LLMMessage, error) {
-	promptName := "llm_general"
-	if len(req.SelectedTools) > 0 {
-		promptName = "llm_with_tools"
-	}
-	log.Printf("Fetching prompt: %s", promptName)
-
-	promptMessages, err := sseClient.GetPrompt(ctx, mcp.GetPromptParams{
-		Name: promptName,
-		Arguments: json.RawMessage(`{
-        "question": ` + fmt.Sprintf("%q", req.Question) + `
-    }`),
-	})
-
-	if err != nil {
-		return nil, fmt.Errorf("failed to fetch prompts from MCP server. Error: %w", err)
-	}
-
-	var messages []goai.LLMMessage
-	for _, p := range promptMessages {
-		messages = append(messages, goai.LLMMessage{
-			Role: goai.LLMMessageRole(p.Role),
-			Text: p.Content.Text,
-		})
-	}
-	return messages, nil
 }

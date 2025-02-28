@@ -38,7 +38,7 @@ func ProvideMCPClient(cfg *config.Config) *mcp.Client {
 		SSE: mcp.SSEConfig{
 			URL: cfg.MCPServerURL,
 		},
-		RequestTimeout: 60 * time.Second,
+		RequestTimeout: 120 * time.Second,
 	})
 }
 

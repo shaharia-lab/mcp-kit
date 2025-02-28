@@ -109,7 +109,6 @@ export const ChatContainer: React.FC<ChatContainerProps> = ({
 
             setMessages(prev => [...prev, { content: data.answer, isUser: false }]);
         } catch (error) {
-            console.error('Error:', error);
             const errorMessage = error instanceof Error ? error.message : "Sorry, there was an error processing your request.";
             addNotification('error', errorMessage);
         } finally {
