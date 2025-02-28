@@ -38,12 +38,12 @@ wire:
 	@echo "Wire generation complete"
 
 # Run the API server
-run-api:
+run-api: frontend-build
 	@echo "Running API server..."
 	@go run . api
 
 # Run the main server
-run-server:
+run-server: frontend-build
 	@echo "Running main server..."
 	@go run . server
 
@@ -121,7 +121,7 @@ run:
 	@go run $(MAIN_PACKAGE)
 
 # Development mode with hot reload for backend
-dev:
+dev: frontend-build
 	@if command -v air >/dev/null; then \
 		air; \
 	else \
@@ -151,7 +151,7 @@ dev-all:
 	@make -j 2 dev frontend-dev
 
 # Build everything for production
-build-all: build frontend-build
+build-all: build
 	@echo "Building both frontend and backend for production..."
 
 # Show help

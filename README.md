@@ -110,17 +110,4 @@ Visit `http://localhost:8081` to access the UI interface to interact with the AI
 
 ### Interacting with the API
 
-[Provide example on how to interact with the API]
-
-## Dependencies
-
-*   `github.com/sirupsen/logrus`
-*   `github.com/spf13/cobra`
-*   `github.com/go-chi/chi/v5`
-*   `github.com/google/wire`
-*    goai
-*   mcp
-
-## License
-
-[Add license information]
+OpenAPI schema is available in `openapi.yaml`.
