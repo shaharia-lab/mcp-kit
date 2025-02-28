@@ -58,4 +58,13 @@ var MCPToolsRegistry = []mcp.Tool{
 	postgresExecuteQuery,
 	postgresTableSchema,
 	postgresExecuteQueryWithExplain,
+	// Docker tools
+	listContainersTool,
+	containerLogsTool,
+	listImagesTool,
+	pruneImagesTool,
+	runContainerTool,
+	pullImageTool,
+	dockerInspectTool,
+	pruneContainersTool,
 }
