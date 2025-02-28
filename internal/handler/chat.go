@@ -244,7 +244,7 @@ func getTruncatedChatHistory(chatUUID uuid.UUID, historyStorage storage.ChatHist
 func buildMessagesFromPromptTemplates(ctx context.Context, sseClient *mcp.Client, req QuestionRequest) ([]goai.LLMMessage, error) {
 	promptName := "llm_general"
 	if len(req.SelectedTools) > 0 {
-		promptName = "llm_with_tools_v3"
+		promptName = "llm_with_tools_v2"
 	}
 	log.Printf("Fetching prompt: %s", promptName)
 
