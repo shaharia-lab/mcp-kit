@@ -67,4 +67,15 @@ var MCPToolsRegistry = []mcp.Tool{
 	pullImageTool,
 	dockerInspectTool,
 	pruneContainersTool,
+	// http (curl) tools
+	httpGetTool,
+	httpPostJsonTool,
+	httpFormPostTool,
+	httpCustomRequestTool,
+	//filesystem search tools
+	findContentInFilesTool,
+	findLargeFilesTool,
+	findDuplicateFilesTool,
+	findRecentlyModifiedTool,
+	searchCodePatternTool,
 }
