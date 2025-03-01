@@ -78,4 +78,8 @@ var MCPToolsRegistry = []mcp.Tool{
 	findDuplicateFilesTool,
 	findRecentlyModifiedTool,
 	searchCodePatternTool,
+	// duckdb tools
+	duckdbListTables,
+	duckdbGetSchema,
+	duckdbExecuteQuery,
 }

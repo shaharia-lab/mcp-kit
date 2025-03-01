@@ -56,6 +56,11 @@ func getLLMProviders() SupportedLLMProviders {
 						ModelID:     anthropic.ModelClaude3_5Haiku20241022,
 					},
 					{
+						Name:        "Claude 3.7 Sonnet",
+						Description: "Most intelligent model from Anthropic",
+						ModelID:     anthropic.ModelClaude3_7SonnetLatest,
+					},
+					{
 						Name:        "Claude 3.5 Sonnet Latest",
 						Description: "Our most intelligent model",
 						ModelID:     anthropic.ModelClaude3_5SonnetLatest,
@@ -130,6 +135,11 @@ func getLLMProviders() SupportedLLMProviders {
 						Description: "Efficient model balancing performance and speed",
 						ModelID:     openai.ChatModelGPT3_5Turbo,
 					},
+					{
+						Name:        "GPT-4.5 Preview",
+						Description: "Last GPT-4.5 model from OpenAI",
+						ModelID:     openai.ChatModelGPT4_5Preview,
+					},
 				},
 			},
 			{
@@ -164,6 +174,11 @@ func getLLMProviders() SupportedLLMProviders {
 						Name:        "Claude 3.5 Sonnet 2024-06-20",
 						Description: "Balanced for intelligent and previous updates",
 						ModelID:     "anthropic.claude-3-5-sonnet-20240620-v1:0",
+					},
+					{
+						Name:        "Claude 3.7 Sonnet",
+						Description: "Latest best model from Anthropic",
+						ModelID:     "anthropic.claude-3-7-sonnet-20250219-v1:0",
 					},
 					{
 						Name:        "Titan Text G1 - Express",
