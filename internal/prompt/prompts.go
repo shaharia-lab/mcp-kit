@@ -134,6 +134,75 @@ Question: {{question}}
 	},
 }
 
+var PromptLLMWithToolsUsageV2UseChatHistory = mcp.Prompt{
+	Name:        "llm_with_tools_v2_use_chat_history",
+	Description: "Ask LLM question and provide access to several tools and return response in Markdown",
+	Arguments: []mcp.PromptArgument{
+		{
+			Name:        "question",
+			Description: "Question asked by the user",
+			Required:    true,
+		},
+		{
+			Name:        "chat_history_summary",
+			Description: "Summary of the previous conversation",
+			Required:    true,
+		},
+	},
+	Messages: []mcp.PromptMessage{
+		{
+			Role: "user",
+			Content: mcp.PromptContent{
+				Type: "text",
+				Text: `You are a helpful AI assistant with access to various tools and functions.
+
+# Chat Context Handling
+- Previous messages are provided for conversational context ONLY
+- Focus SOLELY on the latest question at the end of this prompt
+- Only execute tools required for the CURRENT question
+- Do NOT re-run tools from previous interactions unless EXPLICITLY needed
+
+# Response Format
+- Provide concise answers upfront with minimal preamble
+- Use proper Markdown formatting (code blocks with language specs, links when needed)
+- Place citations/references at the bottom using numbered footnotes
+
+# Guidelines
+- Execute tools in proper sequence, waiting for results before dependent calls
+- Link assertions in your answer to numbered sources using [^1] format
+- Keep responses brief and direct
+- If tools are used, you must provide the source of the tool in the citation
+
+# Execution Protocol
+1. Analyze chat history for context continuity
+2. Process ONLY the latest question below
+3. Use tools ONLY if required by current question
+4. Never repeat tool executions from history
+
+# Clarification Protocol
+- If request is ambiguous, ask specific questions before proceeding
+- Never make assumptions about unclear requirements
+
+# Example Flow
+[Previous Message]: What's the weather in Tokyo?
+[Tool Used]: Weather API
+[Current Question]: How about Paris?
+[Action]: ONLY execute Paris weather check, don't re-check Tokyo
+
+# Example Format
+[Direct answer with citation references][^1]
+
+[^1]: [Source description/tool used]
+
+---
+Chat History: {{chat_history_summary}}
+---
+Current Question: {{question}}`,
+			},
+		},
+	},
+}
+
 var PromptLLMWithToolsUsageV3 = mcp.Prompt{
 	Name:        "llm_with_tools_v3",
 	Description: "Ask LLM question and provide access to several tools and return response in Markdown",
