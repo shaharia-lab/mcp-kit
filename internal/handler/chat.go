@@ -163,7 +163,7 @@ func HandleAsk(sseClient *mcp.Client, logger *log.Logger, historyStorage storage
 		// Add assistant response to chat history
 		err = historyStorage.AddMessage(chat.UUID, storage.Message{
 			LLMMessage: goai.LLMMessage{
-				Role: goai.SystemRole,
+				Role: goai.AssistantRole,
 				Text: response.Text,
 			},
 			GeneratedAt: time.Now(),

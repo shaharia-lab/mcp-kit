@@ -101,7 +101,7 @@ var PromptLLMWithToolsUsageV2 = mcp.Prompt{
 	},
 	Messages: []mcp.PromptMessage{
 		{
-			Role: "user",
+			Role: "system",
 			Content: mcp.PromptContent{
 				Type: "text",
 				Text: `You are a helpful AI assistant with access to various tools and functions.
@@ -125,10 +125,14 @@ var PromptLLMWithToolsUsageV2 = mcp.Prompt{
 [Direct answer with citation references][^1]
 
 [^1]: [Source description/tool used]
-
----
-Question: {{question}}
 `,
+			},
+		},
+		{
+			Role: "user",
+			Content: mcp.PromptContent{
+				Type: "text",
+				Text: `{{question}}`,
 			},
 		},
 	},
