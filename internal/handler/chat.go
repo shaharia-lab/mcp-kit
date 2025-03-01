@@ -229,13 +229,25 @@ func getTruncatedChatHistory(chatUUID uuid.UUID, historyStorage storage.ChatHist
 		startIdx = len(messages) - MaxChatHistoryMessages
 	}
 
+	// Ensure System messages are always included
+	for _, msg := range messages {
+		if msg.Role == goai.SystemRole {
+			result = append(result, goai.LLMMessage{
+				Role: msg.Role,
+				Text: msg.Text,
+			})
+		}
+	}
+
 	// Convert Message to goai.LLMMessage
 	for _, msg := range messages[startIdx:] {
-		llmMsg := goai.LLMMessage{
-			Role: msg.Role,
-			Text: msg.Text,
+		if msg.Role != goai.SystemRole {
+			llmMsg := goai.LLMMessage{
+				Role: msg.Role,
+				Text: msg.Text,
+			}
+			result = append(result, llmMsg)
 		}
-		result = append(result, llmMsg)
 	}
 
 	return result, nil
