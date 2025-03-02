@@ -6,6 +6,8 @@ import { SidebarHeader } from "./sidebar/SidebarHeader";
 import { NewChatSection } from "./sidebar/NewChatSection";
 import { ChatHistoryList } from "./sidebar/ChatHistoryList";
 import { SidebarFooter } from "./sidebar/SidebarFooter";
+import { useAuth0 } from '@auth0/auth0-react';
+
 
 interface SidebarProps {
     isOpen: boolean;
@@ -75,25 +77,31 @@ export const Sidebar: React.FC<SidebarProps> = ({
         console.log('Settings clicked');
     };
 
+    const { isAuthenticated } = useAuth0();
+
     return (
-        <div
-            className={`fixed top-0 left-0 h-full bg-white shadow-lg z-40 transition-all duration-300 transform ${
-                isOpen ? 'translate-x-0' : '-translate-x-full'
-            } sidebar-width flex flex-col`}
-        >
+        <div className={`fixed top-0 left-0 h-full bg-white shadow-lg z-40 transition-all duration-300 transform ${
+            isOpen ? 'translate-x-0' : '-translate-x-full'
+        } sidebar-width flex flex-col`}>
             <SidebarHeader onClose={onClose} />
-            <NewChatSection onChatSelect={onChatSelect ?? (() => {})} />
-
-            <ChatHistoryList
-                isLoading={isLoading}
-                error={error}
-                chatHistories={chatHistories}
-                selectedChatId={selectedChatId}
-                onChatSelect={onChatSelect}
-                getFirstMessage={getFirstMessage}
-                formatDate={formatDate}
-            />
-
+            {isAuthenticated ? (
+                <>
+                    <NewChatSection onChatSelect={onChatSelect ?? (() => {})} />
+                    <ChatHistoryList
+                        isLoading={isLoading}
+                        error={error}
+                        chatHistories={chatHistories}
+                        selectedChatId={selectedChatId}
+                        onChatSelect={onChatSelect}
+                        getFirstMessage={getFirstMessage}
+                        formatDate={formatDate}
+                    />
+                </>
+            ) : (
+                <div className="flex-1 flex items-center justify-center p-4 text-center text-gray-500">
+                    Please log in to view your chat history
+                </div>
+            )}
             <SidebarFooter
                 onRefresh={handleRefresh}
                 onHelp={handleHelp}
