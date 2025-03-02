@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/service/bedrockruntime"
+	"github.com/openai/openai-go/option"
 	"github.com/shaharia-lab/goai"
 	"os"
 	"strings"
@@ -30,6 +31,8 @@ func (b *LLMBuilder) BuildProvider(config ProviderConfig) (goai.LLMProvider, err
 		return b.buildAnthropicProvider(config.ModelID)
 	case "openai":
 		return b.buildOpenAIProvider(config.ModelID)
+	case "deepseek":
+		return b.buildDeepSeekProvider(config.ModelID)
 	case "amazon bedrock":
 		return b.buildBedrockProvider(config.ModelID)
 	default:
@@ -57,6 +60,18 @@ func (b *LLMBuilder) buildOpenAIProvider(modelID string) (goai.LLMProvider, erro
 
 	return goai.NewOpenAILLMProvider(goai.OpenAIProviderConfig{
 		Client: goai.NewOpenAIClient(apiKey),
+		Model:  modelID,
+	}), nil
+}
+
+func (b *LLMBuilder) buildDeepSeekProvider(modelID string) (goai.LLMProvider, error) {
+	apiKey := os.Getenv("DEEP_SEEK_API_KEY")
+	if apiKey == "" {
+		return nil, fmt.Errorf("DEEP_SEEK_API_KEY is required")
+	}
+
+	return goai.NewOpenAILLMProvider(goai.OpenAIProviderConfig{
+		Client: goai.NewOpenAIClient(apiKey, option.WithBaseURL("https://api.deepseek.com/v1/")),
 		Model:  modelID,
 	}), nil
 }
