@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"github.com/prometheus/client_golang/prometheus"
 	"log"
 	"net/http"
 	"time"
@@ -131,6 +132,16 @@ func HandleAsk(sseClient *mcp.Client, logger *log.Logger, historyStorage goai.Ch
 			reqOptions = append(reqOptions, goai.UseToolsProvider(toolsProvider))
 			observability.AddAttribute(ctx, "tools.enabled", true)
 			reqOptions = append(reqOptions, goai.WithAllowedTools(req.SelectedTools))
+
+			observability.ToolsEnabledTotal.WithLabelValues(req.LLMProvider.Provider, req.LLMProvider.ModelID).Inc()
+		}
+
+		for _, tool := range req.SelectedTools {
+			observability.ToolsUsageTotal.WithLabelValues(
+				tool,
+				req.LLMProvider.Provider,
+				req.LLMProvider.ModelID,
+			).Inc()
 		}
 
 		builder := llm.NewLLMBuilder(ctx)
@@ -148,16 +159,45 @@ func HandleAsk(sseClient *mcp.Client, logger *log.Logger, historyStorage goai.Ch
 		// Generate a response using the LLM
 		generateCtx, generateSpan := observability.StartSpan(ctx, "generate_response")
 		observability.AddAttribute(generateCtx, "HandleAsk.total_messages", len(messages))
+
+		timer := prometheus.NewTimer(observability.LLMCompletionDuration.WithLabelValues(
+			req.LLMProvider.Provider,
+			req.LLMProvider.ModelID,
+			"success",
+		))
+		defer timer.ObserveDuration()
+
+		// Track in-flight requests
+		inFlightMetric := observability.LLMCompletionInFlight.WithLabelValues(
+			req.LLMProvider.Provider,
+			req.LLMProvider.ModelID,
+		)
+		inFlightMetric.Inc()
+		defer inFlightMetric.Dec()
+
 		response, err := llmCompletion.Generate(generateCtx, messages)
 		if err != nil {
+			// Record failed completion duration with "error" status
+			observability.LLMCompletionDuration.WithLabelValues(
+				req.LLMProvider.Provider,
+				req.LLMProvider.ModelID,
+				"error",
+			).Observe(timer.ObserveDuration().Seconds())
+
+			// Your existing error handling code...
 			observability.AddAttribute(generateCtx, "error", err.Error())
 			generateSpan.End()
-
 			log.Printf("Failed to generate response: %v", err)
 			writeErrorResponse(w, http.StatusInternalServerError, fmt.Sprintf("Failed to generate response. error: %s", err.Error()), err, generateCtx, span)
 			return
 		}
+
 		generateSpan.End()
+
+		observability.TokensInputTotal.WithLabelValues(req.LLMProvider.Provider, req.LLMProvider.ModelID).
+			Add(float64(response.TotalInputToken))
+		observability.TokensOutputTotal.WithLabelValues(req.LLMProvider.Provider, req.LLMProvider.ModelID).
+			Add(float64(response.TotalOutputToken))
 
 		// Add assistant response to chat history
 		err = historyStorage.AddMessage(ctx, chat.UUID, goai.ChatHistoryMessage{
