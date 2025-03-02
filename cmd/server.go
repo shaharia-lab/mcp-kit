@@ -8,7 +8,6 @@ import (
 	"github.com/shaharia-lab/mcp-kit/internal/config"
 	"github.com/shaharia-lab/mcp-kit/internal/prompt"
 	"github.com/shaharia-lab/mcp-kit/internal/tools"
-	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/codes"
@@ -38,13 +37,12 @@ func NewServerCmd(logger *log.Logger) *cobra.Command {
 			defer cleanup()
 
 			// Initialize the tracing service
-			tracingService := ProvideTracingService(container.Config, logrus.New())
-			if err = tracingService.Initialize(ctx); err != nil {
+			if err = container.TracingService.Initialize(ctx); err != nil {
 				return fmt.Errorf("failed to initialize tracer: %w", err)
 			}
 
 			defer func() {
-				if err = tracingService.Shutdown(ctx); err != nil {
+				if err = container.TracingService.Shutdown(ctx); err != nil {
 					container.Logger.Printf("Error shutting down tracer: %v", err)
 				}
 			}()

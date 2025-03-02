@@ -20,5 +20,6 @@ func InitializeAPI(ctx context.Context) (*Container, func(), error) {
 		ProvideTracingService,
 		ProvideLogrusLogger,
 		ProvideLogrusLoggerImpl,
+		ProvideMCPBaseServer,
 	))
 }
