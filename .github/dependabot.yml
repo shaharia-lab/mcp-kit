@@ -1,0 +1,24 @@
+updates:
+  - package-ecosystem: "gomod"
+    directory: "/"
+    schedule:
+      interval: "monthly"
+    groups:
+      stable-updates:
+        update-types:
+          - "minor"
+          - "patch"
+    assignees:
+      - "shahariaazam"
+
+  - package-ecosystem: "npm"
+    directory: "/mcp-frontend"
+    schedule:
+      interval: "monthly"
+    groups:
+      stable-updates:
+        update-types:
+          - "minor"
+          - "patch"
+    assignees:
+      - "shahariaazam"

@@ -20,6 +20,153 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql/data
 
+  mcp-server:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: mcp-server
+    ports:
+      - "8080:8080"
+    environment:
+      - MCP_SERVER_PORT=8080
+      - GITHUB_TOKEN=${GITHUB_TOKEN}
+    command: server
+    networks:
+      - mcp-network
+    logging:
+      driver: loki
+      options:
+        loki-url: "http://localhost:3100/loki/api/v1/push"
+        loki-retries: "5"
+        loki-batch-size: "400"
+        labels: "job=mcp-server"
+
+  mcp-client:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: mcp-client
+    ports:
+      - "8081:8081"
+    environment:
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
+      - MCP_SERVER_URL=http://mcp-server:8080/events
+    command: api
+    depends_on:
+      - mcp-server
+    networks:
+      - mcp-network
+    logging:
+      driver: loki
+      options:
+        loki-url: "http://localhost:3100/loki/api/v1/push"
+        loki-retries: "5"
+        loki-batch-size: "400"
+        labels: "job=mcp-client"
+
+  # Prometheus - Metrics collection
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: prometheus
+    volumes:
+      - ./monitoring/prometheus:/etc/prometheus
+      - prometheus_data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/etc/prometheus/console_libraries'
+      - '--web.console.templates=/etc/prometheus/consoles'
+      - '--web.enable-lifecycle'
+    ports:
+      - "9090:9090"
+    restart: unless-stopped
+    networks:
+      - mcp-network
+
+  # Grafana - Dashboard and visualizations
+  grafana:
+    image: grafana/grafana:latest
+    container_name: grafana
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./monitoring/grafana/provisioning:/etc/grafana/provisioning
+    environment:
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+      - GF_USERS_ALLOW_SIGN_UP=false
+      - GF_PATHS_PROVISIONING=/etc/grafana/provisioning
+    ports:
+      - "3000:3000"
+    restart: unless-stopped
+    networks:
+      - mcp-network
+    depends_on:
+      - prometheus
+      - loki
+
+  loki:
+    image: grafana/loki:latest
+    container_name: loki
+    ports:
+      - "3100:3100"
+    command: -config.file=/etc/loki/local-config.yaml
+    networks:
+      - mcp-network
+    volumes:
+      - loki_data:/loki
+
+  # Promtail - Log collector for Loki
+  promtail:
+    image: grafana/promtail:latest
+    container_name: promtail
+    volumes:
+      - /var/log:/var/log
+      - ./monitoring/promtail:/etc/promtail
+    command: -config.file=/etc/promtail/config.yml
+    networks:
+      - mcp-network
+    depends_on:
+      - loki
+
+  # Jaeger - Distributed tracing
+  jaeger:
+    image: jaegertracing/all-in-one:latest
+    container_name: jaeger
+    ports:
+      - "5775:5775/udp"
+      - "6831:6831/udp"
+      - "6832:6832/udp"
+      - "5778:5778"
+      - "16686:16686"    # UI port
+      - "14250:14250"
+      - "14268:14268"
+      - "14269:14269"
+      - "9411:9411"      # Zipkin compatible endpoint
+    environment:
+      - COLLECTOR_ZIPKIN_HOST_PORT=9411
+    restart: unless-stopped
+    networks:
+      - mcp-network
+
+  # Node Exporter - Host metrics collector
+  node_exporter:
+    image: prom/node-exporter:latest
+    container_name: node_exporter
+    restart: unless-stopped
+    volumes:
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
+      - /:/rootfs:ro
+    command:
+      - '--path.procfs=/host/proc'
+      - '--path.sysfs=/host/sys'
+      - '--path.rootfs=/rootfs'
+      - '--collector.filesystem.ignored-mount-points=^/(sys|proc|dev|host|etc)($$|/)'
+    ports:
+      - "9100:9100"
+    networks:
+      - mcp-network
+
 networks:
   mcp-network:
     name: mcp-network
@@ -27,3 +174,6 @@ networks:
 
 volumes:
   postgres_data:
+  prometheus_data:
+  grafana_data:
+  loki_data:

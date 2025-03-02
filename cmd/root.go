@@ -22,8 +22,8 @@ func NewRootCmd() *cobra.Command {
 	l := log.New(logger.Writer(), "", log.LstdFlags)
 
 	root.AddCommand(NewServerCmd(l))
-	root.AddCommand(NewTaskCmd(l))
-	root.AddCommand(NewAPICmd(l))
+	root.AddCommand(NewTaskCmd())
+	root.AddCommand(NewAPICmd())
 
 	return root
 }

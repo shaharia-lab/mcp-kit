@@ -51,7 +51,7 @@ func timeValue(t *github.Timestamp) time.Time {
 }
 
 var githubCreateRepository = mcp.Tool{
-	Name:        "create_repository",
+	Name:        "github_create_repository",
 	Description: "Create a new GitHub repository",
 	InputSchema: json.RawMessage(`{
 		"type": "object",
@@ -129,7 +129,7 @@ var githubCreateRepository = mcp.Tool{
 }
 
 var githubCreateIssue = mcp.Tool{
-	Name:        "create_issue",
+	Name:        "github_create_issue",
 	Description: "Create a new issue in a GitHub repository",
 	InputSchema: json.RawMessage(`{
 		"type": "object",
@@ -212,7 +212,7 @@ var githubCreateIssue = mcp.Tool{
 }
 
 var githubGetFileContents = mcp.Tool{
-	Name:        "get_file_contents",
+	Name:        "github_get_file_contents",
 	Description: "Get contents of a file from a GitHub repository",
 	InputSchema: json.RawMessage(`{
 		"type": "object",
@@ -292,7 +292,7 @@ var githubGetFileContents = mcp.Tool{
 }
 
 var githubCreateOrUpdateFile = mcp.Tool{
-	Name:        "create_or_update_file",
+	Name:        "github_create_or_update_file",
 	Description: "Create or update a single file in a GitHub repository",
 	InputSchema: json.RawMessage(`{
 		"type": "object",
@@ -394,7 +394,7 @@ var githubCreateOrUpdateFile = mcp.Tool{
 }
 
 var githubPushFiles = mcp.Tool{
-	Name:        "push_files",
+	Name:        "github_push_files",
 	Description: "Push multiple files in a single commit",
 	InputSchema: json.RawMessage(`{
 		"type": "object",
@@ -534,7 +534,7 @@ var githubPushFiles = mcp.Tool{
 }
 
 var githubSearchRepositories = mcp.Tool{
-	Name:        "search_repositories",
+	Name:        "github_search_repositories",
 	Description: "Search for GitHub repositories",
 	InputSchema: json.RawMessage(`{
 		"type": "object",
@@ -635,7 +635,7 @@ var githubSearchRepositories = mcp.Tool{
 }
 
 var githubCreatePullRequest = mcp.Tool{
-	Name:        "create_pull_request",
+	Name:        "github_create_pull_request",
 	Description: "Create a new pull request",
 	InputSchema: json.RawMessage(`{
 		"type": "object",
@@ -746,7 +746,7 @@ var githubCreatePullRequest = mcp.Tool{
 }
 
 var githubForkRepository = mcp.Tool{
-	Name:        "fork_repository",
+	Name:        "github_fork_repository",
 	Description: "Fork a GitHub repository",
 	InputSchema: json.RawMessage(`{
 		"type": "object",
@@ -829,7 +829,7 @@ var githubForkRepository = mcp.Tool{
 }
 
 var githubCreateBranch = mcp.Tool{
-	Name:        "create_branch",
+	Name:        "github_create_branch",
 	Description: "Create a new branch in a GitHub repository",
 	InputSchema: json.RawMessage(`{
 		"type": "object",
@@ -944,7 +944,7 @@ var githubCreateBranch = mcp.Tool{
 }
 
 var githubListIssues = mcp.Tool{
-	Name:        "list_issues",
+	Name:        "github_list_issues",
 	Description: "List and filter repository issues",
 	InputSchema: json.RawMessage(`{
 		"type": "object",
@@ -1072,7 +1072,7 @@ var githubListIssues = mcp.Tool{
 }
 
 var githubUpdateIssue = mcp.Tool{
-	Name:        "update_issue",
+	Name:        "github_update_issue",
 	Description: "Update an existing issue",
 	InputSchema: json.RawMessage(`{
 		"type": "object",
@@ -1197,7 +1197,7 @@ var githubUpdateIssue = mcp.Tool{
 }
 
 var githubAddIssueComment = mcp.Tool{
-	Name:        "add_issue_comment",
+	Name:        "github_add_issue_comment",
 	Description: "Add a comment to an issue",
 	InputSchema: json.RawMessage(`{
 		"type": "object",
@@ -1281,7 +1281,7 @@ var githubAddIssueComment = mcp.Tool{
 }
 
 var githubSearchCode = mcp.Tool{
-	Name:        "search_code",
+	Name:        "github_search_code",
 	Description: "Search for code across GitHub repositories",
 	InputSchema: json.RawMessage(`{
 		"type": "object",
@@ -1392,7 +1392,7 @@ var githubSearchCode = mcp.Tool{
 }
 
 var githubSearchIssues = mcp.Tool{
-	Name:        "search_issues",
+	Name:        "github_search_issues",
 	Description: "Search for issues and pull requests",
 	InputSchema: json.RawMessage(`{
 		"type": "object",
@@ -1503,7 +1503,7 @@ var githubSearchIssues = mcp.Tool{
 }
 
 var githubSearchUsers = mcp.Tool{
-	Name:        "search_users",
+	Name:        "github_search_users",
 	Description: "Search for GitHub users",
 	InputSchema: json.RawMessage(`{
 		"type": "object",
@@ -1614,7 +1614,7 @@ var githubSearchUsers = mcp.Tool{
 }
 
 var githubListCommits = mcp.Tool{
-	Name:        "list_commits",
+	Name:        "github_list_commits",
 	Description: "Gets commits of a branch in a repository",
 	InputSchema: json.RawMessage(`{
 		"type": "object",
@@ -1744,7 +1744,7 @@ var githubListCommits = mcp.Tool{
 }
 
 var githubGetIssue = mcp.Tool{
-	Name:        "get_issue",
+	Name:        "github_get_issue",
 	Description: "Gets the contents of an issue within a repository",
 	InputSchema: json.RawMessage(`{
 		"type": "object",
@@ -1824,7 +1824,7 @@ var githubGetIssue = mcp.Tool{
 }
 
 var githubGetPullRequest = mcp.Tool{
-	Name:        "get_pull_request",
+	Name:        "github_get_pull_request",
 	Description: "Get details of a specific pull request",
 	InputSchema: json.RawMessage(`{
 		"type": "object",
@@ -1945,7 +1945,7 @@ var githubGetPullRequest = mcp.Tool{
 }
 
 var githubListPullRequests = mcp.Tool{
-	Name:        "list_pull_requests",
+	Name:        "github_list_pull_requests",
 	Description: "List and filter repository pull requests",
 	InputSchema: json.RawMessage(`{
 		"type": "object",
@@ -2108,7 +2108,7 @@ var githubListPullRequests = mcp.Tool{
 }
 
 var githubCreatePullRequestReview = mcp.Tool{
-	Name:        "create_pull_request_review",
+	Name:        "github_create_pull_request_review",
 	Description: "Create a review on a pull request",
 	InputSchema: json.RawMessage(`{
 		"type": "object",
@@ -2250,7 +2250,7 @@ var githubCreatePullRequestReview = mcp.Tool{
 }
 
 var githubMergePullRequest = mcp.Tool{
-	Name:        "merge_pull_request",
+	Name:        "github_merge_pull_request",
 	Description: "Merge a pull request",
 	InputSchema: json.RawMessage(`{
 		"type": "object",
@@ -2377,7 +2377,7 @@ var githubMergePullRequest = mcp.Tool{
 }
 
 var githubGetPullRequestFiles = mcp.Tool{
-	Name:        "get_pull_request_files",
+	Name:        "github_get_pull_request_files",
 	Description: "Get the list of files changed in a pull request",
 	InputSchema: json.RawMessage(`{
 		"type": "object",
@@ -2549,7 +2549,7 @@ type statusCheck struct {
 }
 
 var githubGetPullRequestStatus = mcp.Tool{
-	Name:        "get_pull_request_status",
+	Name:        "github_get_pull_request_status",
 	Description: "Get the combined status of all status checks for a pull request",
 	InputSchema: json.RawMessage(`{
         "type": "object",
@@ -2710,7 +2710,7 @@ var githubGetPullRequestStatus = mcp.Tool{
 }
 
 var githubUpdatePullRequestBranch = mcp.Tool{
-	Name:        "update_pull_request_branch",
+	Name:        "github_update_pull_request_branch",
 	Description: "Update a pull request branch with the latest changes from the base branch",
 	InputSchema: json.RawMessage(`{
 		"type": "object",
@@ -2798,7 +2798,7 @@ var githubUpdatePullRequestBranch = mcp.Tool{
 }
 
 var githubGetPullRequestComments = mcp.Tool{
-	Name:        "get_pull_request_comments",
+	Name:        "github_get_pull_request_comments",
 	Description: "Get the review comments on a pull request",
 	InputSchema: json.RawMessage(`{
 		"type": "object",
@@ -2961,7 +2961,7 @@ var githubGetPullRequestComments = mcp.Tool{
 }
 
 var githubGetPullRequestReviews = mcp.Tool{
-	Name:        "get_pull_request_reviews",
+	Name:        "github_get_pull_request_reviews",
 	Description: "Get the reviews on a pull request",
 	InputSchema: json.RawMessage(`{
 		"type": "object",
