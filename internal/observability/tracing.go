@@ -40,7 +40,7 @@ func InitTracer(ctx context.Context, serviceName string, logger *logrus.Logger) 
 		ctx,
 		otlptracegrpc.NewClient(
 			otlptracegrpc.WithInsecure(),
-			otlptracegrpc.WithEndpoint("localhost:4317"),
+			otlptracegrpc.WithEndpoint("jaeger:4317"),
 			otlptracegrpc.WithDialOption(grpc.WithTransportCredentials(insecure.NewCredentials())),
 			otlptracegrpc.WithTimeout(5*time.Second),
 		),

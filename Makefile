@@ -82,6 +82,16 @@ build: frontend-build wire
 		-installsuffix cgo \
 		-o $(BUILD_DIR)/$(APP_NAME)
 
+# Build the application
+build-in-docker: wire
+	@echo "Building optimized binary for $(APP_NAME)..."
+	@CGO_ENABLED=0 go build \
+		-trimpath \
+		-ldflags="$(LDFLAGS)" \
+		-a \
+		-installsuffix cgo \
+		-o $(BUILD_DIR)/$(APP_NAME)
+
 # Add a development build target (faster builds for development)
 build-dev: wire
 	@echo "Building development binary for $(APP_NAME)..."

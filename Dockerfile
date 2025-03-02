@@ -17,7 +17,7 @@ RUN adduser -D -g '' app
 COPY . .
 COPY --from=frontend-builder /app/cmd/static ./cmd/static
 
-RUN make build
+RUN make build-in-docker
 
 # Stage 3: Create the final image
 FROM alpine:3.19

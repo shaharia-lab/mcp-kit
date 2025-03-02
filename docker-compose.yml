@@ -33,6 +33,13 @@ services:
     command: server
     networks:
       - mcp-network
+    logging:
+      driver: loki
+      options:
+        loki-url: "http://localhost:3100/loki/api/v1/push"
+        loki-retries: "5"
+        loki-batch-size: "400"
+        labels: "job=mcp-server"
 
   mcp-client:
     build:
@@ -49,6 +56,13 @@ services:
       - mcp-server
     networks:
       - mcp-network
+    logging:
+      driver: loki
+      options:
+        loki-url: "http://localhost:3100/loki/api/v1/push"
+        loki-retries: "5"
+        loki-batch-size: "400"
+        labels: "job=mcp-client"
 
   # Prometheus - Metrics collection
   prometheus:
@@ -75,10 +89,12 @@ services:
     container_name: grafana
     volumes:
       - grafana_data:/var/lib/grafana
+      - ./monitoring/grafana/provisioning:/etc/grafana/provisioning
     environment:
       - GF_SECURITY_ADMIN_USER=admin
       - GF_SECURITY_ADMIN_PASSWORD=admin
       - GF_USERS_ALLOW_SIGN_UP=false
+      - GF_PATHS_PROVISIONING=/etc/grafana/provisioning
     ports:
       - "3000:3000"
     restart: unless-stopped
@@ -86,6 +102,31 @@ services:
       - mcp-network
     depends_on:
       - prometheus
+      - loki
+
+  loki:
+    image: grafana/loki:latest
+    container_name: loki
+    ports:
+      - "3100:3100"
+    command: -config.file=/etc/loki/local-config.yaml
+    networks:
+      - mcp-network
+    volumes:
+      - loki_data:/loki
+
+  # Promtail - Log collector for Loki
+  promtail:
+    image: grafana/promtail:latest
+    container_name: promtail
+    volumes:
+      - /var/log:/var/log
+      - ./monitoring/promtail:/etc/promtail
+    command: -config.file=/etc/promtail/config.yml
+    networks:
+      - mcp-network
+    depends_on:
+      - loki
 
   # Jaeger - Distributed tracing
   jaeger:
@@ -135,3 +176,4 @@ volumes:
   postgres_data:
   prometheus_data:
   grafana_data:
+  loki_data:
