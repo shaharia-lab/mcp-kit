@@ -24,7 +24,7 @@ type FileInfo struct {
 }
 
 var fileSystemListDirectory = mcp.Tool{
-	Name:        "list_directory",
+	Name:        "filesystem_list_directory",
 	Description: "List directory contents with [FILE] or [DIR] prefixes",
 	InputSchema: json.RawMessage(`{
         "type": "object",
@@ -84,7 +84,7 @@ var fileSystemListDirectory = mcp.Tool{
 }
 
 var fileSystemReadFile = mcp.Tool{
-	Name:        "read_file",
+	Name:        "filesystem_read_file",
 	Description: "Read complete contents of a file with UTF-8 encoding",
 	InputSchema: json.RawMessage(`{
             "type": "object",
@@ -135,7 +135,7 @@ var fileSystemReadFile = mcp.Tool{
 }
 
 var fileSystemWriteFile = mcp.Tool{
-	Name:        "write_file",
+	Name:        "filesystem_write_file",
 	Description: "Create new file or overwrite existing file with content",
 	InputSchema: json.RawMessage(`{
             "type": "object",
@@ -170,6 +170,7 @@ var fileSystemWriteFile = mcp.Tool{
 			Path    string `json:"path"`
 			Content string `json:"content"`
 		}
+
 		if err := json.Unmarshal(params.Arguments, &input); err != nil {
 			return mcp.CallToolResult{}, err
 		}
@@ -177,6 +178,10 @@ var fileSystemWriteFile = mcp.Tool{
 		if err := ioutil.WriteFile(input.Path, []byte(input.Content), 0644); err != nil {
 			return mcp.CallToolResult{}, err
 		}
+
+		span.SetAttributes(
+			attribute.String("path_to_write", input.Path),
+		)
 
 		return mcp.CallToolResult{
 			Content: []mcp.ToolResultContent{
@@ -190,7 +195,7 @@ var fileSystemWriteFile = mcp.Tool{
 }
 
 var fileSystemGetFileInfo = mcp.Tool{
-	Name:        "get_file_info",
+	Name:        "filesystem_get_file_info",
 	Description: "Get detailed file/directory metadata",
 	InputSchema: json.RawMessage(`{
             "type": "object",

@@ -8,6 +8,8 @@ import { ModelControls } from './components/ModelControls';
 import { ChatContainer } from './components/ChatContainer';
 import { WelcomeScreen } from './components/WelcomeScreen';
 import { Cog6ToothIcon } from "@heroicons/react/24/outline";
+import { NotificationProvider } from './context/NotificationContext';
+import {NotificationContainer} from "./components/NotificationContainer.tsx";
 
 interface ModelSettings {
     temperature: number;
@@ -108,6 +110,7 @@ function App() {
     };
 
     return (
+        <NotificationProvider>
         <div className="bg-gray-50 min-h-screen">
             <div
                 className={`fixed inset-0 bg-black bg-opacity-50 z-30 ${!sidebarOpen && 'hidden'}`}
@@ -175,7 +178,9 @@ function App() {
                     )}
                 </main>
             </div>
+            <NotificationContainer />
         </div>
+        </NotificationProvider>
     );
 }
 

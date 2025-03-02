@@ -8,7 +8,10 @@ import (
 	"github.com/shaharia-lab/goai/observability"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/trace"
+	"log"
+	"os"
 	"os/exec"
+	"strings"
 	"time"
 )
 
@@ -727,6 +730,199 @@ var gitCloneTool = mcp.Tool{
 
 		return mcp.CallToolResult{
 			Content: []mcp.ToolResultContent{{Type: "text", Text: string(output)}},
+		}, nil
+	},
+}
+
+var gitReadLocalFileTool = mcp.Tool{
+	Name:        "local_git_read_file",
+	Description: "Reads a specific file from the local Git repository and returns its content with line numbers",
+	InputSchema: json.RawMessage(`{
+        "type": "object",
+        "properties": {
+            "file_path": {
+                "type": "string",
+                "description": "Path to the file within the local repository"
+            },
+            "ref": {
+                "type": "string",
+                "description": "Git reference (branch, commit, or tag). If empty, reads from working directory",
+                "default": ""
+            }
+        },
+        "required": ["file_path"]
+    }`),
+	Handler: func(ctx context.Context, params mcp.CallToolParams) (mcp.CallToolResult, error) {
+		ctx, span := observability.StartSpan(ctx, fmt.Sprintf("%s.Handler", params.Name))
+		span.SetAttributes(
+			attribute.String("tool_name", params.Name),
+			attribute.String("tool_argument", string(params.Arguments)),
+		)
+		defer span.End()
+
+		var err error
+		defer func() {
+			if err != nil {
+				span.RecordError(err)
+			}
+		}()
+
+		var input struct {
+			FilePath string `json:"file_path"`
+			Ref      string `json:"ref"`
+		}
+		if err := json.Unmarshal(params.Arguments, &input); err != nil {
+			return mcp.CallToolResult{}, err
+		}
+
+		var content []byte
+		if input.Ref != "" {
+			// Read file from specific git reference
+			cmd := exec.CommandContext(ctx, "git", "show", fmt.Sprintf("%s:%s", input.Ref, input.FilePath))
+			content, err = cmd.Output()
+			if err != nil {
+				return mcp.CallToolResult{}, fmt.Errorf("failed to read file from git: %w", err)
+			}
+		} else {
+			// Read file from working directory
+			content, err = os.ReadFile(input.FilePath)
+			if err != nil {
+				return mcp.CallToolResult{}, fmt.Errorf("failed to read file: %w", err)
+			}
+		}
+
+		// Split content into lines and add line numbers
+		lines := strings.Split(string(content), "\n")
+		var numberedLines []string
+		for i, line := range lines {
+			numberedLines = append(numberedLines, fmt.Sprintf("%d. %s", i+1, line))
+		}
+
+		// Format the output
+		formattedContent := fmt.Sprintf("FILE: %s\nCONTENT:\n<<<\n%s\n>>>",
+			input.FilePath,
+			strings.Join(numberedLines, "\n"))
+
+		return mcp.CallToolResult{
+			Content: []mcp.ToolResultContent{{
+				Type: "text",
+				Text: formattedContent,
+			}},
+		}, nil
+	},
+}
+
+var gitApplyPatchTool = mcp.Tool{
+	Name:        "local_git_apply_patch",
+	Description: "Applies a git patch to the local Git repository. Can handle both unified diff format and git patch format.",
+	InputSchema: json.RawMessage(`{
+        "type": "object",
+        "properties": {
+            "patch_content": {
+                "type": "string",
+                "description": "Content of the patch to apply"
+            },
+            "options": {
+                "type": "object",
+                "description": "Optional git apply parameters",
+                "properties": {
+                    "check_only": {
+                        "type": "boolean",
+                        "description": "Only check if patch can be applied, don't actually apply it",
+                        "default": false
+                    },
+                    "reject": {
+                        "type": "boolean",
+                        "description": "Create .rej files for rejects",
+                        "default": false
+                    },
+                    "reverse": {
+                        "type": "boolean",
+                        "description": "Apply patch in reverse",
+                        "default": false
+                    }
+                }
+            }
+        },
+        "required": ["patch_content"]
+    }`),
+	Handler: func(ctx context.Context, params mcp.CallToolParams) (mcp.CallToolResult, error) {
+		ctx, span := observability.StartSpan(ctx, fmt.Sprintf("%s.Handler", params.Name))
+		span.SetAttributes(
+			attribute.String("tool_name", params.Name),
+			attribute.String("tool_argument", string(params.Arguments)),
+		)
+		defer span.End()
+
+		var err error
+		defer func() {
+			if err != nil {
+				span.RecordError(err)
+			}
+		}()
+
+		var input struct {
+			PatchContent string `json:"patch_content"`
+			Options      struct {
+				CheckOnly bool `json:"check_only"`
+				Reject    bool `json:"reject"`
+				Reverse   bool `json:"reverse"`
+			} `json:"options"`
+		}
+		if err := json.Unmarshal(params.Arguments, &input); err != nil {
+			return mcp.CallToolResult{}, fmt.Errorf("failed to unmarshal input: %w", err)
+		}
+
+		// Create a temporary file for the patch
+		tmpFile, err := os.CreateTemp("", "git-patch-*.patch")
+		if err != nil {
+			return mcp.CallToolResult{}, fmt.Errorf("failed to create temporary patch file: %w", err)
+		}
+		//defer os.Remove(tmpFile.Name())
+
+		// Write patch content to temporary file
+		if _, err := tmpFile.WriteString(input.PatchContent); err != nil {
+			return mcp.CallToolResult{}, fmt.Errorf("failed to write patch content: %w", err)
+		}
+		if err := tmpFile.Close(); err != nil {
+			return mcp.CallToolResult{}, fmt.Errorf("failed to close temporary file: %w", err)
+		}
+
+		// Prepare git apply command with options
+		args := []string{"apply"}
+
+		if input.Options.CheckOnly {
+			args = append(args, "--check")
+		}
+		if input.Options.Reject {
+			args = append(args, "--reject")
+		}
+		if input.Options.Reverse {
+			args = append(args, "-R")
+		}
+
+		args = append(args, tmpFile.Name())
+
+		cmd := exec.CommandContext(ctx, "git", args...)
+		output, err := cmd.CombinedOutput()
+
+		log.Printf("Output tmp patch file: %s", tmpFile.Name())
+		log.Printf("cmd: %+v", args)
+
+		if err != nil {
+			return mcp.CallToolResult{}, fmt.Errorf("failed to apply patch: %w\nOutput: %s", err, string(output))
+		}
+
+		resultMsg := "Patch applied successfully"
+		if input.Options.CheckOnly {
+			resultMsg = "Patch can be applied successfully"
+		}
+
+		return mcp.CallToolResult{
+			Content: []mcp.ToolResultContent{{
+				Type: "text",
+				Text: fmt.Sprintf("%s\nCommand output:\n%s", resultMsg, string(output)),
+			}},
 		}, nil
 	},
 }

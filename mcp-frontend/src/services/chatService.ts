@@ -33,11 +33,13 @@ export const chatService = {
         });
 
         if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
+            const errorData = await response.json();
+            throw new Error(errorData.error || 'An error occurred');
         }
 
         return response.json();
     },
+
 
     async loadChatHistory(chatId: string) {
         const response = await fetch(`http://localhost:8081/chat/${chatId}`);

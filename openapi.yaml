@@ -1,0 +1,291 @@
+openapi: 3.0.3
+info:
+  title: MCP Kit API
+  version: v1
+paths:
+  /llm-providers:
+    get:
+      summary: Get a list of supported LLM providers and models
+      operationId: getLLMProviders
+      tags:
+        - LLM Providers
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SupportedLLMProviders'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  /ask:
+    post:
+      summary: Ask a question to the LLM
+      operationId: askQuestion
+      tags:
+        - Chat
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/QuestionRequest'
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Response'
+        '400':
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  /chats:
+    get:
+      summary: List all chat histories
+      operationId: listChats
+      tags:
+        - Chat History
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  chats:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/ChatHistory'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  /chat/{chatId}:
+    get:
+      summary: Get a single chat by ID
+      operationId: getChat
+      tags:
+        - Chat History
+      parameters:
+        - name: chatId
+          in: path
+          description: ID of the chat to retrieve
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ChatHistory'
+        '400':
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Chat not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  /api/tools:
+    get:
+      summary: Get a list of available tools
+      operationId: listTools
+      tags:
+        - Tools
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ToolInfo'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+components:
+  schemas:
+    Error:
+      type: object
+      properties:
+        error:
+          type: string
+          description: Error message
+
+    ModelSettings:
+      type: object
+      properties:
+        temperature:
+          type: number
+          format: float
+          description: The temperature for the LLM model.
+        maxTokens:
+          type: integer
+          description: The maximum number of tokens for the LLM model.
+        topP:
+          type: number
+          format: float
+          description: The top_p value for the LLM model.
+        topK:
+          type: integer
+          description: The top_k value for the LLM model.
+
+    LLMProvider:
+      type: object
+      properties:
+        provider:
+          type: string
+          description: The name of the LLM provider.
+        modelId:
+          type: string
+          description: The ID of the model within the provider.
+
+    QuestionRequest:
+      type: object
+      properties:
+        chat_uuid:
+          type: string
+          format: uuid
+          description: The UUID of the chat. If not provided, a new chat will be created.
+        question:
+          type: string
+          description: The question to ask the LLM.
+        selectedTools:
+          type: array
+          items:
+            type: string
+          description: A list of tools to use for the question.
+        modelSettings:
+          $ref: '#/components/schemas/ModelSettings'
+        llmProvider:
+          $ref: '#/components/schemas/LLMProvider'
+
+    Response:
+      type: object
+      properties:
+        chat_uuid:
+          type: string
+          format: uuid
+          description: The UUID of the chat.
+        answer:
+          type: string
+          description: The answer from the LLM.
+        input_token:
+          type: integer
+          description: The number of input tokens used.
+        output_token:
+          type: integer
+          description: The number of output tokens used.
+
+    ChatHistory:
+      type: object
+      properties:
+        UUID:
+          type: string
+          format: uuid
+          description: The UUID of the chat.
+        CreatedAt:
+          type: string
+          format: date-time
+          description: The creation time of the chat.
+        Messages:
+          type: array
+          items:
+            $ref: '#/components/schemas/Message'
+
+    Message:
+      type: object
+      properties:
+        GeneratedAt:
+          type: string
+          format: date-time
+          description: The time the message was generated.
+        LLMMessage:
+          $ref: '#/components/schemas/LLMMessage'
+
+    LLMMessage:
+      type: object
+      properties:
+        Role:
+          type: string
+          description: The role of the message sender (user, system, assistant)
+        Text:
+          type: string
+          description: The content of the message
+
+    Model:
+      type: object
+      properties:
+        name:
+          type: string
+          description: Name of the Model
+        description:
+          type: string
+          description: description of the model
+        modelId:
+          type: string
+          description: Model Id of the model
+
+    Provider:
+      type: object
+      properties:
+        name:
+          type: string
+          description: Name of the provider
+        models:
+          type: array
+          items:
+            $ref: '#/components/schemas/Model'
+
+    SupportedLLMProviders:
+      type: object
+      properties:
+        providers:
+          type: array
+          items:
+            $ref: '#/components/schemas/Provider'
+
+    ToolInfo:
+      type: object
+      properties:
+        name:
+          type: string
+          description: The name of the tool
+        description:
+          type: string
+          description: The description of the tool

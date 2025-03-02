@@ -20,6 +20,8 @@ var MCPToolsRegistry = []mcp.Tool{
 	gitShowTool,
 	gitInitTool,
 	gitCloneTool,
+	gitReadLocalFileTool,
+	gitApplyPatchTool,
 	// GitHub tools
 	githubCreateRepository,
 	githubCreateIssue,
@@ -56,4 +58,24 @@ var MCPToolsRegistry = []mcp.Tool{
 	postgresExecuteQuery,
 	postgresTableSchema,
 	postgresExecuteQueryWithExplain,
+	// Docker tools
+	listContainersTool,
+	containerLogsTool,
+	listImagesTool,
+	pruneImagesTool,
+	runContainerTool,
+	pullImageTool,
+	dockerInspectTool,
+	pruneContainersTool,
+	// http (curl) tools
+	httpGetTool,
+	httpPostJsonTool,
+	httpFormPostTool,
+	httpCustomRequestTool,
+	//filesystem search tools
+	findContentInFilesTool,
+	findLargeFilesTool,
+	findDuplicateFilesTool,
+	findRecentlyModifiedTool,
+	searchCodePatternTool,
 }

@@ -7,15 +7,14 @@ import (
 	"github.com/anthropics/anthropic-sdk-go"
 	"github.com/fatih/color"
 	"github.com/shaharia-lab/goai"
-	"github.com/shaharia-lab/mcp-kit/config"
-	"github.com/shaharia-lab/mcp-kit/tools"
+	"github.com/shaharia-lab/mcp-kit/internal/config"
+	"github.com/shaharia-lab/mcp-kit/internal/tools"
 	"github.com/spf13/cobra"
-	"log"
 	"os"
 	"strings"
 )
 
-func NewTaskCmd(logger *log.Logger) *cobra.Command {
+func NewTaskCmd() *cobra.Command {
 	return &cobra.Command{
 		Use:   "task",
 		Short: "Ask a question or give a task to the LLM model",
