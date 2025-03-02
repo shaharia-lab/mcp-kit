@@ -155,7 +155,7 @@ func HandleAsk(sseClient *mcp.Client, logger *log.Logger, historyStorage storage
 			generateSpan.End()
 
 			log.Printf("Failed to generate response: %v", err)
-			writeErrorResponse(w, http.StatusInternalServerError, "Failed to generate response", err, generateCtx, span)
+			writeErrorResponse(w, http.StatusInternalServerError, fmt.Sprintf("Failed to generate response. error: %s", err.Error()), err, generateCtx, span)
 			return
 		}
 		generateSpan.End()
