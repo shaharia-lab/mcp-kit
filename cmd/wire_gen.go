@@ -25,7 +25,10 @@ func InitializeAPI(ctx context.Context) (*Container, func(), error) {
 		return nil, nil, err
 	}
 	chatHistoryStorage := ProvideChatHistoryStorage()
-	container := NewContainer(logger, client, toolsProvider, chatHistoryStorage, config)
+	logrusLogger := ProvideLogrusLogger()
+	tracingService := ProvideTracingService(config, logrusLogger)
+	observabilityLogger := ProvideLogrusLoggerImpl(logrusLogger)
+	container := NewContainer(logger, client, toolsProvider, chatHistoryStorage, config, tracingService, logrusLogger, observabilityLogger)
 	return container, func() {
 	}, nil
 }

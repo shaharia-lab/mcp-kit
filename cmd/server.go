@@ -6,11 +6,11 @@ import (
 	"github.com/shaharia-lab/goai/mcp"
 	goaiObs "github.com/shaharia-lab/goai/observability"
 	"github.com/shaharia-lab/mcp-kit/internal/config"
-	"github.com/shaharia-lab/mcp-kit/internal/observability"
 	"github.com/shaharia-lab/mcp-kit/internal/prompt"
 	"github.com/shaharia-lab/mcp-kit/internal/tools"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
+	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/codes"
 	"log"
 )
@@ -29,13 +29,28 @@ func NewServerCmd(logger *log.Logger) *cobra.Command {
 			}
 
 			ctx := context.Background()
-			cleanup, err := initializeTracer(ctx, "mcp-kit", logrus.New())
+
+			// Initialize all dependencies using Wire
+			container, cleanup, err := InitializeAPI(ctx)
 			if err != nil {
-				return err
+				return fmt.Errorf("failed to initialize application: %w", err)
 			}
 			defer cleanup()
 
-			ctx, span := observability.StartSpan(ctx, "main")
+			// Initialize the tracing service
+			tracingService := ProvideTracingService(container.Config, logrus.New())
+			if err = tracingService.Initialize(ctx); err != nil {
+				return fmt.Errorf("failed to initialize tracer: %w", err)
+			}
+
+			defer func() {
+				if err = tracingService.Shutdown(ctx); err != nil {
+					container.Logger.Printf("Error shutting down tracer: %v", err)
+				}
+			}()
+
+			tracer := otel.Tracer("mcp-server")
+			ctx, span := tracer.Start(ctx, "mcp_server_init")
 			defer span.End()
 
 			defer func() {

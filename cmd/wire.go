@@ -17,5 +17,8 @@ func InitializeAPI(ctx context.Context) (*Container, func(), error) {
 		ProvideToolsProvider,
 		ProvideChatHistoryStorage,
 		ProvideConfig,
+		ProvideTracingService,
+		ProvideLogrusLogger,
+		ProvideLogrusLoggerImpl,
 	))
 }

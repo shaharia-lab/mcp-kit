@@ -5,6 +5,8 @@ import (
 	"github.com/shaharia-lab/goai/mcp"
 	goaiObs "github.com/shaharia-lab/goai/observability"
 	"github.com/shaharia-lab/mcp-kit/internal/config"
+	"github.com/shaharia-lab/mcp-kit/internal/observability"
+	"github.com/sirupsen/logrus"
 	"log"
 	"time"
 )
@@ -16,6 +18,9 @@ type Container struct {
 	ToolsProvider      *goai.ToolsProvider
 	ChatHistoryStorage goai.ChatHistoryStorage
 	Config             *config.Config
+	TracingService     *observability.TracingService
+	LoggerLogrus       *logrus.Logger
+	LogrusLoggerImpl   goaiObs.Logger
 }
 
 func ProvideLogger() *log.Logger {
@@ -44,12 +49,39 @@ func ProvideMCPClient(cfg *config.Config) *mcp.Client {
 	})
 }
 
+func ProvideLogrusLogger() *logrus.Logger {
+	logger := logrus.New()
+	logger.SetFormatter(&logrus.TextFormatter{
+		FullTimestamp: true,
+	})
+	return logger
+}
+
+func ProvideLogrusLoggerImpl(logger *logrus.Logger) goaiObs.Logger {
+	return observability.NewLogrusLogger(logger)
+}
+
 func ProvideToolsProvider(mcpClient *mcp.Client) (*goai.ToolsProvider, error) {
 	provider := goai.NewToolsProvider()
 	if err := provider.AddMCPClient(mcpClient); err != nil {
 		return nil, err
 	}
 	return provider, nil
+}
+
+func ProvideTracingService(cfg *config.Config, logger *logrus.Logger) *observability.TracingService {
+	tracingConfig := config.TracingConfig{
+		Enabled:         cfg.Tracing.Enabled,
+		ServiceName:     cfg.Tracing.ServiceName,
+		EndpointAddress: cfg.Tracing.EndpointAddress,
+		Timeout:         cfg.Tracing.Timeout,
+		SamplingRate:    cfg.Tracing.SamplingRate,
+		BatchTimeout:    cfg.Tracing.BatchTimeout,
+		Environment:     cfg.Tracing.Environment,
+		Version:         cfg.Tracing.Version,
+	}
+
+	return observability.NewTracingService(tracingConfig, logger)
 }
 
 func ProvideChatHistoryStorage() goai.ChatHistoryStorage {
@@ -62,6 +94,9 @@ func NewContainer(
 	toolsProvider *goai.ToolsProvider,
 	chatHistoryStorage goai.ChatHistoryStorage,
 	config *config.Config,
+	tracingService *observability.TracingService,
+	loggerLogrus *logrus.Logger,
+	logrusLoggerImpl goaiObs.Logger,
 ) *Container {
 	return &Container{
 		Logger:             logger,
@@ -69,5 +104,8 @@ func NewContainer(
 		ToolsProvider:      toolsProvider,
 		ChatHistoryStorage: chatHistoryStorage,
 		Config:             config,
+		TracingService:     tracingService,
+		LoggerLogrus:       loggerLogrus,
+		LogrusLoggerImpl:   logrusLoggerImpl,
 	}
 }

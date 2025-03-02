@@ -3,7 +3,7 @@ package observability
 import (
 	"context"
 	"fmt"
-	"time"
+	"github.com/shaharia-lab/mcp-kit/internal/config"
 
 	"github.com/sirupsen/logrus"
 	"go.opentelemetry.io/otel"
@@ -18,75 +18,123 @@ import (
 	"google.golang.org/grpc/credentials/insecure"
 )
 
-var (
-	tracer           trace.Tracer
-	isTracingEnabled bool
-)
+var tracer trace.Tracer
+var isEnabled bool
 
-// InitTracer initializes the tracer with the given service name, logger, and configuration
-func InitTracer(ctx context.Context, serviceName string, logger *logrus.Logger) (func(), error) {
-	isTracingEnabled = true
-	res, err := resource.New(ctx,
-		resource.WithAttributes(
-			semconv.ServiceName(serviceName),
-		),
-	)
-	if err != nil {
-		logger.WithError(err).Error("Failed to create resource")
-		return nil, fmt.Errorf("failed to create resource: %w", err)
+// TracingService handles all tracing operations
+type TracingService struct {
+	config    config.TracingConfig
+	logger    *logrus.Logger
+	tracer    trace.Tracer
+	provider  *sdktrace.TracerProvider
+	isEnabled bool
+}
+
+// NewTracingService creates a new instance of TracingService
+func NewTracingService(config config.TracingConfig, logger *logrus.Logger) *TracingService {
+	if logger == nil {
+		logger = logrus.New()
 	}
 
-	exporter, err := otlptrace.New(
-		ctx,
-		otlptracegrpc.NewClient(
-			otlptracegrpc.WithInsecure(),
-			otlptracegrpc.WithEndpoint("jaeger:4317"),
-			otlptracegrpc.WithDialOption(grpc.WithTransportCredentials(insecure.NewCredentials())),
-			otlptracegrpc.WithTimeout(5*time.Second),
-		),
-	)
-	if err != nil {
-		logger.WithError(err).Error("Failed to create OTLP exporter")
-		return nil, fmt.Errorf("failed to create OTLP exporter: %w", err)
+	return &TracingService{
+		config:    config,
+		logger:    logger,
+		isEnabled: config.Enabled,
+	}
+}
+
+// Initialize sets up the tracing infrastructure
+func (ts *TracingService) Initialize(ctx context.Context) error {
+	if !ts.isEnabled {
+		ts.logger.Info("Tracing is disabled")
+		return nil
 	}
 
-	bsp := sdktrace.NewBatchSpanProcessor(exporter)
-	tracerProvider := sdktrace.NewTracerProvider(
-		sdktrace.WithSampler(sdktrace.AlwaysSample()),
+	// Create resource with service information and custom attributes
+	resourceAttrs := []attribute.KeyValue{
+		semconv.ServiceName(ts.config.ServiceName),
+		semconv.DeploymentEnvironment(ts.config.Environment),
+	}
+
+	res, err := resource.New(ctx, resource.WithAttributes(resourceAttrs...))
+	if err != nil {
+		return fmt.Errorf("failed to create resource: %w", err)
+	}
+
+	// Configure OTLP exporter
+	exporter, err := ts.createExporter(ctx)
+	if err != nil {
+		return fmt.Errorf("failed to create OTLP exporter: %w", err)
+	}
+
+	// Configure batch span processor
+	bsp := sdktrace.NewBatchSpanProcessor(
+		exporter,
+		sdktrace.WithBatchTimeout(ts.config.BatchTimeout),
+	)
+
+	// Create tracer provider
+	ts.provider = sdktrace.NewTracerProvider(
+		sdktrace.WithSampler(sdktrace.TraceIDRatioBased(ts.config.SamplingRate)),
 		sdktrace.WithResource(res),
 		sdktrace.WithSpanProcessor(bsp),
 	)
 
-	otel.SetTracerProvider(tracerProvider)
-	tracer = tracerProvider.Tracer(serviceName)
+	otel.SetTracerProvider(ts.provider)
+	tracer = ts.provider.Tracer(ts.config.ServiceName)
+	isEnabled = true
 
-	logger.Info("Tracer initialized successfully")
+	ts.logger.Info("Tracing initialized successfully")
+	return nil
+}
 
-	return func() {
-		if !isTracingEnabled {
-			return
-		}
-		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-		defer cancel()
-		if err := tracerProvider.Shutdown(ctx); err != nil {
-			logger.WithError(err).Error("Error shutting down tracer provider")
-		}
-	}, nil
+// createExporter creates and configures the OTLP exporter
+func (ts *TracingService) createExporter(ctx context.Context) (*otlptrace.Exporter, error) {
+	return otlptrace.New(
+		ctx,
+		otlptracegrpc.NewClient(
+			otlptracegrpc.WithInsecure(),
+			otlptracegrpc.WithEndpoint(ts.config.EndpointAddress),
+			otlptracegrpc.WithDialOption(grpc.WithTransportCredentials(insecure.NewCredentials())),
+			otlptracegrpc.WithTimeout(ts.config.Timeout),
+		),
+	)
 }
 
 // StartSpan starts a new span with the given name
 func StartSpan(ctx context.Context, name string) (context.Context, trace.Span) {
-	if !isTracingEnabled {
+	if !isEnabled {
 		return ctx, trace.SpanFromContext(ctx)
 	}
+
 	return tracer.Start(ctx, name)
 }
 
-// AddAttribute adds an attribute to the span in the given context
+// AddAttribute adds an attribute to the current span
 func AddAttribute(ctx context.Context, key string, value interface{}) {
-	if !isTracingEnabled {
+	if !isEnabled {
 		return
 	}
+
 	span := trace.SpanFromContext(ctx)
 	span.SetAttributes(attribute.String(key, fmt.Sprintf("%v", value)))
+}
+
+// Shutdown gracefully shuts down the tracing service
+func (ts *TracingService) Shutdown(ctx context.Context) error {
+	if !ts.isEnabled || ts.provider == nil {
+		return nil
+	}
+
+	return ts.provider.Shutdown(ctx)
+}
+
+// SetEnabled enables or disables tracing at runtime
+func (ts *TracingService) SetEnabled(enabled bool) {
+	ts.isEnabled = enabled
+}
+
+// IsEnabled returns whether tracing is currently enabled
+func (ts *TracingService) IsEnabled() bool {
+	return ts.isEnabled
 }

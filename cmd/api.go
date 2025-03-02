@@ -3,6 +3,7 @@ package cmd
 import (
 	"context"
 	"embed"
+	"errors"
 	"fmt"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
@@ -10,9 +11,10 @@ import (
 	"github.com/shaharia-lab/goai"
 	"github.com/shaharia-lab/goai/mcp"
 	handlers "github.com/shaharia-lab/mcp-kit/internal/handler"
-	"github.com/shaharia-lab/mcp-kit/internal/observability"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
+	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/trace"
 	"io/fs"
 	"os"
@@ -48,13 +50,6 @@ func NewAPICmd() *cobra.Command {
 		RunE: func(cmd *cobra.Command, args []string) error {
 			ctx := context.Background()
 
-			// Initialize tracer
-			cleanup, err := initializeTracer(ctx, "mcp-kit", logrus.New())
-			if err != nil {
-				return fmt.Errorf("failed to initialize tracer: %w", err)
-			}
-			defer cleanup()
-
 			// Create context with cancellation for graceful shutdown
 			ctx, cancel := context.WithCancel(ctx)
 			defer cancel()
@@ -63,10 +58,6 @@ func NewAPICmd() *cobra.Command {
 			signalChan := make(chan os.Signal, 1)
 			signal.Notify(signalChan, os.Interrupt, syscall.SIGTERM)
 
-			// Add server lifecycle span
-			ctx, serverSpan := observability.StartSpan(ctx, "server_lifecycle")
-			defer serverSpan.End()
-
 			// Initialize all dependencies using Wire
 			container, cleanup, err := InitializeAPI(ctx)
 			if err != nil {
@@ -74,8 +65,22 @@ func NewAPICmd() *cobra.Command {
 			}
 			defer cleanup()
 
+			// Initialize the tracing service
+			tracingService := ProvideTracingService(container.Config, logrus.New())
+			if err = tracingService.Initialize(ctx); err != nil {
+				return fmt.Errorf("failed to initialize tracer: %w", err)
+			}
+
+			defer func() {
+				if err := tracingService.Shutdown(ctx); err != nil {
+					container.Logger.Printf("Error shutting down tracer: %v", err)
+				}
+			}()
+
+			tracer := otel.Tracer("mcp-kit")
+
 			// Connect MCP client with span
-			clientCtx, clientSpan := observability.StartSpan(ctx, "mcp_client_init")
+			clientCtx, clientSpan := tracer.Start(ctx, "mcp_client_init")
 			if err := container.MCPClient.Connect(clientCtx); err != nil {
 				clientSpan.End()
 				return fmt.Errorf("failed to connect to MCP server: %w", err)
@@ -99,8 +104,7 @@ func NewAPICmd() *cobra.Command {
 			// Start server in a goroutine
 			go func() {
 				container.Logger.Printf("Starting server on %s", srv.Addr)
-				observability.AddAttribute(ctx, "server.port", container.Config.APIServerPort)
-				if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+				if err := srv.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
 					serverErrors <- err
 				}
 			}()
@@ -141,17 +145,19 @@ func setupRouter(mcpClient *mcp.Client, logger *log.Logger, chatHistoryStorage g
 	// Tracing middleware remains the same
 	r.Use(func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			requestCtx, span := observability.StartSpan(r.Context(), "http_request")
+			ctx, span := otel.Tracer("http-middleware").Start(r.Context(), "http_request")
 			defer span.End()
 
-			observability.AddAttribute(requestCtx, "http.method", r.Method)
-			observability.AddAttribute(requestCtx, "http.url", r.URL.String())
-			observability.AddAttribute(requestCtx, "http.path", r.URL.Path)
-			observability.AddAttribute(requestCtx, "http.host", r.Host)
+			span.SetAttributes(
+				attribute.String("http.method", r.Method),
+				attribute.String("http.url", r.URL.String()),
+				attribute.String("http.path", r.URL.Path),
+				attribute.String("http.host", r.Host),
+			)
 
 			w = wrapResponseWriter(w, span)
 
-			next.ServeHTTP(w, r.WithContext(requestCtx))
+			next.ServeHTTP(w, r.WithContext(ctx))
 		})
 	})
 
@@ -203,17 +209,6 @@ func setupRouter(mcpClient *mcp.Client, logger *log.Logger, chatHistoryStorage g
 	return r
 }
 
-func initializeTracer(ctx context.Context, appName string, l *logrus.Logger) (func(), error) {
-	l.Info("Initializing tracer")
-	cleanup, err := observability.InitTracer(ctx, appName, l)
-	if err != nil {
-		log.Fatalf("Failed to initialize tracer: %v", err)
-		return nil, err
-	}
-	l.Info("Tracer initialized successfully")
-	return cleanup, nil
-}
-
 // Helper to track response status
 type responseWriterWrapper struct {
 	http.ResponseWriter
@@ -227,6 +222,6 @@ func wrapResponseWriter(w http.ResponseWriter, span trace.Span) *responseWriterW
 
 func (rw *responseWriterWrapper) WriteHeader(code int) {
 	rw.status = code
-	observability.AddAttribute(context.Background(), "http.status_code", code)
+	rw.span.SetAttributes(attribute.Int("http.status_code", code))
 	rw.ResponseWriter.WriteHeader(code)
 }
