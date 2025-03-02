@@ -8,9 +8,11 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/go-chi/cors"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/shaharia-lab/goai"
 	"github.com/shaharia-lab/goai/mcp"
 	handlers "github.com/shaharia-lab/mcp-kit/internal/handler"
+	"github.com/shaharia-lab/mcp-kit/internal/observability"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"go.opentelemetry.io/otel"
@@ -170,9 +172,12 @@ func setupRouter(mcpClient *mcp.Client, logger *log.Logger, chatHistoryStorage g
 		MaxAge:           300,
 	}))
 
-	// Middleware
+	r.Use(prometheusMiddleware)
 	r.Use(middleware.Logger)
 	r.Use(middleware.Recoverer)
+
+	// Expose the metrics endpoint
+	r.Handle("/metrics", promhttp.Handler())
 
 	// Root route redirects to /static
 	r.Get("/", func(w http.ResponseWriter, r *http.Request) {
@@ -207,6 +212,29 @@ func setupRouter(mcpClient *mcp.Client, logger *log.Logger, chatHistoryStorage g
 	r.Get("/api/tools", handlers.ListToolsHandler(toolsProvider))
 
 	return r
+}
+
+// Prometheus middleware to collect metrics
+func prometheusMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		start := time.Now()
+
+		ww := middleware.NewWrapResponseWriter(w, r.ProtoMajor)
+
+		defer func() {
+			// Record the request duration
+			duration := time.Since(start).Seconds()
+			observability.HTTPRequestDuration.WithLabelValues(r.URL.Path).Observe(duration)
+
+			// Record the request count
+			observability.HTTPRequestsTotal.WithLabelValues(
+				fmt.Sprintf("%d", ww.Status()),
+				r.Method,
+			).Inc()
+		}()
+
+		next.ServeHTTP(ww, r)
+	})
 }
 
 // Helper to track response status
