@@ -13,7 +13,6 @@ import (
 	"github.com/shaharia-lab/goai/mcp"
 	"github.com/shaharia-lab/mcp-kit/internal/observability"
 	"github.com/shaharia-lab/mcp-kit/internal/service/llm"
-	"github.com/shaharia-lab/mcp-kit/internal/storage"
 )
 
 const (
@@ -47,7 +46,7 @@ type Response struct {
 	OutputToken int       `json:"output_token"`
 }
 
-func HandleAsk(sseClient *mcp.Client, logger *log.Logger, historyStorage storage.ChatHistoryStorage, toolsProvider *goai.ToolsProvider) http.HandlerFunc {
+func HandleAsk(sseClient *mcp.Client, logger *log.Logger, historyStorage goai.ChatHistoryStorage, toolsProvider *goai.ToolsProvider) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		ctx, span := observability.StartSpan(r.Context(), "handle_ask")
 		defer span.End()
@@ -92,7 +91,7 @@ func HandleAsk(sseClient *mcp.Client, logger *log.Logger, historyStorage storage
 		}
 
 		// Retrieve chat history and truncate it to the last MaxChatHistoryMessages
-		messages, err := getTruncatedChatHistory(chat.UUID, historyStorage)
+		messages, err := getTruncatedChatHistory(ctx, chat.UUID, historyStorage)
 		if err != nil {
 			writeErrorResponse(w, http.StatusInternalServerError, "Failed to retrieve chat history", err, ctx, span)
 			return
@@ -116,7 +115,7 @@ func HandleAsk(sseClient *mcp.Client, logger *log.Logger, historyStorage storage
 		messages = append(messages, userMessage)
 
 		// Add user message to chat history
-		if err := historyStorage.AddMessage(chat.UUID, storage.Message{
+		if err := historyStorage.AddMessage(ctx, chat.UUID, goai.ChatHistoryMessage{
 			LLMMessage:  userMessage,
 			GeneratedAt: time.Now(),
 		}); err != nil {
@@ -161,7 +160,7 @@ func HandleAsk(sseClient *mcp.Client, logger *log.Logger, historyStorage storage
 		generateSpan.End()
 
 		// Add assistant response to chat history
-		err = historyStorage.AddMessage(chat.UUID, storage.Message{
+		err = historyStorage.AddMessage(ctx, chat.UUID, goai.ChatHistoryMessage{
 			LLMMessage: goai.LLMMessage{
 				Role: goai.AssistantRole,
 				Text: response.Text,
@@ -189,18 +188,18 @@ func HandleAsk(sseClient *mcp.Client, logger *log.Logger, historyStorage storage
 }
 
 // Helper Function Implementations
-func getOrInitializeChat(req QuestionRequest, historyStorage storage.ChatHistoryStorage, logger *log.Logger, ctx context.Context) (*storage.ChatHistory, error) {
-	var chat *storage.ChatHistory
+func getOrInitializeChat(req QuestionRequest, historyStorage goai.ChatHistoryStorage, logger *log.Logger, ctx context.Context) (*goai.ChatHistory, error) {
+	var chat *goai.ChatHistory
 	var err error
 
 	if req.ChatUUID == uuid.Nil {
-		chat, err = historyStorage.CreateChat()
+		chat, err = historyStorage.CreateChat(ctx)
 		if err != nil {
 			return nil, fmt.Errorf("failed to create chat")
 		}
 	} else {
 		logger.Printf("ChatUUID: %s", req.ChatUUID)
-		chat, err = historyStorage.GetChat(req.ChatUUID)
+		chat, err = historyStorage.GetChat(ctx, req.ChatUUID)
 		if err != nil {
 			return nil, fmt.Errorf("failed to get chat")
 		}
@@ -209,9 +208,9 @@ func getOrInitializeChat(req QuestionRequest, historyStorage storage.ChatHistory
 	return chat, nil
 }
 
-func getTruncatedChatHistory(chatUUID uuid.UUID, historyStorage storage.ChatHistoryStorage) ([]goai.LLMMessage, error) {
+func getTruncatedChatHistory(ctx context.Context, chatUUID uuid.UUID, historyStorage goai.ChatHistoryStorage) ([]goai.LLMMessage, error) {
 	// Retrieve all messages for the chat
-	chatHistory, err := historyStorage.GetChat(chatUUID)
+	chatHistory, err := historyStorage.GetChat(ctx, chatUUID)
 	if err != nil {
 		return nil, err
 	}

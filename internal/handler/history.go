@@ -4,16 +4,16 @@ import (
 	"encoding/json"
 	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
-	"github.com/shaharia-lab/mcp-kit/internal/storage"
+	"github.com/shaharia-lab/goai"
 	"log"
 	"net/http"
 )
 
-// Handler to list all chats
-func ChatHistoryListsHandler(logger *log.Logger, historyStorage storage.ChatHistoryStorage) http.HandlerFunc {
+// ChatHistoryListsHandler Handler to list all chats
+func ChatHistoryListsHandler(logger *log.Logger, historyStorage goai.ChatHistoryStorage) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		// Fetch all chat histories from storage
-		chats, err := historyStorage.ListChatHistories()
+		chats, err := historyStorage.ListChatHistories(r.Context())
 		if err != nil {
 			logger.Printf("Failed to retrieve chat histories: %v", err)
 			http.Error(w, `{"error": "Failed to retrieve chat histories"}`, http.StatusInternalServerError)
@@ -24,7 +24,7 @@ func ChatHistoryListsHandler(logger *log.Logger, historyStorage storage.ChatHist
 		w.WriteHeader(http.StatusOK)
 
 		response := struct {
-			Chats []storage.ChatHistory `json:"chats"`
+			Chats []goai.ChatHistory `json:"chats"`
 		}{
 			Chats: chats,
 		}
@@ -37,8 +37,8 @@ func ChatHistoryListsHandler(logger *log.Logger, historyStorage storage.ChatHist
 	}
 }
 
-// Handler to get a single chat by chatId
-func GetChatHandler(logger *log.Logger, historyStorage storage.ChatHistoryStorage) http.HandlerFunc {
+// GetChatHandler Handler to get a single chat by chatId
+func GetChatHandler(logger *log.Logger, historyStorage goai.ChatHistoryStorage) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		// Extract 'chatId' from URL parameters
 		chatUUID := chi.URLParam(r, "chatId")
@@ -56,7 +56,7 @@ func GetChatHandler(logger *log.Logger, historyStorage storage.ChatHistoryStorag
 		}
 
 		// Fetch the chat from storage by its UUID
-		chat, err := historyStorage.GetChat(parsedChatUUID)
+		chat, err := historyStorage.GetChat(r.Context(), parsedChatUUID)
 		if err != nil {
 			logger.Printf("Chat not found for UUID: %v, error: %v", parsedChatUUID, err)
 			http.Error(w, `{"error": "Chat not found"}`, http.StatusNotFound)

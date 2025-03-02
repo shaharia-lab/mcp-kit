@@ -11,11 +11,14 @@ import (
 	"github.com/shaharia-lab/goai/mcp"
 	handlers "github.com/shaharia-lab/mcp-kit/internal/handler"
 	"github.com/shaharia-lab/mcp-kit/internal/observability"
-	"github.com/shaharia-lab/mcp-kit/internal/storage"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"go.opentelemetry.io/otel/trace"
 	"io/fs"
+	"os"
+	"os/signal"
+	"syscall"
+	"time"
 
 	"log"
 	"net/http"
@@ -33,7 +36,7 @@ type ToolInfo struct {
 type RouterDependencies struct {
 	MCPClient          *mcp.Client
 	Logger             *log.Logger
-	ChatHistoryStorage storage.ChatHistoryStorage
+	ChatHistoryStorage goai.ChatHistoryStorage
 	ToolsProvider      *goai.ToolsProvider
 }
 
@@ -52,9 +55,13 @@ func NewAPICmd() *cobra.Command {
 			}
 			defer cleanup()
 
-			// Create context with cancellation
+			// Create context with cancellation for graceful shutdown
 			ctx, cancel := context.WithCancel(ctx)
 			defer cancel()
+
+			// Setup signal handling for graceful shutdown
+			signalChan := make(chan os.Signal, 1)
+			signal.Notify(signalChan, os.Interrupt, syscall.SIGTERM)
 
 			// Add server lifecycle span
 			ctx, serverSpan := observability.StartSpan(ctx, "server_lifecycle")
@@ -75,24 +82,60 @@ func NewAPICmd() *cobra.Command {
 			}
 			clientSpan.End()
 
-			// Ensure cleanup on shutdown
-			defer container.MCPClient.Close(ctx)
+			// Create HTTP server
+			srv := &http.Server{
+				Addr: fmt.Sprintf(":%d", container.Config.APIServerPort),
+				Handler: setupRouter(
+					container.MCPClient,
+					container.Logger,
+					container.ChatHistoryStorage,
+					container.ToolsProvider,
+				),
+			}
 
-			container.Logger.Printf("Starting server on :8081")
-			observability.AddAttribute(ctx, "server.port", container.Config.APIServerPort)
+			// Channel to capture server errors
+			serverErrors := make(chan error, 1)
 
-			// Start the server
-			return http.ListenAndServe(fmt.Sprintf(":%d", container.Config.APIServerPort), setupRouter(
-				container.MCPClient,
-				container.Logger,
-				container.ChatHistoryStorage,
-				container.ToolsProvider,
-			))
+			// Start server in a goroutine
+			go func() {
+				container.Logger.Printf("Starting server on %s", srv.Addr)
+				observability.AddAttribute(ctx, "server.port", container.Config.APIServerPort)
+				if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+					serverErrors <- err
+				}
+			}()
+
+			// Wait for shutdown signal or server error
+			select {
+			case err = <-serverErrors:
+				return fmt.Errorf("server error: %w", err)
+			case sig := <-signalChan:
+				container.Logger.Printf("Received signal: %v", sig)
+
+				// Create shutdown context with timeout
+				shutdownCtx, shutdownCancel := context.WithTimeout(context.Background(), 30*time.Second)
+				defer shutdownCancel()
+
+				// First disconnect MCP client
+				container.Logger.Printf("Disconnecting MCP client...")
+				if err = container.MCPClient.Close(shutdownCtx); err != nil {
+					container.Logger.Printf("Error disconnecting MCP client: %v", err)
+				}
+
+				// Then shutdown the HTTP server
+				container.Logger.Printf("Shutting down HTTP server...")
+				if err = srv.Shutdown(shutdownCtx); err != nil {
+					return fmt.Errorf("server shutdown error: %w", err)
+				}
+
+				container.Logger.Printf("Server shutdown completed")
+				return nil
+			}
 		},
 	}
 }
 
-func setupRouter(mcpClient *mcp.Client, logger *log.Logger, chatHistoryStorage storage.ChatHistoryStorage, toolsProvider *goai.ToolsProvider) *chi.Mux {
+func setupRouter(mcpClient *mcp.Client, logger *log.Logger, chatHistoryStorage goai.ChatHistoryStorage, toolsProvider *goai.ToolsProvider) *chi.Mux {
 	r := chi.NewRouter()
 
 	// Tracing middleware remains the same
