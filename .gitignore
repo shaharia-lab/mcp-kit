@@ -2,3 +2,5 @@
 /vendor
 /mcp-frontend/node_modules
 /cmd/static
+
+/.env.local
