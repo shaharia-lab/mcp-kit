@@ -26,7 +26,7 @@ GOFILES := $(shell find . -type f -name '*.go' -not -path "./vendor/*")
 # Build flags
 LDFLAGS := -w -s
 
-.PHONY: all build clean test lint docker-build run help frontend-dev frontend-build frontend-install wire
+.PHONY: all build clean test lint docker-build run help wire
 
 all: clean build test
 
@@ -38,12 +38,12 @@ wire:
 	@echo "Wire generation complete"
 
 # Run the API server
-run-api: frontend-build
+run-api: wire
 	@echo "Running API server..."
 	@go run . api
 
 # Run the main server
-run-server: frontend-build
+run-server:
 	@echo "Running main server..."
 	@go run . server
 
@@ -73,7 +73,7 @@ dev-all:
 	@make -j 3 dev-api dev-server frontend-dev
 
 # Build the application
-build: frontend-build wire
+build: wire
 	@echo "Building optimized binary for $(APP_NAME)..."
 	@CGO_ENABLED=0 go build \
 		-trimpath \
@@ -106,7 +106,7 @@ clean:
 	@rm -rf $(FRONTEND_DIR)/dist
 
 # Run tests
-test: frontend-build
+test:
 	@echo "Running tests..."
 	@go test -v ./...
 
@@ -131,7 +131,7 @@ run:
 	@go run $(MAIN_PACKAGE)
 
 # Development mode with hot reload for backend
-dev: frontend-build
+dev:
 	@if command -v air >/dev/null; then \
 		air; \
 	else \
@@ -139,21 +139,6 @@ dev: frontend-build
 		go install github.com/cosmtrek/air@latest; \
 		air; \
 	fi
-
-# Install frontend dependencies
-frontend-install:
-	@echo "Installing frontend dependencies..."
-	@cd $(FRONTEND_DIR) && npm install
-
-# Run frontend in development mode
-frontend-dev:
-	@echo "Starting frontend development server..."
-	@cd $(FRONTEND_DIR) && npm run dev
-
-# Build frontend for production
-frontend-build:
-	@echo "Building frontend for production..."
-	@cd $(FRONTEND_DIR) && npm run build
 
 # Run both frontend and backend in development mode
 dev-all:
@@ -177,7 +162,6 @@ help:
 	@echo "  dev             - Run backend in development mode with hot reload"
 	@echo "  frontend-install- Install frontend dependencies"
 	@echo "  frontend-dev    - Run frontend in development mode"
-	@echo "  frontend-build  - Build frontend for production"
 	@echo "  dev-all        - Run both frontend and backend in development mode"
 	@echo "  build-all      - Build both frontend and backend for production"
 	@echo "  help            - Show this help message"
