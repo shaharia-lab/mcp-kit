@@ -208,8 +208,8 @@ func setupRouter(mcpClient *mcp.Client, logger *log.Logger, chatHistoryStorage g
 	// Handle other static files
 	r.Mount("/static/", http.StripPrefix("/static/", http.FileServer(http.FS(subFS))))
 
-	r.With(authService.EnsureValidToken()).Post("/ask", handlers.HandleAsk(mcpClient, logger, chatHistoryStorage, toolsProvider))
-	r.Get("/chats", handlers.ChatHistoryListsHandler(logger, chatHistoryStorage))
+	r.Post("/ask", handlers.HandleAsk(mcpClient, logger, chatHistoryStorage, toolsProvider))
+	r.With(authService.EnsureValidToken()).Get("/chats", handlers.ChatHistoryListsHandler(logger, chatHistoryStorage))
 	r.Get("/chat/{chatId}", handlers.GetChatHandler(logger, chatHistoryStorage))
 	r.Get("/api/tools", handlers.ListToolsHandler(toolsProvider))
 

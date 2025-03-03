@@ -115,7 +115,8 @@ function App() {
             domain="shaharia-lab-beta.eu.auth0.com"
             clientId="TMpTLSNJEcOSISWvHmEW7GJS6mawcXQR"
             authorizationParams={{
-                redirect_uri: window.location.origin
+                redirect_uri: window.location.origin,
+                audience: 'mcp-kit-backend',
             }}
         >
 

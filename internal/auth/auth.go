@@ -14,6 +14,7 @@ import (
 type Authenticator struct {
 	*oidc.Provider
 	oauth2.Config
+	authConfig config.AuthConfig
 }
 
 // New instantiates the *Authenticator.
@@ -35,8 +36,9 @@ func New(cfg *config.AuthConfig) (*Authenticator, error) {
 	}
 
 	return &Authenticator{
-		Provider: provider,
-		Config:   conf,
+		Provider:   provider,
+		Config:     conf,
+		authConfig: *cfg,
 	}, nil
 }
 

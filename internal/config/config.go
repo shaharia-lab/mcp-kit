@@ -27,11 +27,12 @@ type TracingConfig struct {
 }
 
 type AuthConfig struct {
-	Enabled           bool   `envconfig:"AUTH_ENABLED" default:"false"`
-	Auth0CallBackURL  string `envconfig:"AUTH_REDIRECT_URL" default:"http://localhost:8081/auth/callback"`
-	Auth0Domain       string `envconfig:"AUTH0_DOMAIN" required:"true"`
-	Auth0ClientID     string `envconfig:"AUTH0_CLIENT_ID" required:"true"`
-	Auth0ClientSecret string `envconfig:"AUTH0_CLIENT_SECRET" required:"true"`
+	Enabled           bool     `envconfig:"AUTH_ENABLED" default:"false"`
+	Auth0CallBackURL  string   `envconfig:"AUTH_REDIRECT_URL" default:"http://localhost:8081/auth/callback"`
+	Auth0Domain       string   `envconfig:"AUTH0_DOMAIN" required:"true"`
+	Auth0ClientID     string   `envconfig:"AUTH0_CLIENT_ID" required:"true"`
+	Auth0ClientSecret string   `envconfig:"AUTH0_CLIENT_SECRET" required:"true"`
+	Auth0Audience     []string `envconfig:"AUTH0_AUDIENCE" default:"mcp-kit-backend"`
 }
 
 func Load() (*Config, error) {
