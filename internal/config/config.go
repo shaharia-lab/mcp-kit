@@ -2,6 +2,7 @@ package config
 
 import (
 	"github.com/kelseyhightower/envconfig"
+	"github.com/shaharia-lab/mcp-kit/internal/auth"
 	"time"
 )
 
@@ -11,6 +12,7 @@ type Config struct {
 	MCPServerPort int      `envconfig:"MCP_SERVER_PORT" default:"8080"`
 	ToolsEnabled  []string `envconfig:"TOOLS_ENABLED" default:"get_weather"`
 	Tracing       TracingConfig
+	Auth          auth.Config
 }
 
 // TracingConfig holds the configuration for the tracing service

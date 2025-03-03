@@ -11,6 +11,7 @@ import (
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/shaharia-lab/goai"
 	"github.com/shaharia-lab/goai/mcp"
+	"github.com/shaharia-lab/mcp-kit/internal/auth"
 	handlers "github.com/shaharia-lab/mcp-kit/internal/handler"
 	"github.com/shaharia-lab/mcp-kit/internal/observability"
 	"github.com/sirupsen/logrus"
@@ -97,6 +98,7 @@ func NewAPICmd() *cobra.Command {
 					container.Logger,
 					container.ChatHistoryStorage,
 					container.ToolsProvider,
+					container.AuthMiddleware,
 				),
 			}
 
@@ -141,7 +143,7 @@ func NewAPICmd() *cobra.Command {
 	}
 }
 
-func setupRouter(mcpClient *mcp.Client, logger *log.Logger, chatHistoryStorage goai.ChatHistoryStorage, toolsProvider *goai.ToolsProvider) *chi.Mux {
+func setupRouter(mcpClient *mcp.Client, logger *log.Logger, chatHistoryStorage goai.ChatHistoryStorage, toolsProvider *goai.ToolsProvider, authMiddleware *auth.AuthMiddleware) *chi.Mux {
 	r := chi.NewRouter()
 
 	// Tracing middleware remains the same
@@ -207,7 +209,7 @@ func setupRouter(mcpClient *mcp.Client, logger *log.Logger, chatHistoryStorage g
 	r.Mount("/static/", http.StripPrefix("/static/", http.FileServer(http.FS(subFS))))
 
 	r.Post("/ask", handlers.HandleAsk(mcpClient, logger, chatHistoryStorage, toolsProvider))
-	r.Get("/chats", handlers.ChatHistoryListsHandler(logger, chatHistoryStorage))
+	r.With(authMiddleware.EnsureValidToken).Get("/chats", handlers.ChatHistoryListsHandler(logger, chatHistoryStorage))
 	r.Get("/chat/{chatId}", handlers.GetChatHandler(logger, chatHistoryStorage))
 	r.Get("/api/tools", handlers.ListToolsHandler(toolsProvider))
 

@@ -63,6 +63,13 @@ The configuration is loaded via environment variables.  Key configuration parame
 
 ### Installation
 
+#### Load .env file
+
+```bash
+cp .env.example .env.local
+export $(cat .env.local | grep -v '^#' | xargs)
+```
+
 #### Using Source Code
 
 ```bash
