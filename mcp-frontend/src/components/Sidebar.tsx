@@ -25,24 +25,33 @@ export const Sidebar: React.FC<SidebarProps> = ({
     const [chatHistories, setChatHistories] = useState<ChatHistory[]>([]);
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
+    const { getAccessTokenSilently, isAuthenticated } = useAuth0();
 
     const loadChatHistories = async () => {
+        if (!isAuthenticated) return;
+
         setIsLoading(true);
         try {
-            const histories = await fetchChatHistories();
-            setChatHistories(histories);
+            const token = await getAccessTokenSilently();
+            const response = await fetchChatHistories(token);
+            // Access the chats array from the response
+            setChatHistories(response.chats || []);
             setError(null);
         } catch (err) {
             setError('Failed to load chat histories');
             console.error(err);
+            setChatHistories([]);
         } finally {
             setIsLoading(false);
         }
     };
 
+
     useEffect(() => {
-        loadChatHistories();
-    }, []);
+        if (isAuthenticated) {
+            loadChatHistories();
+        }
+    }, [isAuthenticated]);
 
     const getFirstMessage = (chat: ChatHistory): string => {
         if (!chat.messages || chat.messages.length === 0) {
@@ -76,8 +85,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
         // Implement settings functionality
         console.log('Settings clicked');
     };
-
-    const { isAuthenticated } = useAuth0();
 
     return (
         <div className={`fixed top-0 left-0 h-full bg-white shadow-lg z-40 transition-all duration-300 transform ${
