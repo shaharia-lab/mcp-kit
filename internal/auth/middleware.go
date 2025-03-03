@@ -1,86 +1,50 @@
-package authenticator
+package auth
 
 import (
-	"context"
-	jwtmiddleware "github.com/auth0/go-jwt-middleware/v2"
-	"github.com/auth0/go-jwt-middleware/v2/jwks"
-	"github.com/auth0/go-jwt-middleware/v2/validator"
-
-	"log"
-	"net/url"
-	"strings"
-
+	"github.com/shaharia-lab/goai/observability"
 	"net/http"
-	"time"
+	"strings"
 )
 
-type Config struct {
-	Domain   string
-	ClientID string
-	Audience string
+// AuthMiddleware handles authentication for HTTP requests
+type AuthMiddleware struct {
+	validator TokenValidator
+	logger    observability.Logger
 }
 
-func (a *Authenticator) EnsureValidToken() func(next http.Handler) http.Handler {
-	// Parse the issuer URL from the provider
-	issuerURL, err := url.Parse("https://" + a.authConfig.Auth0Domain + "/")
-	if err != nil {
-		log.Fatalf("Failed to parse the issuer url: %v", err)
-	}
-
-	provider := jwks.NewCachingProvider(issuerURL, 5*time.Minute)
-
-	// Create the validator using your Auth0 configuration
-	jwtValidator, err := validator.New(
-		provider.KeyFunc,
-		validator.RS256,
-		issuerURL.String(),
-		a.authConfig.Auth0Audience,
-		validator.WithCustomClaims(
-			func() validator.CustomClaims {
-				return &CustomClaims{}
-			},
-		),
-		validator.WithAllowedClockSkew(time.Minute),
-	)
-	if err != nil {
-		log.Fatalf("Failed to set up the jwt validator: %v", err)
-	}
-
-	errorHandler := func(w http.ResponseWriter, r *http.Request, err error) {
-		log.Printf("Encountered error while validating JWT: %v", err)
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusUnauthorized)
-		w.Write([]byte(`{"message":"Failed to validate JWT."}`))
-	}
-
-	middleware := jwtmiddleware.New(
-		jwtValidator.ValidateToken,
-		jwtmiddleware.WithErrorHandler(errorHandler),
-	)
-
-	return func(next http.Handler) http.Handler {
-		return middleware.CheckJWT(next)
+// NewAuthMiddleware creates a new authentication middleware
+func NewAuthMiddleware(validator TokenValidator, logger observability.Logger) *AuthMiddleware {
+	return &AuthMiddleware{
+		validator: validator,
+		logger:    logger,
 	}
 }
 
-// CustomClaims contains custom data we want from the token.
-type CustomClaims struct {
-	Scope string `json:"scope"`
-}
-
-// Validate does nothing for this example, but we need
-// it to satisfy validator.CustomClaims interface.
-func (c CustomClaims) Validate(ctx context.Context) error {
-	return nil
-}
-
-// HasScope checks whether our claims have a specific scope.
-func (c CustomClaims) HasScope(expectedScope string) bool {
-	result := strings.Split(c.Scope, " ")
-	for i := range result {
-		if result[i] == expectedScope {
-			return true
+// EnsureValidToken is a middleware that ensures a valid token is present
+func (am *AuthMiddleware) EnsureValidToken(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		token := extractToken(r)
+		if token == "" {
+			am.logger.Error("no token found", nil)
+			http.Error(w, "Unauthorized", http.StatusUnauthorized)
+			return
 		}
+
+		if err := am.validator.ValidateToken(r.Context(), token); err != nil {
+			am.logger.Error("invalid token", err)
+			http.Error(w, "Unauthorized", http.StatusUnauthorized)
+			return
+		}
+
+		next.ServeHTTP(w, r)
+	})
+}
+
+// extractToken extracts the token from the Authorization header
+func extractToken(r *http.Request) string {
+	bearerToken := r.Header.Get("Authorization")
+	if len(strings.Split(bearerToken, " ")) == 2 {
+		return strings.Split(bearerToken, " ")[1]
 	}
-	return false
+	return ""
 }

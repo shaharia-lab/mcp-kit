@@ -1,10 +1,11 @@
 package cmd
 
 import (
+	"context"
 	"github.com/shaharia-lab/goai"
 	"github.com/shaharia-lab/goai/mcp"
 	goaiObs "github.com/shaharia-lab/goai/observability"
-	authenticator "github.com/shaharia-lab/mcp-kit/internal/auth"
+	"github.com/shaharia-lab/mcp-kit/internal/auth"
 	"github.com/shaharia-lab/mcp-kit/internal/config"
 	"github.com/shaharia-lab/mcp-kit/internal/observability"
 	"github.com/sirupsen/logrus"
@@ -23,7 +24,8 @@ type Container struct {
 	LoggerLogrus       *logrus.Logger
 	LogrusLoggerImpl   goaiObs.Logger
 	BaseMCPServer      *mcp.BaseServer
-	Authenticator      *authenticator.Authenticator
+	AuthService        *auth.AuthService
+	AuthMiddleware     *auth.AuthMiddleware
 }
 
 func ProvideLogger() *log.Logger {
@@ -73,8 +75,8 @@ func ProvideLogrusLoggerImpl(logger *logrus.Logger) goaiObs.Logger {
 	return observability.NewLogrusLogger(logger)
 }
 
-func provideAuthenticator(cfg *config.Config) (*authenticator.Authenticator, error) {
-	return authenticator.New(&cfg.Auth)
+func provideAuthenticator(ctx context.Context, cfg *config.Config, logger goaiObs.Logger) (*auth.AuthService, error) {
+	return auth.NewAuthService(ctx, cfg.Auth, logger)
 }
 
 func ProvideToolsProvider(mcpClient *mcp.Client) (*goai.ToolsProvider, error) {
@@ -120,7 +122,7 @@ func NewContainer(
 	loggerLogrus *logrus.Logger,
 	logrusLoggerImpl goaiObs.Logger,
 	baseServer *mcp.BaseServer,
-	authenticator *authenticator.Authenticator,
+	authService *auth.AuthService,
 ) *Container {
 	return &Container{
 		Logger:             logger,
@@ -132,6 +134,7 @@ func NewContainer(
 		LoggerLogrus:       loggerLogrus,
 		LogrusLoggerImpl:   logrusLoggerImpl,
 		BaseMCPServer:      baseServer,
-		Authenticator:      authenticator,
+		AuthService:        authService,
+		AuthMiddleware:     auth.NewAuthMiddleware(authService, logrusLoggerImpl),
 	}
 }
