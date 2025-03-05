@@ -32,12 +32,18 @@ type LLMProvider struct {
 	ModelID  string `json:"modelId"`
 }
 
+type StreamSettings struct {
+	ChunkSize int `json:"chunk_size"`
+	DelayMs   int `json:"delay_ms"`
+}
+
 type QuestionRequest struct {
-	ChatUUID      uuid.UUID     `json:"chat_uuid"`
-	Question      string        `json:"question"`
-	SelectedTools []string      `json:"selectedTools"`
-	ModelSettings ModelSettings `json:"modelSettings"`
-	LLMProvider   LLMProvider   `json:"llmProvider"`
+	ChatUUID       uuid.UUID      `json:"chat_uuid"`
+	Question       string         `json:"question"`
+	SelectedTools  []string       `json:"selectedTools"`
+	ModelSettings  ModelSettings  `json:"modelSettings"`
+	LLMProvider    LLMProvider    `json:"llmProvider"`
+	StreamSettings StreamSettings `json:"stream_settings"`
 }
 
 type Response struct {
@@ -231,77 +237,86 @@ func HandleAskStream(mcpClient *mcp.Client, logger *log.Logger, chatHistoryStora
 	return func(w http.ResponseWriter, r *http.Request) {
 		// Set headers early
 		w.Header().Set("Content-Type", "application/json")
-		w.Header().Set("X-Content-Type-Options", "nosniff") // Prevent content type sniffing
+		w.Header().Set("X-Content-Type-Options", "nosniff")
 		w.Header().Set("Cache-Control", "no-cache")
 		w.Header().Set("Connection", "keep-alive")
-
-		// Explicitly disable buffering with this header
 		w.Header().Set("X-Accel-Buffering", "no")
 
-		// Don't set Transfer-Encoding manually, it will be set automatically
+		var req QuestionRequest
 
-		// Parse the request payload
-		var payload struct {
-			Query          string `json:"query"`
-			StreamSettings struct {
-				ChunkSize int `json:"chunk_size"`
-				DelayMs   int `json:"delay_ms"`
-			} `json:"stream_settings"`
-		}
-
-		err := json.NewDecoder(r.Body).Decode(&payload)
-		if err != nil {
+		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 			http.Error(w, "Bad request", http.StatusBadRequest)
 			return
 		}
 
-		// Set defaults if not provided
-		if payload.StreamSettings.ChunkSize <= 0 {
-			payload.StreamSettings.ChunkSize = 1
+		// Set reasonable defaults
+		if req.StreamSettings.ChunkSize <= 0 {
+			req.StreamSettings.ChunkSize = 100 // Use larger chunks
 		}
-		if payload.StreamSettings.DelayMs <= 0 {
-			payload.StreamSettings.DelayMs = 20
+		if req.StreamSettings.DelayMs <= 0 {
+			req.StreamSettings.DelayMs = 2000
 		}
 
-		// Ensure we can flush
 		flusher, ok := w.(http.Flusher)
 		if !ok {
-			logger.Println("HTTP Flushing not supported") // Log this issue
+			logger.Println("HTTP Flushing not supported")
 			http.Error(w, "Streaming not supported", http.StatusInternalServerError)
 			return
 		}
 
-		// Process the payload and generate markdown content
+		// TODO: Replace this with actual content generation
 		markdownContent := "# Hello, world!\n\nThis is a test message.**This is bold**\n\n"
 
-		// Stream the content in chunks
-		for i := 0; i < len(markdownContent); i += payload.StreamSettings.ChunkSize {
-			end := i + payload.StreamSettings.ChunkSize
+		// Buffer to accumulate partial UTF-8 characters
+		//buffer := make([]byte, 0, payload.StreamSettings.ChunkSize)
+
+		for i := 0; i < len(markdownContent); i += req.StreamSettings.ChunkSize {
+			end := i + req.StreamSettings.ChunkSize
 			if end > len(markdownContent) {
 				end = len(markdownContent)
 			}
 
+			// Get the chunk
 			chunk := markdownContent[i:end]
 
-			// Send as JSON chunk
+			// Create the response
 			response := struct {
 				Content string `json:"content"`
 				MetaKey string `json:"meta_key,omitempty"`
 			}{
 				Content: chunk,
-				MetaKey: "meta_value",
 			}
 
-			chunkData, _ := json.Marshal(response)
+			// Marshal to JSON
+			chunkData, err := json.Marshal(response)
+			if err != nil {
+				logger.Printf("Error marshaling JSON: %v", err)
+				continue
+			}
 
-			// Add newline to ensure chunks are properly separated
-			fmt.Fprintf(w, "%s\n", chunkData)
-
-			// Explicitly flush
+			// Write the chunk and flush
+			if _, err := fmt.Fprintf(w, "%s\n", chunkData); err != nil {
+				logger.Printf("Error writing response: %v", err)
+				return
+			}
 			flusher.Flush()
 
-			// Sleep according to settings
-			time.Sleep(time.Duration(payload.StreamSettings.DelayMs) * time.Millisecond)
+			// Apply delay between chunks
+			time.Sleep(time.Duration(req.StreamSettings.DelayMs) * time.Millisecond)
+		}
+
+		// Send final empty chunk to signal completion
+		finalResponse := struct {
+			Content string `json:"content"`
+			MetaKey string `json:"meta_key"`
+			Done    bool   `json:"done"`
+		}{
+			Done: true,
+		}
+
+		if finalData, err := json.Marshal(finalResponse); err == nil {
+			fmt.Fprintf(w, "%s\n", finalData)
+			flusher.Flush()
 		}
 	}
 }
