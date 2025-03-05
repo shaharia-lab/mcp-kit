@@ -5,12 +5,13 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/prometheus/client_golang/prometheus"
-	"go.opentelemetry.io/otel/trace"
 	"log"
 	"net/http"
 	"strings"
 	"time"
+
+	"github.com/prometheus/client_golang/prometheus"
+	"go.opentelemetry.io/otel/trace"
 
 	"github.com/google/uuid"
 	"github.com/shaharia-lab/goai"
@@ -124,7 +125,7 @@ func HandleAsk(mcpClient *mcp.Client, logger *log.Logger, historyStorage goai.Ch
 	return func(w http.ResponseWriter, r *http.Request) {
 		reqCtx, err := prepareRequestContext(r, logger, historyStorage, toolsProvider, mcpClient, "handle_ask")
 		if err != nil {
-			writeErrorResponse(w, http.StatusBadRequest, err.Error(), err, r.Context(), nil)
+			writeErrorResponse(w, http.StatusBadRequest, err.Error(), err, r.Context())
 			return
 		}
 		defer reqCtx.span.End()
@@ -135,7 +136,7 @@ func HandleAsk(mcpClient *mcp.Client, logger *log.Logger, historyStorage goai.Ch
 
 		response, err := generateSynchronousResponse(generateCtx, reqCtx)
 		if err != nil {
-			writeErrorResponse(w, http.StatusInternalServerError, err.Error(), err, generateCtx, generateSpan)
+			writeErrorResponse(w, http.StatusInternalServerError, err.Error(), err, generateCtx)
 			return
 		}
 
@@ -535,7 +536,7 @@ func prepareLLMRequestOptions(req QuestionRequest) []goai.RequestOption {
 	return reqOptions
 }
 
-func writeErrorResponse(w http.ResponseWriter, status int, message string, err error, ctx context.Context, span interface{}) {
+func writeErrorResponse(w http.ResponseWriter, status int, message string, err error, ctx context.Context) {
 	if err != nil {
 		observability.AddAttribute(ctx, "error", err.Error())
 	}
