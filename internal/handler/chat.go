@@ -3,8 +3,10 @@ package handlers
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"github.com/prometheus/client_golang/prometheus"
+	"go.opentelemetry.io/otel/trace"
 	"log"
 	"net/http"
 	"strings"
@@ -54,94 +56,204 @@ type Response struct {
 	OutputToken int       `json:"output_token"`
 }
 
-func HandleAsk(sseClient *mcp.Client, logger *log.Logger, historyStorage goai.ChatHistoryStorage, toolsProvider *goai.ToolsProvider) http.HandlerFunc {
+type chatRequestContext struct {
+	ctx            context.Context
+	span           trace.Span
+	req            QuestionRequest
+	chat           *goai.ChatHistory
+	messages       []goai.LLMMessage
+	llmCompletion  *goai.LLMRequest
+	logger         *log.Logger
+	historyStorage goai.ChatHistoryStorage
+}
+
+func prepareRequestContext(
+	r *http.Request,
+	logger *log.Logger,
+	historyStorage goai.ChatHistoryStorage,
+	toolsProvider *goai.ToolsProvider,
+	mcpClient *mcp.Client,
+	operationName string,
+) (*chatRequestContext, error) {
+	ctx, span := observability.StartSpan(r.Context(), operationName)
+
+	var req QuestionRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		return nil, fmt.Errorf("invalid request body: %w", err)
+	}
+
+	// Validate request
+	if err := validateRequest(req); err != nil {
+		return nil, err
+	}
+
+	// Add observability attributes
+	addRequestAttributes(ctx, req)
+
+	// Initialize chat and get history
+	chat, messages, err := initializeChatAndHistory(ctx, req, historyStorage, logger, mcpClient)
+	if err != nil {
+		return nil, err
+	}
+
+	// Add user message
+	messages, err = addUserMessage(ctx, messages, req.Question, chat.UUID, historyStorage)
+	if err != nil {
+		return nil, err
+	}
+
+	// Setup LLM
+	llmCompletion, err := setupLLMCompletion(ctx, req, toolsProvider)
+	if err != nil {
+		return nil, err
+	}
+
+	return &chatRequestContext{
+		ctx:            ctx,
+		span:           span,
+		req:            req,
+		chat:           chat,
+		messages:       messages,
+		llmCompletion:  llmCompletion,
+		logger:         logger,
+		historyStorage: historyStorage,
+	}, nil
+}
+
+func HandleAsk(mcpClient *mcp.Client, logger *log.Logger, historyStorage goai.ChatHistoryStorage, toolsProvider *goai.ToolsProvider) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		ctx, span := observability.StartSpan(r.Context(), "handle_ask")
-		defer span.End()
-
-		// Decode the incoming question request
-		var req QuestionRequest
-		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-			writeErrorResponse(w, http.StatusBadRequest, "Invalid request body", err, ctx, span)
-			return
-		}
-
-		if req.Question == "" {
-			writeErrorResponse(w, http.StatusBadRequest, "Question cannot be empty", nil, ctx, span)
-			return
-		}
-
-		if req.LLMProvider.Provider == "" || req.LLMProvider.ModelID == "" {
-			writeErrorResponse(w, http.StatusBadRequest, "LLM provider is required", nil, ctx, span)
-			return
-		}
-
-		supportedLLMProviders := getLLMProviders()
-		if supportedLLMProviders.IsSupported(req.LLMProvider.Provider, req.LLMProvider.ModelID) == false {
-			writeErrorResponse(w, http.StatusBadRequest, "LLM provider or model is not supported", nil, ctx, span)
-			return
-		}
-
-		observability.AddAttribute(ctx, "question.length", len(req.Question))
-		observability.AddAttribute(ctx, "question.use_tools", req.SelectedTools)
-		observability.AddAttribute(ctx, "model.temperature", req.ModelSettings.Temperature)
-		observability.AddAttribute(ctx, "model.max_tokens", req.ModelSettings.MaxTokens)
-		observability.AddAttribute(ctx, "model.top_p", req.ModelSettings.TopP)
-		observability.AddAttribute(ctx, "model.top_k", req.ModelSettings.TopK)
-		observability.AddAttribute(ctx, "llm.provider", req.LLMProvider.Provider)
-		observability.AddAttribute(ctx, "llm.model_id", req.LLMProvider.ModelID)
-
-		// Retrieve or create chat history
-		chat, err := getOrInitializeChat(req, historyStorage, logger, ctx)
+		reqCtx, err := prepareRequestContext(r, logger, historyStorage, toolsProvider, mcpClient, "handle_ask")
 		if err != nil {
-			writeErrorResponse(w, http.StatusInternalServerError, "Failed to get or create chat history", err, ctx, span)
+			writeErrorResponse(w, http.StatusBadRequest, err.Error(), err, r.Context(), nil)
 			return
 		}
+		defer reqCtx.span.End()
 
-		// Retrieve chat history and truncate it to the last MaxChatHistoryMessages
-		messages, err := getTruncatedChatHistory(ctx, chat.UUID, historyStorage)
+		// Generate response
+		generateCtx, generateSpan := observability.StartSpan(reqCtx.ctx, "generate_response")
+		defer generateSpan.End()
+
+		response, err := generateSynchronousResponse(generateCtx, reqCtx)
 		if err != nil {
-			writeErrorResponse(w, http.StatusInternalServerError, "Failed to retrieve chat history", err, ctx, span)
+			writeErrorResponse(w, http.StatusInternalServerError, err.Error(), err, generateCtx, generateSpan)
 			return
 		}
 
-		// Build the initial prompt template if this is the first message in the chat
-		if len(messages) == 0 {
-			promptMessages, err := buildMessagesFromPromptTemplates(ctx, sseClient, req)
-			if err != nil {
-				writeErrorResponse(w, http.StatusInternalServerError, "Failed to build prompt templates", err, ctx, span)
-				return
-			}
-			messages = append(messages, promptMessages...)
-		}
+		// Return the successful response
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(Response{
+			ChatUUID:    reqCtx.chat.UUID,
+			Answer:      response.Text,
+			InputToken:  response.TotalInputToken,
+			OutputToken: response.TotalOutputToken,
+		})
+	}
+}
 
-		// Add the new user question to the history
-		userMessage := goai.LLMMessage{
-			Role: goai.UserRole,
-			Text: req.Question,
+func HandleAskStream(mcpClient *mcp.Client, logger *log.Logger, historyStorage goai.ChatHistoryStorage, toolsProvider *goai.ToolsProvider) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		reqCtx, err := prepareRequestContext(r, logger, historyStorage, toolsProvider, mcpClient, "handle_ask_stream")
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
 		}
-		messages = append(messages, userMessage)
+		defer reqCtx.span.End()
 
-		// Add user message to chat history
-		if err := historyStorage.AddMessage(ctx, chat.UUID, goai.ChatHistoryMessage{
-			LLMMessage:  userMessage,
-			GeneratedAt: time.Now(),
-		}); err != nil {
-			writeErrorResponse(w, http.StatusInternalServerError, "Failed to add user message to chat history", err, ctx, span)
+		// Setup streaming
+		if err := setupStreamingHeaders(w); err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
 
-		// Prepare options for the LLM request
-		reqOptions := prepareLLMRequestOptions(req)
-
-		if len(req.SelectedTools) > 0 {
-			logger.Println("Using tools provider")
-			reqOptions = append(reqOptions, goai.UseToolsProvider(toolsProvider))
-			observability.AddAttribute(ctx, "tools.enabled", true)
-			reqOptions = append(reqOptions, goai.WithAllowedTools(req.SelectedTools))
-
-			observability.ToolsEnabledTotal.WithLabelValues(req.LLMProvider.Provider, req.LLMProvider.ModelID).Inc()
+		flusher, ok := w.(http.Flusher)
+		if !ok {
+			http.Error(w, "Streaming not supported", http.StatusInternalServerError)
+			return
 		}
+
+		err = handleStreamingResponse(reqCtx, w, flusher)
+		if err != nil {
+			logger.Printf("Streaming error: %v", err)
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+		}
+	}
+}
+
+// Helper functions
+
+func validateRequest(req QuestionRequest) error {
+	if req.Question == "" {
+		return errors.New("question cannot be empty")
+	}
+	if req.LLMProvider.Provider == "" || req.LLMProvider.ModelID == "" {
+		return errors.New("LLM provider is required")
+	}
+	supportedLLMProviders := getLLMProviders()
+	if !supportedLLMProviders.IsSupported(req.LLMProvider.Provider, req.LLMProvider.ModelID) {
+		return errors.New("LLM provider or model is not supported")
+	}
+	return nil
+}
+
+func setupLLMCompletion(ctx context.Context, req QuestionRequest, toolsProvider *goai.ToolsProvider) (*goai.LLMRequest, error) {
+	reqOptions := prepareLLMRequestOptions(req)
+	if len(req.SelectedTools) > 0 {
+		reqOptions = append(reqOptions,
+			goai.UseToolsProvider(toolsProvider),
+			goai.WithAllowedTools(req.SelectedTools),
+		)
+	}
+
+	builder := llm.NewLLMBuilder(ctx)
+	llmProvider, err := builder.BuildProvider(llm.ProviderConfig{
+		Provider: req.LLMProvider.Provider,
+		ModelID:  req.LLMProvider.ModelID,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	return goai.NewLLMRequest(goai.NewRequestConfig(reqOptions...), llmProvider), nil
+}
+
+func handleStreamingResponse(reqCtx *chatRequestContext, w http.ResponseWriter, flusher http.Flusher) error {
+	streamChan, err := reqCtx.llmCompletion.GenerateStream(reqCtx.ctx, reqCtx.messages)
+	if err != nil {
+		return err
+	}
+
+	var fullResponse strings.Builder
+	for streamResp := range streamChan {
+		if streamResp.Error != nil {
+			return streamResp.Error
+		}
+
+		if err := writeStreamChunk(w, flusher, streamResp); err != nil {
+			return err
+		}
+
+		fullResponse.WriteString(streamResp.Text)
+
+		if streamResp.Done {
+			return saveAssistantResponse(reqCtx, fullResponse.String())
+		}
+	}
+	return nil
+}
+
+func addRequestAttributes(ctx context.Context, req QuestionRequest) {
+	observability.AddAttribute(ctx, "question.length", len(req.Question))
+	observability.AddAttribute(ctx, "question.use_tools", req.SelectedTools)
+	observability.AddAttribute(ctx, "model.temperature", req.ModelSettings.Temperature)
+	observability.AddAttribute(ctx, "model.max_tokens", req.ModelSettings.MaxTokens)
+	observability.AddAttribute(ctx, "model.top_p", req.ModelSettings.TopP)
+	observability.AddAttribute(ctx, "model.top_k", req.ModelSettings.TopK)
+	observability.AddAttribute(ctx, "llm.provider", req.LLMProvider.Provider)
+	observability.AddAttribute(ctx, "llm.model_id", req.LLMProvider.ModelID)
+
+	if len(req.SelectedTools) > 0 {
+		observability.AddAttribute(ctx, "tools.enabled", true)
+		observability.ToolsEnabledTotal.WithLabelValues(req.LLMProvider.Provider, req.LLMProvider.ModelID).Inc()
 
 		for _, tool := range req.SelectedTools {
 			observability.ToolsUsageTotal.WithLabelValues(
@@ -150,233 +262,159 @@ func HandleAsk(sseClient *mcp.Client, logger *log.Logger, historyStorage goai.Ch
 				req.LLMProvider.ModelID,
 			).Inc()
 		}
-
-		builder := llm.NewLLMBuilder(ctx)
-		llmProvider, err := builder.BuildProvider(llm.ProviderConfig{
-			Provider: req.LLMProvider.Provider,
-			ModelID:  req.LLMProvider.ModelID,
-		})
-		if err != nil {
-			writeErrorResponse(w, http.StatusInternalServerError, err.Error(), nil, ctx, span)
-			return
-		}
-
-		llmCompletion := goai.NewLLMRequest(goai.NewRequestConfig(reqOptions...), llmProvider)
-
-		// Generate a response using the LLM
-		generateCtx, generateSpan := observability.StartSpan(ctx, "generate_response")
-		observability.AddAttribute(generateCtx, "HandleAsk.total_messages", len(messages))
-
-		timer := prometheus.NewTimer(observability.LLMCompletionDuration.WithLabelValues(
-			req.LLMProvider.Provider,
-			req.LLMProvider.ModelID,
-			"success",
-		))
-		defer timer.ObserveDuration()
-
-		// Track in-flight requests
-		inFlightMetric := observability.LLMCompletionInFlight.WithLabelValues(
-			req.LLMProvider.Provider,
-			req.LLMProvider.ModelID,
-		)
-		inFlightMetric.Inc()
-		defer inFlightMetric.Dec()
-
-		response, err := llmCompletion.Generate(generateCtx, messages)
-		if err != nil {
-			// Record failed completion duration with "error" status
-			observability.LLMCompletionDuration.WithLabelValues(
-				req.LLMProvider.Provider,
-				req.LLMProvider.ModelID,
-				"error",
-			).Observe(timer.ObserveDuration().Seconds())
-
-			// Your existing error handling code...
-			observability.AddAttribute(generateCtx, "error", err.Error())
-			generateSpan.End()
-			log.Printf("Failed to generate response: %v", err)
-			writeErrorResponse(w, http.StatusInternalServerError, fmt.Sprintf("Failed to generate response. error: %s", err.Error()), err, generateCtx, span)
-			return
-		}
-
-		generateSpan.End()
-
-		observability.TokensInputTotal.WithLabelValues(req.LLMProvider.Provider, req.LLMProvider.ModelID).
-			Add(float64(response.TotalInputToken))
-		observability.TokensOutputTotal.WithLabelValues(req.LLMProvider.Provider, req.LLMProvider.ModelID).
-			Add(float64(response.TotalOutputToken))
-
-		// Add assistant response to chat history
-		err = historyStorage.AddMessage(ctx, chat.UUID, goai.ChatHistoryMessage{
-			LLMMessage: goai.LLMMessage{
-				Role: goai.AssistantRole,
-				Text: response.Text,
-			},
-			GeneratedAt: time.Now(),
-		})
-		if err != nil {
-			writeErrorResponse(w, http.StatusInternalServerError, "Failed to add message to chat history", err, ctx, span)
-			return
-		}
-
-		// Add attributes for observability
-		observability.AddAttribute(ctx, "response.input_tokens", response.TotalInputToken)
-		observability.AddAttribute(ctx, "response.output_tokens", response.TotalOutputToken)
-
-		// Return the successful response
-		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(Response{
-			ChatUUID:    chat.UUID,
-			Answer:      response.Text,
-			InputToken:  response.TotalInputToken,
-			OutputToken: response.TotalOutputToken,
-		})
 	}
 }
 
-func HandleAskStream(mcpClient *mcp.Client, logger *log.Logger, chatHistoryStorage goai.ChatHistoryStorage, toolsProvider *goai.ToolsProvider) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		ctx, span := observability.StartSpan(r.Context(), "handle_ask_stream")
-		defer span.End()
-
-		// Set headers for streaming
-		w.Header().Set("Content-Type", "application/json")
-		w.Header().Set("X-Content-Type-Options", "nosniff")
-		w.Header().Set("Cache-Control", "no-cache")
-		w.Header().Set("Connection", "keep-alive")
-		w.Header().Set("X-Accel-Buffering", "no")
-
-		flusher, ok := w.(http.Flusher)
-		if !ok {
-			logger.Println("HTTP Flushing not supported")
-			http.Error(w, "Streaming not supported", http.StatusInternalServerError)
-			return
-		}
-
-		var req QuestionRequest
-		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-			http.Error(w, "Bad request", http.StatusBadRequest)
-			return
-		}
-
-		// Validate request
-		if req.Question == "" {
-			http.Error(w, "Question cannot be empty", http.StatusBadRequest)
-			return
-		}
-
-		// Get or initialize chat
-		chat, err := getOrInitializeChat(req, chatHistoryStorage, logger, ctx)
-		if err != nil {
-			http.Error(w, "Failed to initialize chat", http.StatusInternalServerError)
-			return
-		}
-
-		// Get chat history
-		messages, err := getTruncatedChatHistory(ctx, chat.UUID, chatHistoryStorage)
-		if err != nil {
-			http.Error(w, "Failed to retrieve chat history", http.StatusInternalServerError)
-			return
-		}
-
-		// Build initial prompt if needed
-		if len(messages) == 0 {
-			promptMessages, err := buildMessagesFromPromptTemplates(ctx, mcpClient, req)
-			if err != nil {
-				http.Error(w, "Failed to build prompt templates", http.StatusInternalServerError)
-				return
-			}
-			messages = append(messages, promptMessages...)
-		}
-
-		// Add user message
-		userMessage := goai.LLMMessage{
-			Role: goai.UserRole,
-			Text: req.Question,
-		}
-		messages = append(messages, userMessage)
-
-		// Add to history
-		if err := chatHistoryStorage.AddMessage(ctx, chat.UUID, goai.ChatHistoryMessage{
-			LLMMessage:  userMessage,
-			GeneratedAt: time.Now(),
-		}); err != nil {
-			http.Error(w, "Failed to add message to history", http.StatusInternalServerError)
-			return
-		}
-
-		// Prepare LLM options
-		reqOptions := prepareLLMRequestOptions(req)
-		if len(req.SelectedTools) > 0 {
-			reqOptions = append(reqOptions, goai.UseToolsProvider(toolsProvider))
-			reqOptions = append(reqOptions, goai.WithAllowedTools(req.SelectedTools))
-		}
-
-		// Initialize LLM provider
-		builder := llm.NewLLMBuilder(ctx)
-		llmProvider, err := builder.BuildProvider(llm.ProviderConfig{
-			Provider: req.LLMProvider.Provider,
-			ModelID:  req.LLMProvider.ModelID,
-		})
-		if err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-			return
-		}
-
-		llmCompletion := goai.NewLLMRequest(goai.NewRequestConfig(reqOptions...), llmProvider)
-
-		// Start streaming response
-		streamChan, err := llmCompletion.GenerateStream(ctx, messages)
-		if err != nil {
-			http.Error(w, "Failed to initialize stream", http.StatusInternalServerError)
-			return
-		}
-
-		var fullResponse strings.Builder
-
-		// Stream the response
-		for streamResp := range streamChan {
-			if streamResp.Error != nil {
-				logger.Printf("Streaming error: %v", streamResp.Error)
-				return
-			}
-
-			response := struct {
-				Content string `json:"content"`
-				MetaKey string `json:"meta_key,omitempty"`
-				Done    bool   `json:"done,omitempty"`
-			}{
-				Content: streamResp.Text,
-				Done:    streamResp.Done,
-			}
-
-			fullResponse.WriteString(streamResp.Text)
-
-			// Marshal and send chunk
-			if chunkData, err := json.Marshal(response); err == nil {
-				if _, err := fmt.Fprintf(w, "%s\n", chunkData); err != nil {
-					logger.Printf("Error writing response: %v", err)
-					return
-				}
-				flusher.Flush()
-			}
-
-			if streamResp.Done {
-				// Add assistant's complete response to chat history
-				err = chatHistoryStorage.AddMessage(ctx, chat.UUID, goai.ChatHistoryMessage{
-					LLMMessage: goai.LLMMessage{
-						Role: goai.AssistantRole,
-						Text: fullResponse.String(),
-					},
-					GeneratedAt: time.Now(),
-				})
-				if err != nil {
-					logger.Printf("Failed to add assistant message to history: %v", err)
-				}
-				break
-			}
-		}
+func initializeChatAndHistory(
+	ctx context.Context,
+	req QuestionRequest,
+	historyStorage goai.ChatHistoryStorage,
+	logger *log.Logger,
+	mcpClient *mcp.Client,
+) (*goai.ChatHistory, []goai.LLMMessage, error) {
+	chat, err := getOrInitializeChat(req, historyStorage, logger, ctx)
+	if err != nil {
+		return nil, nil, fmt.Errorf("failed to get or create chat history: %w", err)
 	}
+
+	messages, err := getTruncatedChatHistory(ctx, chat.UUID, historyStorage)
+	if err != nil {
+		return nil, nil, fmt.Errorf("failed to retrieve chat history: %w", err)
+	}
+
+	if len(messages) == 0 {
+		promptMessages, err := buildMessagesFromPromptTemplates(ctx, mcpClient, req)
+		if err != nil {
+			return nil, nil, fmt.Errorf("failed to build prompt templates: %w", err)
+		}
+		messages = append(messages, promptMessages...)
+	}
+
+	return chat, messages, nil
+}
+
+func addUserMessage(
+	ctx context.Context,
+	messages []goai.LLMMessage,
+	question string,
+	chatUUID uuid.UUID,
+	historyStorage goai.ChatHistoryStorage,
+) ([]goai.LLMMessage, error) {
+	userMessage := goai.LLMMessage{
+		Role: goai.UserRole,
+		Text: question,
+	}
+	messages = append(messages, userMessage)
+
+	err := historyStorage.AddMessage(ctx, chatUUID, goai.ChatHistoryMessage{
+		LLMMessage:  userMessage,
+		GeneratedAt: time.Now(),
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to add user message to chat history: %w", err)
+	}
+
+	return messages, nil
+}
+
+func setupStreamingHeaders(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.Header().Set("X-Content-Type-Options", "nosniff")
+	w.Header().Set("Cache-Control", "no-cache")
+	w.Header().Set("Connection", "keep-alive")
+	w.Header().Set("X-Accel-Buffering", "no")
+	return nil
+}
+
+func writeStreamChunk(w http.ResponseWriter, flusher http.Flusher, streamResp goai.StreamingLLMResponse) error {
+	response := struct {
+		Content string `json:"content"`
+		MetaKey string `json:"meta_key,omitempty"`
+		Done    bool   `json:"done,omitempty"`
+	}{
+		Content: streamResp.Text,
+		Done:    streamResp.Done,
+	}
+
+	chunkData, err := json.Marshal(response)
+	if err != nil {
+		return fmt.Errorf("failed to marshal stream chunk: %w", err)
+	}
+
+	if _, err := fmt.Fprintf(w, "%s\n", chunkData); err != nil {
+		return fmt.Errorf("error writing response: %w", err)
+	}
+
+	flusher.Flush()
+	return nil
+}
+
+func saveAssistantResponse(reqCtx *chatRequestContext, response string) error {
+	err := reqCtx.historyStorage.AddMessage(reqCtx.ctx, reqCtx.chat.UUID, goai.ChatHistoryMessage{
+		LLMMessage: goai.LLMMessage{
+			Role: goai.AssistantRole,
+			Text: response,
+		},
+		GeneratedAt: time.Now(),
+	})
+	if err != nil {
+		return fmt.Errorf("failed to add assistant message to history: %w", err)
+	}
+	return nil
+}
+
+func generateSynchronousResponse(ctx context.Context, reqCtx *chatRequestContext) (*goai.LLMResponse, error) {
+	observability.AddAttribute(ctx, "HandleAsk.total_messages", len(reqCtx.messages))
+
+	timer := prometheus.NewTimer(observability.LLMCompletionDuration.WithLabelValues(
+		reqCtx.req.LLMProvider.Provider,
+		reqCtx.req.LLMProvider.ModelID,
+		"success",
+	))
+	defer timer.ObserveDuration()
+
+	// Track in-flight requests
+	inFlightMetric := observability.LLMCompletionInFlight.WithLabelValues(
+		reqCtx.req.LLMProvider.Provider,
+		reqCtx.req.LLMProvider.ModelID,
+	)
+	inFlightMetric.Inc()
+	defer inFlightMetric.Dec()
+
+	response, err := reqCtx.llmCompletion.Generate(ctx, reqCtx.messages)
+	if err != nil {
+		// Record failed completion duration with "error" status
+		observability.LLMCompletionDuration.WithLabelValues(
+			reqCtx.req.LLMProvider.Provider,
+			reqCtx.req.LLMProvider.ModelID,
+			"error",
+		).Observe(timer.ObserveDuration().Seconds())
+
+		return nil, fmt.Errorf("failed to generate response: %w", err)
+	}
+
+	// Update metrics
+	observability.TokensInputTotal.WithLabelValues(
+		reqCtx.req.LLMProvider.Provider,
+		reqCtx.req.LLMProvider.ModelID,
+	).Add(float64(response.TotalInputToken))
+
+	observability.TokensOutputTotal.WithLabelValues(
+		reqCtx.req.LLMProvider.Provider,
+		reqCtx.req.LLMProvider.ModelID,
+	).Add(float64(response.TotalOutputToken))
+
+	// Add response to chat history
+	err = saveAssistantResponse(reqCtx, response.Text)
+	if err != nil {
+		return nil, err
+	}
+
+	// Add attributes for observability
+	observability.AddAttribute(ctx, "response.input_tokens", response.TotalInputToken)
+	observability.AddAttribute(ctx, "response.output_tokens", response.TotalOutputToken)
+
+	return &response, nil
 }
 
 // Helper Function Implementations
