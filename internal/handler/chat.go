@@ -7,6 +7,7 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 	"log"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
@@ -235,27 +236,15 @@ func HandleAsk(sseClient *mcp.Client, logger *log.Logger, historyStorage goai.Ch
 
 func HandleAskStream(mcpClient *mcp.Client, logger *log.Logger, chatHistoryStorage goai.ChatHistoryStorage, toolsProvider *goai.ToolsProvider) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		// Set headers early
+		ctx, span := observability.StartSpan(r.Context(), "handle_ask_stream")
+		defer span.End()
+
+		// Set headers for streaming
 		w.Header().Set("Content-Type", "application/json")
 		w.Header().Set("X-Content-Type-Options", "nosniff")
 		w.Header().Set("Cache-Control", "no-cache")
 		w.Header().Set("Connection", "keep-alive")
 		w.Header().Set("X-Accel-Buffering", "no")
-
-		var req QuestionRequest
-
-		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-			http.Error(w, "Bad request", http.StatusBadRequest)
-			return
-		}
-
-		// Set reasonable defaults
-		if req.StreamSettings.ChunkSize <= 0 {
-			req.StreamSettings.ChunkSize = 100 // Use larger chunks
-		}
-		if req.StreamSettings.DelayMs <= 0 {
-			req.StreamSettings.DelayMs = 2000
-		}
 
 		flusher, ok := w.(http.Flusher)
 		if !ok {
@@ -264,59 +253,128 @@ func HandleAskStream(mcpClient *mcp.Client, logger *log.Logger, chatHistoryStora
 			return
 		}
 
-		// TODO: Replace this with actual content generation
-		markdownContent := "# Hello, world!\n\nThis is a test message.**This is bold**\n\n"
+		var req QuestionRequest
+		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+			http.Error(w, "Bad request", http.StatusBadRequest)
+			return
+		}
 
-		// Buffer to accumulate partial UTF-8 characters
-		//buffer := make([]byte, 0, payload.StreamSettings.ChunkSize)
+		// Validate request
+		if req.Question == "" {
+			http.Error(w, "Question cannot be empty", http.StatusBadRequest)
+			return
+		}
 
-		for i := 0; i < len(markdownContent); i += req.StreamSettings.ChunkSize {
-			end := i + req.StreamSettings.ChunkSize
-			if end > len(markdownContent) {
-				end = len(markdownContent)
+		// Get or initialize chat
+		chat, err := getOrInitializeChat(req, chatHistoryStorage, logger, ctx)
+		if err != nil {
+			http.Error(w, "Failed to initialize chat", http.StatusInternalServerError)
+			return
+		}
+
+		// Get chat history
+		messages, err := getTruncatedChatHistory(ctx, chat.UUID, chatHistoryStorage)
+		if err != nil {
+			http.Error(w, "Failed to retrieve chat history", http.StatusInternalServerError)
+			return
+		}
+
+		// Build initial prompt if needed
+		if len(messages) == 0 {
+			promptMessages, err := buildMessagesFromPromptTemplates(ctx, mcpClient, req)
+			if err != nil {
+				http.Error(w, "Failed to build prompt templates", http.StatusInternalServerError)
+				return
+			}
+			messages = append(messages, promptMessages...)
+		}
+
+		// Add user message
+		userMessage := goai.LLMMessage{
+			Role: goai.UserRole,
+			Text: req.Question,
+		}
+		messages = append(messages, userMessage)
+
+		// Add to history
+		if err := chatHistoryStorage.AddMessage(ctx, chat.UUID, goai.ChatHistoryMessage{
+			LLMMessage:  userMessage,
+			GeneratedAt: time.Now(),
+		}); err != nil {
+			http.Error(w, "Failed to add message to history", http.StatusInternalServerError)
+			return
+		}
+
+		// Prepare LLM options
+		reqOptions := prepareLLMRequestOptions(req)
+		if len(req.SelectedTools) > 0 {
+			reqOptions = append(reqOptions, goai.UseToolsProvider(toolsProvider))
+			reqOptions = append(reqOptions, goai.WithAllowedTools(req.SelectedTools))
+		}
+
+		// Initialize LLM provider
+		builder := llm.NewLLMBuilder(ctx)
+		llmProvider, err := builder.BuildProvider(llm.ProviderConfig{
+			Provider: req.LLMProvider.Provider,
+			ModelID:  req.LLMProvider.ModelID,
+		})
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+
+		llmCompletion := goai.NewLLMRequest(goai.NewRequestConfig(reqOptions...), llmProvider)
+
+		// Start streaming response
+		streamChan, err := llmCompletion.GenerateStream(ctx, messages)
+		if err != nil {
+			http.Error(w, "Failed to initialize stream", http.StatusInternalServerError)
+			return
+		}
+
+		var fullResponse strings.Builder
+
+		// Stream the response
+		for streamResp := range streamChan {
+			if streamResp.Error != nil {
+				logger.Printf("Streaming error: %v", streamResp.Error)
+				return
 			}
 
-			// Get the chunk
-			chunk := markdownContent[i:end]
-
-			// Create the response
 			response := struct {
 				Content string `json:"content"`
 				MetaKey string `json:"meta_key,omitempty"`
+				Done    bool   `json:"done,omitempty"`
 			}{
-				Content: chunk,
+				Content: streamResp.Text,
+				Done:    streamResp.Done,
 			}
 
-			// Marshal to JSON
-			chunkData, err := json.Marshal(response)
-			if err != nil {
-				logger.Printf("Error marshaling JSON: %v", err)
-				continue
+			fullResponse.WriteString(streamResp.Text)
+
+			// Marshal and send chunk
+			if chunkData, err := json.Marshal(response); err == nil {
+				if _, err := fmt.Fprintf(w, "%s\n", chunkData); err != nil {
+					logger.Printf("Error writing response: %v", err)
+					return
+				}
+				flusher.Flush()
 			}
 
-			// Write the chunk and flush
-			if _, err := fmt.Fprintf(w, "%s\n", chunkData); err != nil {
-				logger.Printf("Error writing response: %v", err)
-				return
+			if streamResp.Done {
+				// Add assistant's complete response to chat history
+				err = chatHistoryStorage.AddMessage(ctx, chat.UUID, goai.ChatHistoryMessage{
+					LLMMessage: goai.LLMMessage{
+						Role: goai.AssistantRole,
+						Text: fullResponse.String(),
+					},
+					GeneratedAt: time.Now(),
+				})
+				if err != nil {
+					logger.Printf("Failed to add assistant message to history: %v", err)
+				}
+				break
 			}
-			flusher.Flush()
-
-			// Apply delay between chunks
-			time.Sleep(time.Duration(req.StreamSettings.DelayMs) * time.Millisecond)
-		}
-
-		// Send final empty chunk to signal completion
-		finalResponse := struct {
-			Content string `json:"content"`
-			MetaKey string `json:"meta_key"`
-			Done    bool   `json:"done"`
-		}{
-			Done: true,
-		}
-
-		if finalData, err := json.Marshal(finalResponse); err == nil {
-			fmt.Fprintf(w, "%s\n", finalData)
-			flusher.Flush()
 		}
 	}
 }
