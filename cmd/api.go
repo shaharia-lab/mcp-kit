@@ -209,6 +209,7 @@ func setupRouter(mcpClient *mcp.Client, logger *log.Logger, chatHistoryStorage g
 	r.Mount("/static/", http.StripPrefix("/static/", http.FileServer(http.FS(subFS))))
 
 	r.Post("/ask", handlers.HandleAsk(mcpClient, logger, chatHistoryStorage, toolsProvider))
+	r.Post("/ask-stream", handlers.HandleAskStream(mcpClient, logger, chatHistoryStorage, toolsProvider))
 	r.With(authMiddleware.EnsureValidToken).Get("/chats", handlers.ChatHistoryListsHandler(logger, chatHistoryStorage))
 	r.Get("/chat/{chatId}", handlers.GetChatHandler(logger, chatHistoryStorage))
 	r.Get("/api/tools", handlers.ListToolsHandler(toolsProvider))
@@ -254,4 +255,11 @@ func (rw *responseWriterWrapper) WriteHeader(code int) {
 	rw.status = code
 	rw.span.SetAttributes(attribute.Int("http.status_code", code))
 	rw.ResponseWriter.WriteHeader(code)
+}
+
+// Flush Add this method to allow flushing through the wrapper
+func (rw *responseWriterWrapper) Flush() {
+	if flusher, ok := rw.ResponseWriter.(http.Flusher); ok {
+		flusher.Flush()
+	}
 }

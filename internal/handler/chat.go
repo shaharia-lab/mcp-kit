@@ -227,6 +227,85 @@ func HandleAsk(sseClient *mcp.Client, logger *log.Logger, historyStorage goai.Ch
 	}
 }
 
+func HandleAskStream(mcpClient *mcp.Client, logger *log.Logger, chatHistoryStorage goai.ChatHistoryStorage, toolsProvider *goai.ToolsProvider) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		// Set headers early
+		w.Header().Set("Content-Type", "application/json")
+		w.Header().Set("X-Content-Type-Options", "nosniff") // Prevent content type sniffing
+		w.Header().Set("Cache-Control", "no-cache")
+		w.Header().Set("Connection", "keep-alive")
+
+		// Explicitly disable buffering with this header
+		w.Header().Set("X-Accel-Buffering", "no")
+
+		// Don't set Transfer-Encoding manually, it will be set automatically
+
+		// Parse the request payload
+		var payload struct {
+			Query          string `json:"query"`
+			StreamSettings struct {
+				ChunkSize int `json:"chunk_size"`
+				DelayMs   int `json:"delay_ms"`
+			} `json:"stream_settings"`
+		}
+
+		err := json.NewDecoder(r.Body).Decode(&payload)
+		if err != nil {
+			http.Error(w, "Bad request", http.StatusBadRequest)
+			return
+		}
+
+		// Set defaults if not provided
+		if payload.StreamSettings.ChunkSize <= 0 {
+			payload.StreamSettings.ChunkSize = 1
+		}
+		if payload.StreamSettings.DelayMs <= 0 {
+			payload.StreamSettings.DelayMs = 20
+		}
+
+		// Ensure we can flush
+		flusher, ok := w.(http.Flusher)
+		if !ok {
+			logger.Println("HTTP Flushing not supported") // Log this issue
+			http.Error(w, "Streaming not supported", http.StatusInternalServerError)
+			return
+		}
+
+		// Process the payload and generate markdown content
+		markdownContent := "# Hello, world!\n\nThis is a test message.**This is bold**\n\n"
+
+		// Stream the content in chunks
+		for i := 0; i < len(markdownContent); i += payload.StreamSettings.ChunkSize {
+			end := i + payload.StreamSettings.ChunkSize
+			if end > len(markdownContent) {
+				end = len(markdownContent)
+			}
+
+			chunk := markdownContent[i:end]
+
+			// Send as JSON chunk
+			response := struct {
+				Content string `json:"content"`
+				MetaKey string `json:"meta_key,omitempty"`
+			}{
+				Content: chunk,
+				MetaKey: "meta_value",
+			}
+
+			chunkData, _ := json.Marshal(response)
+
+			// Add newline to ensure chunks are properly separated
+			fmt.Fprintf(w, "%s\n", chunkData)
+
+			// Explicitly flush
+			flusher.Flush()
+
+			// Sleep according to settings
+			time.Sleep(time.Duration(payload.StreamSettings.DelayMs) * time.Millisecond)
+		}
+	}
+}
+
 // Helper Function Implementations
 func getOrInitializeChat(req QuestionRequest, historyStorage goai.ChatHistoryStorage, logger *log.Logger, ctx context.Context) (*goai.ChatHistory, error) {
 	var chat *goai.ChatHistory
