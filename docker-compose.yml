@@ -30,6 +30,12 @@ services:
     environment:
       - MCP_SERVER_PORT=8080
       - GITHUB_TOKEN=${GITHUB_TOKEN}
+      - AUTH_DOMAIN=${AUTH_DOMAIN}
+      - AUTH_CLIENT_ID=${AUTH_CLIENT_ID}
+      - AUTH_CLIENT_SECRET=${AUTH_CLIENT_SECRET}
+      - AUTH_CALLBACK_URL=${AUTH_CALLBACK_URL}
+      - AUTH_TOKEN_TTL=24h
+      - AUTH_AUDIENCE=${AUTH_AUDIENCE}
     command: server
     networks:
       - mcp-network
@@ -51,6 +57,12 @@ services:
     environment:
       - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
       - MCP_SERVER_URL=http://mcp-server:8080/events
+      - AUTH_DOMAIN=${AUTH_DOMAIN}
+      - AUTH_CLIENT_ID=${AUTH_CLIENT_ID}
+      - AUTH_CLIENT_SECRET=${AUTH_CLIENT_SECRET}
+      - AUTH_CALLBACK_URL=${AUTH_CALLBACK_URL}
+      - AUTH_TOKEN_TTL=24h
+      - AUTH_AUDIENCE=${AUTH_AUDIENCE}
     command: api
     depends_on:
       - mcp-server

@@ -101,6 +101,12 @@ docker run -d \
   -p 8080:8080 \
   -e MCP_SERVER_PORT=8080 \
   -e GITHUB_TOKEN=$GITHUB_TOKEN \
+  -e AUTH_DOMAIN=$AUTH_DOMAIN \
+  -e AUTH_CLIENT_ID=$AUTH_CLIENT_ID \
+  -e AUTH_CLIENT_SECRET=$AUTH_CLIENT_SECRET \
+  -e AUTH_CALLBACK_URL=$AUTH_CALLBACK_URL \
+  -e AUTH_TOKEN_TTL=24h \
+  -e AUTH_AUDIENCE=$AUTH_AUDIENCE \
   ghcr.io/shaharia-lab/mcp-kit:$VERSION server
 
 # Run API server
@@ -109,6 +115,12 @@ docker run -d \
   --add-host=host.docker.internal:host-gateway \
   -e ANTHROPIC_API_KEY=$ANTHROPIC_API_KEY \
   -e MCP_SERVER_URL=http://host.docker.internal:8080/events \
+  -e AUTH_DOMAIN=$AUTH_DOMAIN \
+  -e AUTH_CLIENT_ID=$AUTH_CLIENT_ID \
+  -e AUTH_CLIENT_SECRET=$AUTH_CLIENT_SECRET \
+  -e AUTH_CALLBACK_URL=$AUTH_CALLBACK_URL \
+  -e AUTH_TOKEN_TTL=24h \
+  -e AUTH_AUDIENCE=$AUTH_AUDIENCE \
   -p 8081:8081 \
   ghcr.io/shaharia-lab/mcp-kit:$VERSION api
 ```
