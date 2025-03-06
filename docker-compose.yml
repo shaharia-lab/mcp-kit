@@ -76,6 +76,25 @@ services:
         loki-batch-size: "400"
         labels: "job=mcp-client"
 
+  mcp-frontend:
+    image: ghcr.io/shaharia-lab/mcp-frontend:latest
+    container_name: mcp-frontend
+    ports:
+      - "3001:80"
+    environment:
+      - VITE_MCP_BACKEND_API_ENDPOINT=http://localhost:8081
+    depends_on:
+      - mcp-client
+    networks:
+      - mcp-network
+    logging:
+      driver: loki
+      options:
+        loki-url: "http://localhost:3100/loki/api/v1/push"
+        loki-retries: "5"
+        loki-batch-size: "400"
+        labels: "job=mcp-frontend"
+
   # Prometheus - Metrics collection
   prometheus:
     image: prom/prometheus:latest
