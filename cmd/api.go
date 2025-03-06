@@ -211,7 +211,7 @@ func setupRouter(mcpClient *mcp.Client, logger *log.Logger, chatHistoryStorage g
 	r.Post("/ask", handlers.HandleAsk(mcpClient, logger, chatHistoryStorage, toolsProvider))
 	r.Post("/ask-stream", handlers.HandleAskStream(mcpClient, logger, chatHistoryStorage, toolsProvider))
 	r.With(authMiddleware.EnsureValidToken).Get("/chats", handlers.ChatHistoryListsHandler(logger, chatHistoryStorage))
-	r.Get("/chat/{chatId}", handlers.GetChatHandler(logger, chatHistoryStorage))
+	r.Get("/chats/{chatId}", handlers.GetChatHandler(logger, chatHistoryStorage))
 	r.Get("/api/tools", handlers.ListToolsHandler(toolsProvider))
 
 	return r
