@@ -927,3 +927,67 @@ var gitApplyPatchTool = mcp.Tool{
 		}, nil
 	},
 }
+
+var gitAllInOneTool = mcp.Tool{
+	Name:        "git_all_in_one",
+	Description: "Performs any Git operation based on the provided command",
+	InputSchema: json.RawMessage(`{
+        "type": "object",
+        "properties": {
+            "command": {
+                "type": "string",
+                "description": "Git command to execute"
+            },
+            "repo_path": {
+                "type": "string",
+                "description": "Path to Git repository"
+            },
+            "args": {
+                "type": "array",
+                "items": {
+                    "type": "string"
+                },
+                "description": "Arguments for the Git command"
+            }
+        },
+        "required": ["command", "repo_path"]
+    }`),
+	Handler: func(ctx context.Context, params mcp.CallToolParams) (mcp.CallToolResult, error) {
+		ctx, span := observability.StartSpan(ctx, fmt.Sprintf("%s.Handler", params.Name))
+		span.SetAttributes(
+			attribute.String("tool_name", params.Name),
+			attribute.String("tool_argument", string(params.Arguments)),
+		)
+		defer span.End()
+
+		var err error
+		defer func() {
+			if err != nil {
+				span.RecordError(err)
+			}
+		}()
+
+		var input struct {
+			Command  string   `json:"command"`
+			RepoPath string   `json:"repo_path"`
+			Args     []string `json:"args"`
+		}
+		if err := json.Unmarshal(params.Arguments, &input); err != nil {
+			return mcp.CallToolResult{}, fmt.Errorf("failed to unmarshal input: %w", err)
+		}
+
+		args := append([]string{"-C", input.RepoPath, input.Command}, input.Args...)
+		cmd := exec.CommandContext(ctx, "git", args...)
+		output, err := cmd.CombinedOutput()
+		if err != nil {
+			return mcp.CallToolResult{}, fmt.Errorf("git %s error: %w\nOutput: %s", input.Command, err, string(output))
+		}
+
+		return mcp.CallToolResult{
+			Content: []mcp.ToolResultContent{{
+				Type: "text",
+				Text: string(output),
+			}},
+		}, nil
+	},
+}
