@@ -1,36 +1,23 @@
-# Stage 1: Build frontend
-FROM node:20-alpine AS frontend-builder
-
-WORKDIR /app
-
-COPY mcp-frontend/package*.json ./mcp-frontend/
-RUN cd mcp-frontend && npm ci
-COPY mcp-frontend ./mcp-frontend/
-RUN cd mcp-frontend && npm run build
-
-FROM golang:1.23-alpine AS backend-builder
+FROM golang:1.23-alpine AS builder
 RUN apk add --no-cache git make
 
 WORKDIR /app
 RUN adduser -D -g '' app
 
 COPY . .
-COPY --from=frontend-builder /app/cmd/static ./cmd/static
-
 RUN make build-in-docker
 
-# Stage 3: Create the final image
+# Final stage
 FROM alpine:3.19
 
 # Install necessary runtime dependencies
 RUN apk add --no-cache ca-certificates tzdata
 
 # Import the user and group files from builder
-COPY --from=backend-builder /etc/passwd /etc/passwd
+COPY --from=builder /etc/passwd /etc/passwd
 
-# Copy the binary and static files from builder
-COPY --from=backend-builder /app/build/mcp /usr/local/bin/mcp
-COPY --from=backend-builder /app/cmd/static /usr/local/bin/static
+# Copy the binary from builder
+COPY --from=builder /app/build/mcp /usr/local/bin/mcp
 
 # Use non-root user
 USER app
