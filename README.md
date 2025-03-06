@@ -125,6 +125,19 @@ docker run -d \
   ghcr.io/shaharia-lab/mcp-kit:$VERSION api
 ```
 
+### Using Docker Compose
+
+```bash
+docker plugin install grafana/loki-docker-driver:latest --alias loki --grant-all-permissions
+```
+
+```bash
+docker-compose up -d
+```
+
+### Accessing the UI
+http://localhost:3001
+
 Visit `http://localhost:8081` to access the UI interface to interact with the AI model.
 
 ### Interacting with the API

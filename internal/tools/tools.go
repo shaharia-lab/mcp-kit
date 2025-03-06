@@ -67,6 +67,7 @@ var MCPToolsRegistry = []mcp.Tool{
 	pullImageTool,
 	dockerInspectTool,
 	pruneContainersTool,
+	dockerAllInOneTool,
 	// http (curl) tools
 	httpGetTool,
 	httpPostJsonTool,
