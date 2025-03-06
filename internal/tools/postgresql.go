@@ -5,12 +5,13 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
+	"log"
+	"strings"
+
 	_ "github.com/lib/pq"
 	"github.com/shaharia-lab/goai/mcp"
 	"github.com/shaharia-lab/goai/observability"
 	"go.opentelemetry.io/otel/attribute"
-	"log"
-	"strings"
 )
 
 // getDBConnection handles database connection configuration internally

@@ -2,9 +2,13 @@ package cmd
 
 import (
 	"context"
-	"embed"
 	"errors"
 	"fmt"
+	"os"
+	"os/signal"
+	"syscall"
+	"time"
+
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/go-chi/cors"
@@ -19,18 +23,10 @@ import (
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/trace"
-	"io/fs"
-	"os"
-	"os/signal"
-	"syscall"
-	"time"
 
 	"log"
 	"net/http"
 )
-
-//go:embed static/*
-var staticFiles embed.FS
 
 // ToolInfo represents the simplified tool information to be returned by the API
 type ToolInfo struct {
@@ -181,32 +177,18 @@ func setupRouter(mcpClient *mcp.Client, logger *log.Logger, chatHistoryStorage g
 	// Expose the metrics endpoint
 	r.Handle("/metrics", promhttp.Handler())
 
+	r.Get("/ping", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		w.Write([]byte(`{"ping": "Pong"}`))
+	})
+
 	// Root route redirects to /static
 	r.Get("/", func(w http.ResponseWriter, r *http.Request) {
 		http.Redirect(w, r, "/static", http.StatusFound)
 	})
 
-	// Create a sub-filesystem to handle the static directory correctly
-	subFS, err := fs.Sub(staticFiles, "static")
-	if err != nil {
-		logger.Fatal("Failed to create sub filesystem")
-	}
-
-	// Handle /static route to serve index.html
-	r.Get("/static", func(w http.ResponseWriter, r *http.Request) {
-		content, err := fs.ReadFile(subFS, "index.html")
-		if err != nil {
-			http.Error(w, "Index file not found", http.StatusNotFound)
-			return
-		}
-		w.Header().Set("Content-Type", "text/html")
-		w.Write(content)
-	})
-
 	r.Get("/llm-providers", handlers.LLMProvidersHandler)
-
-	// Handle other static files
-	r.Mount("/static/", http.StripPrefix("/static/", http.FileServer(http.FS(subFS))))
 
 	r.Post("/ask", handlers.HandleAsk(mcpClient, logger, chatHistoryStorage, toolsProvider))
 	r.Post("/ask-stream", handlers.HandleAskStream(mcpClient, logger, chatHistoryStorage, toolsProvider))

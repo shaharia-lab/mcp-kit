@@ -4,8 +4,9 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/shaharia-lab/goai/mcp"
 	"os/exec"
+
+	"github.com/shaharia-lab/goai/mcp"
 )
 
 // listContainersTool lists running Docker containers

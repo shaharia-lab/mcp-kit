@@ -3,14 +3,15 @@ package auth
 import (
 	"context"
 	"fmt"
+	"net/url"
+	"strings"
+	"time"
+
 	"github.com/auth0/go-jwt-middleware/v2/jwks"
 	"github.com/auth0/go-jwt-middleware/v2/validator"
 	"github.com/coreos/go-oidc/v3/oidc"
 	"github.com/shaharia-lab/goai/observability"
 	"golang.org/x/oauth2"
-	"net/url"
-	"strings"
-	"time"
 )
 
 // AuthService implements AuthProvider interface

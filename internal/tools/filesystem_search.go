@@ -4,9 +4,10 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/shaharia-lab/goai/mcp"
 	"os/exec"
 	"strings"
+
+	"github.com/shaharia-lab/goai/mcp"
 )
 
 // findContentInFilesTool searches for content in files using grep

@@ -3,11 +3,12 @@ package tools
 import (
 	"context"
 	"encoding/json"
-	"github.com/shaharia-lab/goai/mcp"
 	"os"
 	"path/filepath"
 	"strings"
 	"testing"
+
+	"github.com/shaharia-lab/goai/mcp"
 )
 
 func TestReadFileTool(t *testing.T) {

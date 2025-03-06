@@ -1,9 +1,10 @@
 package config
 
 import (
+	"time"
+
 	"github.com/kelseyhightower/envconfig"
 	"github.com/shaharia-lab/mcp-kit/internal/auth"
-	"time"
 )
 
 type Config struct {

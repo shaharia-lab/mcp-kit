@@ -3,9 +3,10 @@ package handlers
 import (
 	"encoding/json"
 	"fmt"
+	"net/http"
+
 	"github.com/shaharia-lab/goai"
 	"github.com/shaharia-lab/goai/observability"
-	"net/http"
 )
 
 // ToolInfo represents a simplified structure for tools

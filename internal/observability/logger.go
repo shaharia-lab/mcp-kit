@@ -2,6 +2,7 @@ package observability
 
 import (
 	"context"
+
 	goaiObs "github.com/shaharia-lab/goai/observability"
 	"github.com/sirupsen/logrus"
 )

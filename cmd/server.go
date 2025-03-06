@@ -3,6 +3,8 @@ package cmd
 import (
 	"context"
 	"fmt"
+	"log"
+
 	"github.com/shaharia-lab/goai/mcp"
 	goaiObs "github.com/shaharia-lab/goai/observability"
 	"github.com/shaharia-lab/mcp-kit/internal/config"
@@ -11,7 +13,6 @@ import (
 	"github.com/spf13/cobra"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/codes"
-	"log"
 )
 
 func NewServerCmd(logger *log.Logger) *cobra.Command {
