@@ -2,11 +2,12 @@ package handlers
 
 import (
 	"encoding/json"
+	"log"
+	"net/http"
+
 	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
 	"github.com/shaharia-lab/goai"
-	"log"
-	"net/http"
 )
 
 // ChatHistoryListsHandler Handler to list all chats

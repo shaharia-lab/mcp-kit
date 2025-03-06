@@ -2,6 +2,9 @@ package cmd
 
 import (
 	"context"
+	"log"
+	"time"
+
 	"github.com/shaharia-lab/goai"
 	"github.com/shaharia-lab/goai/mcp"
 	goaiObs "github.com/shaharia-lab/goai/observability"
@@ -9,8 +12,6 @@ import (
 	"github.com/shaharia-lab/mcp-kit/internal/config"
 	"github.com/shaharia-lab/mcp-kit/internal/observability"
 	"github.com/sirupsen/logrus"
-	"log"
-	"time"
 )
 
 // Container holds all the dependencies for our application

@@ -4,12 +4,13 @@ package llm
 import (
 	"context"
 	"fmt"
+	"os"
+	"strings"
+
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/service/bedrockruntime"
 	"github.com/openai/openai-go/option"
 	"github.com/shaharia-lab/goai"
-	"os"
-	"strings"
 )
 
 type ProviderConfig struct {

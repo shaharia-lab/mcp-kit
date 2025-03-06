@@ -4,14 +4,15 @@ import (
 	"bufio"
 	"context"
 	"fmt"
+	"os"
+	"strings"
+
 	"github.com/anthropics/anthropic-sdk-go"
 	"github.com/fatih/color"
 	"github.com/shaharia-lab/goai"
 	"github.com/shaharia-lab/mcp-kit/internal/config"
 	"github.com/shaharia-lab/mcp-kit/internal/tools"
 	"github.com/spf13/cobra"
-	"os"
-	"strings"
 )
 
 func NewTaskCmd() *cobra.Command {

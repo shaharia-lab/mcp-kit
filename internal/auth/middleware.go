@@ -1,9 +1,10 @@
 package auth
 
 import (
-	"github.com/shaharia-lab/goai/observability"
 	"net/http"
 	"strings"
+
+	"github.com/shaharia-lab/goai/observability"
 )
 
 // AuthMiddleware handles authentication for HTTP requests

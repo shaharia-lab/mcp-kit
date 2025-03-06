@@ -4,13 +4,14 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/shaharia-lab/goai/mcp"
-	"github.com/shaharia-lab/goai/observability"
-	"go.opentelemetry.io/otel/attribute"
 	"io/ioutil"
 	"os"
 	"strings"
 	"time"
+
+	"github.com/shaharia-lab/goai/mcp"
+	"github.com/shaharia-lab/goai/observability"
+	"go.opentelemetry.io/otel/attribute"
 )
 
 // FileInfo represents file metadata

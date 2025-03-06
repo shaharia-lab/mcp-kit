@@ -4,9 +4,10 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/shaharia-lab/goai/mcp"
 	"os/exec"
 	"strings"
+
+	"github.com/shaharia-lab/goai/mcp"
 )
 
 // httpGetTool performs HTTP GET requests

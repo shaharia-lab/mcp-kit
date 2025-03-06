@@ -2,9 +2,10 @@ package handlers
 
 import (
 	"encoding/json"
+	"net/http"
+
 	"github.com/anthropics/anthropic-sdk-go"
 	"github.com/openai/openai-go"
-	"net/http"
 )
 
 // Model represents an LLM model's information

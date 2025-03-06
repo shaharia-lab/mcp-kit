@@ -3,8 +3,9 @@ package main
 import (
 	"context"
 	"fmt"
-	"github.com/shaharia-lab/mcp-kit/cmd"
 	"os"
+
+	"github.com/shaharia-lab/mcp-kit/cmd"
 )
 
 func main() {
