@@ -2,10 +2,11 @@ package tools
 
 import (
 	"github.com/shaharia-lab/goai/mcp"
+	tools "github.com/shaharia-lab/mcp-tools"
 )
 
 var MCPToolsRegistry = []mcp.Tool{
-	weatherTool,
+	tools.GetWeather,
 	// Git tools
 	gitAllInOneTool,
 	// GitHub tools

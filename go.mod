@@ -1,6 +1,8 @@
 module github.com/shaharia-lab/mcp-kit
 
-go 1.23.0
+go 1.24
+
+toolchain go1.24.1
 
 require (
 	github.com/anthropics/anthropic-sdk-go v0.2.0-alpha.13
@@ -11,7 +13,6 @@ require (
 	github.com/fatih/color v1.18.0
 	github.com/go-chi/chi/v5 v5.2.1
 	github.com/go-chi/cors v1.2.1
-	github.com/golang-jwt/jwt/v4 v4.5.1
 	github.com/google/go-github/v60 v60.0.0
 	github.com/google/uuid v1.6.0
 	github.com/google/wire v0.6.0
@@ -83,3 +84,5 @@ require (
 	google.golang.org/protobuf v1.36.3 // indirect
 	gopkg.in/go-jose/go-jose.v2 v2.6.3 // indirect
 )
+
+replace github.com/shaharia-lab/mcp-tools => /home/shaharia/Projects/mcp-tools
