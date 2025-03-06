@@ -103,11 +103,11 @@ jobs:
           file: ./Dockerfile
           push: false
           load: true
-          tags: mcp:${{ github.event.pull_request.number }}-${{ github.sha }}
+          tags: mcp:${{ github.sha }}
 
       - name: Cleanup
         if: always()
-        run: docker image rm mcp:${{ github.event.pull_request.number }}-${{ github.sha }}
+        run: docker image rm mcp:${{ github.sha }}
 
   release:
     name: Test Release
