@@ -99,6 +99,7 @@ func setupTools(logger goaiObs.Logger) []mcp.Tool {
 	ts = append(
 		ts,
 		mcptools.NewCurl(logger, mcptools.CurlConfig{}).CurlAllInOneTool(),
+		mcptools.NewGit(logger, mcptools.GitConfig{}).GitAllInOneTool(),
 	)
 
 	return ts

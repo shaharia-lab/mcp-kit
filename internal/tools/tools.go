@@ -7,8 +7,6 @@ import (
 
 var MCPToolsRegistry = []mcp.Tool{
 	mcptools.GetWeather,
-	// Git tools
-	gitAllInOneTool,
 	// GitHub tools
 	githubCreateRepository,
 	githubCreateIssue,
