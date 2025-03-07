@@ -2,11 +2,11 @@ package tools
 
 import (
 	"github.com/shaharia-lab/goai/mcp"
-	tools "github.com/shaharia-lab/mcp-tools"
+	"github.com/shaharia-lab/mcp-tools"
 )
 
 var MCPToolsRegistry = []mcp.Tool{
-	tools.GetWeather,
+	mcptools.GetWeather,
 	// Git tools
 	gitAllInOneTool,
 	// GitHub tools
@@ -47,7 +47,6 @@ var MCPToolsRegistry = []mcp.Tool{
 	postgresExecuteQueryWithExplain,
 	// Docker tools
 	dockerAllInOneTool,
-	curlAllInOneTool,
 	findContentInFilesTool,
 	findLargeFilesTool,
 	findDuplicateFilesTool,

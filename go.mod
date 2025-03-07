@@ -1,8 +1,8 @@
 module github.com/shaharia-lab/mcp-kit
 
-go 1.24
+go 1.23.0
 
-toolchain go1.24.1
+toolchain go1.23.1
 
 require (
 	github.com/anthropics/anthropic-sdk-go v0.2.0-alpha.13
@@ -21,6 +21,7 @@ require (
 	github.com/openai/openai-go v0.1.0-alpha.61
 	github.com/prometheus/client_golang v1.21.0
 	github.com/shaharia-lab/goai v0.11.0
+	github.com/shaharia-lab/mcp-tools v0.0.0-00010101000000-000000000000
 	github.com/sirupsen/logrus v1.9.3
 	github.com/spf13/cobra v1.9.1
 	go.opentelemetry.io/otel v1.34.0
@@ -49,6 +50,7 @@ require (
 	github.com/beorn7/perks v1.0.1 // indirect
 	github.com/cenkalti/backoff/v4 v4.3.0 // indirect
 	github.com/cespare/xxhash/v2 v2.3.0 // indirect
+	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/go-jose/go-jose/v4 v4.0.2 // indirect
 	github.com/go-logr/logr v1.4.2 // indirect
 	github.com/go-logr/stdr v1.2.2 // indirect
@@ -60,10 +62,13 @@ require (
 	github.com/mattn/go-isatty v0.0.20 // indirect
 	github.com/munnerz/goautoneg v0.0.0-20191010083416-a7dc8b61c822 // indirect
 	github.com/pgvector/pgvector-go v0.2.2 // indirect
+	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/prometheus/client_model v0.6.1 // indirect
 	github.com/prometheus/common v0.62.0 // indirect
 	github.com/prometheus/procfs v0.15.1 // indirect
 	github.com/spf13/pflag v1.0.6 // indirect
+	github.com/stretchr/objx v0.5.2 // indirect
+	github.com/stretchr/testify v1.10.0 // indirect
 	github.com/tidwall/gjson v1.14.4 // indirect
 	github.com/tidwall/match v1.1.1 // indirect
 	github.com/tidwall/pretty v1.2.1 // indirect
@@ -83,6 +88,9 @@ require (
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20250115164207-1a7da9e5054f // indirect
 	google.golang.org/protobuf v1.36.3 // indirect
 	gopkg.in/go-jose/go-jose.v2 v2.6.3 // indirect
+	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
 
 replace github.com/shaharia-lab/mcp-tools => /home/shaharia/Projects/mcp-tools
+
+replace github.com/shaharia-lab/goai => /home/shaharia/Projects/goai

@@ -123,6 +123,14 @@ docker run -d \
   -e AUTH_AUDIENCE=$AUTH_AUDIENCE \
   -p 8081:8081 \
   ghcr.io/shaharia-lab/mcp-kit:$VERSION api
+  
+## Running the MCP Kit Frontend
+
+docker run -d \
+  --name mcp-frontend \
+  -p 3001:80 \
+  -e VITE_MCP_BACKEND_API_ENDPOINT=http://localhost:8081 \
+  ghcr.io/shaharia-lab/mcp-frontend:latest
 ```
 
 ### Using Docker Compose
