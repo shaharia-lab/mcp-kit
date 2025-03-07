@@ -20,7 +20,7 @@ require (
 	github.com/lib/pq v1.10.9
 	github.com/openai/openai-go v0.1.0-alpha.61
 	github.com/prometheus/client_golang v1.21.0
-	github.com/shaharia-lab/goai v0.11.0
+	github.com/shaharia-lab/goai v0.11.1
 	github.com/shaharia-lab/mcp-tools v0.0.0-00010101000000-000000000000
 	github.com/sirupsen/logrus v1.9.3
 	github.com/spf13/cobra v1.9.1

@@ -53,7 +53,7 @@ dev-api:
 		air -- api; \
 	else \
 		echo "Air is not installed. Installing air for hot reload..."; \
-		go install github.com/cosmtrek/air@latest; \
+		go install github.com/air-verse/air@latest; \
 		air -- api; \
 	fi
 
@@ -63,9 +63,23 @@ dev-server:
 		air -- server; \
 	else \
 		echo "Air is not installed. Installing air for hot reload..."; \
-		go install github.com/cosmtrek/air@latest; \
+		go install github.com/air-verse/air@latest; \
 		air -- server; \
 	fi
+
+# Run the MCP Kit Frontend
+run-frontend:
+	@echo "Running MCP Kit Frontend..."
+	@if [ $$(docker ps -a -q -f name=mcp-frontend) ]; then \
+		echo "Stopping and removing existing container..."; \
+		docker stop mcp-frontend; \
+		docker rm mcp-frontend; \
+	fi
+	@docker run -d \
+		--name mcp-frontend \
+		-p 3001:80 \
+		-e VITE_MCP_BACKEND_API_ENDPOINT=http://localhost:8081 \
+		ghcr.io/shaharia-lab/mcp-frontend:latest
 
 # Run all components in development mode
 dev-all:
@@ -96,6 +110,11 @@ build-in-docker: wire
 build-dev: wire
 	@echo "Building development binary for $(APP_NAME)..."
 	@go build -o $(BUILD_DIR)/$(APP_NAME)
+
+# Load environment variables
+load-env:
+	@echo "Loading environment variables from .env.local..."
+	@export $(grep -v '^#' .env.local | xargs)
 
 # Clean build artifacts
 clean:
@@ -160,8 +179,8 @@ help:
 	@echo "  docker-build    - Build docker image"
 	@echo "  run             - Run the backend application"
 	@echo "  dev             - Run backend in development mode with hot reload"
-	@echo "  frontend-install- Install frontend dependencies"
-	@echo "  frontend-dev    - Run frontend in development mode"
+	@echo "  load-env		 - Load environment variables from .env.local"
+	@echo "  run-frontend    - Run frontend docker"
 	@echo "  dev-all        - Run both frontend and backend in development mode"
 	@echo "  build-all      - Build both frontend and backend for production"
 	@echo "  help            - Show this help message"

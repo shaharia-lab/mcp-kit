@@ -32,11 +32,11 @@ func InitializeAPI(ctx context.Context) (*Container, func(), error) {
 	if err != nil {
 		return nil, nil, err
 	}
-	authenticator, err := provideAuthenticator(ctx, config, observabilityLogger)
+	authService, err := provideAuthenticator(ctx, config, observabilityLogger)
 	if err != nil {
 		return nil, nil, err
 	}
-	container := NewContainer(logger, client, toolsProvider, chatHistoryStorage, config, tracingService, logrusLogger, observabilityLogger, baseServer, authenticator)
+	container := NewContainer(logger, client, toolsProvider, chatHistoryStorage, config, tracingService, logrusLogger, observabilityLogger, baseServer, authService)
 	return container, func() {
 	}, nil
 }
