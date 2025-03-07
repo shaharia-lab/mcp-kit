@@ -43,8 +43,6 @@ var MCPToolsRegistry = []mcp.Tool{
 	postgresExecuteQuery,
 	postgresTableSchema,
 	postgresExecuteQueryWithExplain,
-	// Docker tools
-	dockerAllInOneTool,
 	findContentInFilesTool,
 	findLargeFilesTool,
 	findDuplicateFilesTool,

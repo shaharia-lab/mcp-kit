@@ -100,6 +100,7 @@ func setupTools(logger goaiObs.Logger) []mcp.Tool {
 		ts,
 		mcptools.NewCurl(logger, mcptools.CurlConfig{}).CurlAllInOneTool(),
 		mcptools.NewGit(logger, mcptools.GitConfig{}).GitAllInOneTool(),
+		mcptools.NewDocker(logger, mcptools.DockerConfig{}).DockerAllInOneTool(),
 	)
 
 	return ts
