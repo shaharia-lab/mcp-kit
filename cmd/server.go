@@ -97,9 +97,9 @@ func NewServerCmd(logger *log.Logger) *cobra.Command {
 func setupTools(logger goaiObs.Logger) []mcp.Tool {
 	ts := tools.MCPToolsRegistry
 
-	ghConfig := mcptools.NewGitHub(logger, mcptools.GitHubConfig{})
+	ghConfig := mcptools.NewGitHubTool(logger, mcptools.GitHubConfig{})
 	fileSystem := mcptools.NewFileSystem(logger, mcptools.FileSystemConfig{})
-	docker := mcptools.NewDocker(logger, mcptools.DockerConfig{})
+	docker := mcptools.NewDocker(logger)
 	git := mcptools.NewGit(logger, mcptools.GitConfig{})
 	curl := mcptools.NewCurl(logger, mcptools.CurlConfig{})
 	postgres := mcptools.NewPostgreSQL(logger, mcptools.PostgreSQLConfig{})
