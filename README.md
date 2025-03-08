@@ -123,7 +123,28 @@ docker run -d \
   -e AUTH_AUDIENCE=$AUTH_AUDIENCE \
   -p 8081:8081 \
   ghcr.io/shaharia-lab/mcp-kit:$VERSION api
+  
+## Running the MCP Kit Frontend
+
+docker run -d \
+  --name mcp-frontend \
+  -p 3001:80 \
+  -e VITE_MCP_BACKEND_API_ENDPOINT=http://localhost:8081 \
+  ghcr.io/shaharia-lab/mcp-frontend:latest
 ```
+
+### Using Docker Compose
+
+```bash
+docker plugin install grafana/loki-docker-driver:latest --alias loki --grant-all-permissions
+```
+
+```bash
+docker-compose up -d
+```
+
+### Accessing the UI
+http://localhost:3001
 
 Visit `http://localhost:8081` to access the UI interface to interact with the AI model.
 

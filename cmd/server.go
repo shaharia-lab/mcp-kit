@@ -3,6 +3,7 @@ package cmd
 import (
 	"context"
 	"fmt"
+	mcptools "github.com/shaharia-lab/mcp-tools"
 	"log"
 
 	"github.com/shaharia-lab/goai/mcp"
@@ -68,12 +69,14 @@ func NewServerCmd(logger *log.Logger) *cobra.Command {
 				return fmt.Errorf("failed to create base server: %w", err)
 			}
 
+			toolsLists := setupTools(l)
+
 			err = baseServer.AddPrompts(prompt.MCPPromptsRegistry...)
 			if err != nil {
 				return fmt.Errorf("failed to add prompts: %w", err)
 			}
 
-			err = baseServer.AddTools(tools.MCPToolsRegistry...)
+			err = baseServer.AddTools(toolsLists...)
 			if err != nil {
 				return fmt.Errorf("failed to add tools: %w", err)
 			}
@@ -89,4 +92,43 @@ func NewServerCmd(logger *log.Logger) *cobra.Command {
 			return nil
 		},
 	}
+}
+
+func setupTools(logger goaiObs.Logger) []mcp.Tool {
+	ts := tools.MCPToolsRegistry
+
+	ghConfig := mcptools.NewGitHubTool(logger, mcptools.GitHubConfig{})
+	fileSystem := mcptools.NewFileSystem(logger, mcptools.FileSystemConfig{})
+	docker := mcptools.NewDocker(logger)
+	git := mcptools.NewGit(logger, mcptools.GitConfig{})
+	curl := mcptools.NewCurl(logger, mcptools.CurlConfig{})
+	postgres := mcptools.NewPostgreSQL(logger, mcptools.PostgreSQLConfig{})
+
+	ts = append(
+		ts,
+
+		// Curl tools
+		curl.CurlAllInOneTool(),
+
+		// Git tools
+		git.GitAllInOneTool(),
+
+		// Docker tools
+		docker.DockerAllInOneTool(),
+
+		// File system tools
+		fileSystem.FileSystemAllInOneTool(),
+
+		// GitHub tools
+		ghConfig.GetIssuesTool(),
+		ghConfig.GetIssuesTool(),
+		ghConfig.GetPullRequestsTool(),
+		ghConfig.GetRepositoryTool(),
+		ghConfig.GetSearchTool(),
+
+		// PostgreSQL tools
+		postgres.PostgreSQLAllInOneTool(),
+	)
+
+	return ts
 }

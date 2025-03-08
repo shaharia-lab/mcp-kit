@@ -2,80 +2,9 @@ package tools
 
 import (
 	"github.com/shaharia-lab/goai/mcp"
+	"github.com/shaharia-lab/mcp-tools"
 )
 
 var MCPToolsRegistry = []mcp.Tool{
-	weatherTool,
-	// Git tools
-	gitStatusTool,
-	gitDiffUnstagedTool,
-	gitDiffStagedTool,
-	gitDiffTool,
-	gitCommitTool,
-	gitAddTool,
-	gitResetTool,
-	gitLogTool,
-	gitCreateBranchTool,
-	gitCheckoutTool,
-	gitShowTool,
-	gitInitTool,
-	gitCloneTool,
-	gitReadLocalFileTool,
-	gitApplyPatchTool,
-	// GitHub tools
-	githubCreateRepository,
-	githubCreateIssue,
-	githubGetFileContents,
-	githubCreateOrUpdateFile,
-	githubPushFiles,
-	githubSearchRepositories,
-	githubCreatePullRequest,
-	githubForkRepository,
-	githubCreateBranch,
-	githubListIssues,
-	githubUpdateIssue,
-	githubAddIssueComment,
-	githubSearchCode,
-	githubSearchIssues,
-	githubSearchUsers,
-	githubListCommits,
-	githubGetIssue,
-	githubGetPullRequest,
-	githubListPullRequests,
-	githubCreatePullRequestReview,
-	githubMergePullRequest,
-	githubGetPullRequestFiles,
-	githubGetPullRequestStatus,
-	githubUpdatePullRequestBranch,
-	githubGetPullRequestComments,
-	githubGetPullRequestReviews,
-	// Filesystem tools
-	fileSystemGetFileInfo,
-	fileSystemListDirectory,
-	fileSystemReadFile,
-	fileSystemWriteFile,
-	// PostgreSQL tools
-	postgresExecuteQuery,
-	postgresTableSchema,
-	postgresExecuteQueryWithExplain,
-	// Docker tools
-	listContainersTool,
-	containerLogsTool,
-	listImagesTool,
-	pruneImagesTool,
-	runContainerTool,
-	pullImageTool,
-	dockerInspectTool,
-	pruneContainersTool,
-	// http (curl) tools
-	httpGetTool,
-	httpPostJsonTool,
-	httpFormPostTool,
-	httpCustomRequestTool,
-	//filesystem search tools
-	findContentInFilesTool,
-	findLargeFilesTool,
-	findDuplicateFilesTool,
-	findRecentlyModifiedTool,
-	searchCodePatternTool,
+	mcptools.GetWeather,
 }
