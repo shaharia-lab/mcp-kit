@@ -121,7 +121,6 @@ func setupTools(logger goaiObs.Logger) []mcp.Tool {
 
 		// GitHub tools
 		ghConfig.GetIssuesTool(),
-		ghConfig.GetIssuesTool(),
 		ghConfig.GetPullRequestsTool(),
 		ghConfig.GetRepositoryTool(),
 		ghConfig.GetSearchTool(),
