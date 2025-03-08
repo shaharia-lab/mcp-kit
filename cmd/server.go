@@ -96,11 +96,38 @@ func NewServerCmd(logger *log.Logger) *cobra.Command {
 
 func setupTools(logger goaiObs.Logger) []mcp.Tool {
 	ts := tools.MCPToolsRegistry
+
+	ghConfig := mcptools.NewGitHub(logger, mcptools.GitHubConfig{})
+	fileSystem := mcptools.NewFileSystem(logger, mcptools.FileSystemConfig{})
+	docker := mcptools.NewDocker(logger, mcptools.DockerConfig{})
+	git := mcptools.NewGit(logger, mcptools.GitConfig{})
+	curl := mcptools.NewCurl(logger, mcptools.CurlConfig{})
+	postgres := mcptools.NewPostgreSQL(logger, mcptools.PostgreSQLConfig{})
+
 	ts = append(
 		ts,
-		mcptools.NewCurl(logger, mcptools.CurlConfig{}).CurlAllInOneTool(),
-		mcptools.NewGit(logger, mcptools.GitConfig{}).GitAllInOneTool(),
-		mcptools.NewDocker(logger, mcptools.DockerConfig{}).DockerAllInOneTool(),
+
+		// Curl tools
+		curl.CurlAllInOneTool(),
+
+		// Git tools
+		git.GitAllInOneTool(),
+
+		// Docker tools
+		docker.DockerAllInOneTool(),
+
+		// File system tools
+		fileSystem.FileSystemAllInOneTool(),
+
+		// GitHub tools
+		ghConfig.GetIssuesTool(),
+		ghConfig.GetIssuesTool(),
+		ghConfig.GetPullRequestsTool(),
+		ghConfig.GetRepositoryTool(),
+		ghConfig.GetSearchTool(),
+
+		// PostgreSQL tools
+		postgres.PostgreSQLAllInOneTool(),
 	)
 
 	return ts
