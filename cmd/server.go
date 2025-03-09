@@ -3,7 +3,10 @@ package cmd
 import (
 	"context"
 	"fmt"
+	"github.com/shaharia-lab/mcp-kit/internal/service/google"
 	mcptools "github.com/shaharia-lab/mcp-tools"
+	"google.golang.org/api/gmail/v1"
+	"google.golang.org/api/option"
 	"log"
 
 	"github.com/shaharia-lab/goai/mcp"
@@ -69,7 +72,21 @@ func NewServerCmd(logger *log.Logger) *cobra.Command {
 				return fmt.Errorf("failed to create base server: %w", err)
 			}
 
-			toolsLists := setupTools(l)
+			googleOAuthStorage := google.NewFileTokenStorage(container.Config.GoogleServiceConfig.TokenSourceFile)
+			googleAuthTokenSource, err := googleOAuthStorage.GetTokenSource(context.Background())
+			if err != nil {
+				return fmt.Errorf("failed to get token source: %w", err)
+			}
+
+			// configure gmail service
+			gmailSvc, err := gmail.NewService(context.Background(),
+				option.WithTokenSource(googleAuthTokenSource),
+				option.WithScopes(gmail.GmailReadonlyScope),
+			)
+			if err != nil {
+				logger.Fatalf("Failed to create Gmail service: %v", err)
+			}
+			toolsLists := setupTools(l, gmailSvc)
 
 			err = baseServer.AddPrompts(prompt.MCPPromptsRegistry...)
 			if err != nil {
@@ -94,7 +111,7 @@ func NewServerCmd(logger *log.Logger) *cobra.Command {
 	}
 }
 
-func setupTools(logger goaiObs.Logger) []mcp.Tool {
+func setupTools(logger goaiObs.Logger, gmailService *gmail.Service) []mcp.Tool {
 	ts := tools.MCPToolsRegistry
 
 	ghConfig := mcptools.NewGitHubTool(logger, mcptools.GitHubConfig{})
@@ -103,6 +120,8 @@ func setupTools(logger goaiObs.Logger) []mcp.Tool {
 	git := mcptools.NewGit(logger, mcptools.GitConfig{})
 	curl := mcptools.NewCurl(logger, mcptools.CurlConfig{})
 	postgres := mcptools.NewPostgreSQL(logger, mcptools.PostgreSQLConfig{})
+
+	gm := mcptools.NewGmail(logger, gmailService, mcptools.GmailConfig{})
 
 	ts = append(
 		ts,
@@ -127,6 +146,9 @@ func setupTools(logger goaiObs.Logger) []mcp.Tool {
 
 		// PostgreSQL tools
 		postgres.PostgreSQLAllInOneTool(),
+
+		// Gmail
+		gm.GmailAllInOneTool(),
 	)
 
 	return ts

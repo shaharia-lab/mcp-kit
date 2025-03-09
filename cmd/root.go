@@ -25,6 +25,7 @@ func NewRootCmd() *cobra.Command {
 	root.AddCommand(NewServerCmd(l))
 	root.AddCommand(NewTaskCmd())
 	root.AddCommand(NewAPICmd())
+	root.AddCommand(NewDevTestCmd())
 
 	return root
 }
