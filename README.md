@@ -1,58 +1,105 @@
 # MCP Kit - Model Context Protocol Toolkit
 
-## Overview
+This project is a playground for experimenting with the Model Context Protocol (MCP) and Large Language Models (LLMs).
 
 The MCP Kit provides a platform that facilitates interaction with Large Language Models (LLMs) using the Model Context Protocol (MCP).
 It enables AI assistants to interact with external tools and services, extending their capabilities beyond their confined contexts.
 This toolkit offers a standardized way for AI models to communicate with external systems.
 
-## Key Features
+**Disclaimer**: This project is a proof-of-concept and should not be used in production environments. Feel free to explore, experiment, and contribute to the project.
+If you want to build a production-ready system, consider using separate components and services tailored to your requirements. For any questions or feedback, please open an issue or reach out to the maintainers.
 
-*   **API Server**: Provides LLM endpoints to interact with AI models.
-*   **MCP Client**: Configurable client to connect to the MCP server.
-*   **Tools**: There are many tools already implemented to access external systems (i.e: filesystem, git, github, postgresql, etc..), and you can easily add more.
-*   **Interactive Chat Interface**: Provides an interactive chat interface for users to interact with the AI model.
-*   **Chat History**: Implements in-memory storage for maintaining chat history.
-*   **LLM Providers**: Supports Anthropic, OpenAI, Amazon Bedrock, Cohere, Meta Llama, Mistral, and DeepSeek models. You can integrate more models easily.
+## Components
+
+### MCP Server
+
+The **MCP Server** is a core component implementing the **Model Context Protocol (MCP)** specification. It facilitates structured communication between clients and AI/ML models by adhering to a standardized protocol.
+
+#### Key Features:
+- **Protocol Compliance**: Fully compliant with the [MCP specification](https://modelcontextprotocol.io), ensuring interoperability.
+- **Event Streaming**: Supports Server-Sent Events (SSE) for real-time data streaming.
+- **Scalability**: Designed to handle concurrent requests and model interactions.
+
+#### Technical Details:
+- **Library**: Built using `github.com/shaharia-lab/goai/mcp` (Go package).
+- **Documentation**: Detailed usage and API references available in the [GoAI Docs](https://github.com/shaharia-lab/goai/tree/main/docs).
+- **Resources**:
+    - [MCP Repository](https://modelcontextprotocol.io)
+    - [Go Package Documentation](https://pkg.go.dev/github.com/shaharia-lab/goai/mcp)
+
+---
+
+### MCP Client
+
+The **MCP Client** acts as a configurable intermediary to connect applications to the MCP Server. It abstracts protocol complexities, enabling seamless integration with backend services.
+
+#### Key Features:
+- **Protocol Adherence**: Implements the MCP specification for server compatibility.
+- **Configurability**: Supports custom configurations for connection timeouts, retries, and event handling.
+- **Real-Time Support**: Processes SSE streams from the MCP Server and forwards parsed data.
+
+#### Technical Details:
+- **Library**: Shares the same `github.com/shaharia-lab/goai/mcp` library as the MCP Server.
+- **Documentation**: See [GoAI Docs](https://github.com/shaharia-lab/goai/tree/main/docs) for client-specific configurations.
+
+---
+
+### API Server
+
+The **API Server** provides an HTTP layer for frontend applications to interact with the MCP ecosystem. It orchestrates communication between the frontend, MCP Client, and external AI services (e.g., LLMs).
+
+#### Key Responsibilities:
+1. **Frontend Interface**: Exposes RESTful endpoints for user requests (e.g., prompts, model queries).
+2. **Request Routing**: Forwards incoming requests to the MCP Client and relays responses back.
+3. **LLM Integration**: Processes intermediate data from the MCP Client, invokes LLMs (e.g., for text generation), and formats final responses.
+
+### MCP Kit Frontend:
+A dedicated frontend interface for interacting with the API Server, designed for testing and monitoring MCP workflows.
+
+#### Technical Details:
+- **GitHub Repository**: [https://github.com/shaharia-lab/mcp-frontend](https://github.com/shaharia-lab/mcp-frontend)
+
+## How Components Work Together
+
+```mermaid
+flowchart LR
+    Frontend["🖥️ MCP Kit Frontend"]
+    API["🌐 HTTP API"]
+    Client["📡 MCP Client"]
+    Server["🖥️ MCP Server"]
+   LLM["🧠 LLM"]
+    
+    Frontend -- "A. Request" --> API
+    API -- "B. Forward request" --> Client
+    Client -- "C. Send request" --> Server
+    Server -. "D. Return data via SSE events" .-> Client
+    Client -- "E. Return data" --> API
+    API -- "F. Process with LLM" --> LLM
+    LLM -- "G. Return generated answer" --> API
+    API -- "H. Final response" --> Frontend
+    
+    subgraph Backend Process 1
+        API
+        Client
+        LLM
+    end
+    
+    subgraph Backend Process 2
+        Server
+    end
+    
+    style Frontend fill:#f9f,stroke:#333,stroke-width:2px
+    style API fill:#9cf,stroke:#333,stroke-width:2px
+    style Client fill:#9cf,stroke:#333,stroke-width:2px
+    style Server fill:#fc9,stroke:#333,stroke-width:2px
+    style LLM fill:#cfc,stroke:#333,stroke-width:2px
+```
+
+## Demo
 
 <video src="https://github.com/user-attachments/assets/81804a29-e896-4f65-a929-05ac6a6aa92a" controls title="MCP Kit in action"></video>
 
-## Architecture
-
-The MCP Kit follows a client-server architecture:
-
-1.  **Client**: Sends user requests to the MCP server.
-2.  **Server**: Processes requests, coordinates with AI models, and manages tool execution.
-
-### Request Flow
-
-1.  The client sends a user query to the MCP server.
-2.  The server passes the query to the LLM API.
-3.  The LLM determines if tools are needed.
-4.  If tools are needed:
-    *   The LLM sends a request with tool parameters.
-    *   The MCP server executes the tools.
-    *   The tool output is returned to the LLM.
-    *   This loop continues until no more tools are needed.
-5.  The final response is sent back to the client.
-
-## Tools
-
-The kit includes a variety of tools:
-
-*   **Git Tools**: `git_status`, `git_diff`, `git_commit`, `git_add`, `git_log`, etc..
-*   **File System Tools**: `filesystem_list_directory`, `filesystem_read_file`, `filesystem_write_file`, `filesystem_get_file_info`.
-*   **GitHub Tools**: `github_create_repository`, `github_create_issue`, `github_get_file_contents`, `github_search_repositories` etc.
-*   **PostgreSQL Tools**: `postgresql_execute_query`, `postgresql_table_schema`, `postgresql_execute_query_with_explain`.
-
-## Configuration
-
-The configuration is loaded via environment variables.  Key configuration parameters include:
-
-*   `API_SERVER_PORT`: Port for the API server (default: 8081).
-*   `MCP_SERVER_URL`: URL for the MCP server (default: `http://localhost:8080/events`).
-*   `MCP_SERVER_PORT`: Port for the MCP server (default: 8080).
-*   `TOOLS_ENABLED`: List of enabled tools (default: `get_weather`).
+Feel free to explore the [MCP Kit Frontend](https://github.com/shaharia-lab/mcp-frontend) project.
 
 ## Getting Started
 
@@ -71,12 +118,18 @@ The configuration is loaded via environment variables.  Key configuration parame
 
 ### Installation
 
-#### Load .env file
+#### Create a configuration file
 
-```bash
-cp .env.example .env.local
-export $(cat .env.local | grep -v '^#' | xargs)
+You can copy `config.example.yaml` to `config.local.yaml` and update the values as needed.
+
+You can also reference the environment variables in the configuration file with the following syntax:
+
+```yaml
+google:
+  client_id: "${GOOGLE_CLIENT_ID}"
 ```
+
+Here `${GOOGLE_CLIENT_ID}` will be replaced with the value of the `GOOGLE_CLIENT_ID` environment variable.
 
 #### Using Source Code
 
@@ -89,16 +142,16 @@ make build
 ##### Running the MCP Server
 
 ```bash
-./mcp server
+./mcp server --config config.local.yaml
 ```
 
 ##### Running the API Server
 
 ```bash
-./mcp api
+./mcp api --config config.local.yaml
 ```
 
-#### Using Docker
+#### Run Components Separately Using Docker
 
 ```bash
 docker pull ghcr.io/shaharia-lab/mcp-kit:$VERSION
@@ -141,7 +194,9 @@ docker run -d \
   ghcr.io/shaharia-lab/mcp-frontend:latest
 ```
 
-### Using Docker Compose
+### Using Docker Compose (Advanced)
+
+If you want to run all the components together with basic observability and monitoring, you can use the provided `docker-compose.yml` file.
 
 ```bash
 docker plugin install grafana/loki-docker-driver:latest --alias loki --grant-all-permissions
@@ -152,10 +207,41 @@ docker-compose up -d
 ```
 
 ### Accessing the UI
-http://localhost:3001
 
-Visit `http://localhost:8081` to access the UI interface to interact with the AI model.
+http://localhost:3001
 
 ### Interacting with the API
 
 OpenAPI schema is available in `openapi.yaml`.
+
+## Contributing
+
+We welcome contributions to the project! If you'd like to contribute, please follow these steps:
+
+1. **Fork the repository**: Click the "Fork" button at the top of [this repository](https://github.com/shaharia-lab/mcp-kit) to create your own copy.
+2. **Clone your fork**: Clone your fork to your local machine using:
+   ```bash
+   git clone https://github.com/your-username/mcp-kit.git
+   ```
+3. **Create a branch**: Create a new branch for your changes:
+   ```bash
+   git checkout -b feature/your-feature-name
+   ```
+4. **Make your changes**: Implement your changes, ensure your code is clean and well-documented.
+5. **Test your changes**: Make sure all existing tests pass and write new ones if needed. Run the tests using:
+   ```bash
+   make test
+   ```
+6. **Submit a pull request**: Push your changes to your forked repository and create a pull request to the `main` branch
+   of this repository. Please include a clear description of your changes.
+
+We recommend reading the [Conventional Commits](https://www.conventionalcommits.org/) specification to properly format
+your commit messages.
+
+### Code of Conduct
+
+Please note that by contributing to this project, you agree to adhere to our [Code of Conduct](./CODE_OF_CONDUCT.md).
+
+## License
+
+This project is licensed under the MIT License. See the [LICENSE](./LICENSE) file for details. Each component may have its own license, so please check the respective repositories/libraries for more information.
