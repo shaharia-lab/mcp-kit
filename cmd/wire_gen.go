@@ -13,11 +13,11 @@ import (
 // Injectors from wire.go:
 
 // InitializeAPI sets up the dependency injection
-func InitializeAPI(ctx context.Context, path string) (*Container, func(), error) {
+func InitializeAPI(ctx context.Context, configFile2 string) (*Container, func(), error) {
 	logger := ProvideLogger()
 	logrusLogger := ProvideLogrusLogger()
 	observabilityLogger := ProvideLogrusLoggerImpl(logrusLogger)
-	config, err := ProvideConfig(path)
+	config, err := ProvideConfig(configFile2)
 	if err != nil {
 		return nil, nil, err
 	}

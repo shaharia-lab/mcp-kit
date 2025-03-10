@@ -10,7 +10,7 @@ import (
 )
 
 // InitializeAPI sets up the dependency injection
-func InitializeAPI(ctx context.Context) (*Container, func(), error) {
+func InitializeAPI(ctx context.Context, configFile string) (*Container, func(), error) {
 	panic(wire.Build(
 		NewContainer,
 		ProvideLogger,

@@ -152,6 +152,7 @@ docker pull ghcr.io/shaharia-lab/mcp-kit:$VERSION
 # Run MCP server
 docker run -d \
   --name mcp-server \
+  -v $(pwd)/config.local.yaml:/config/config.yaml \
   -p 8080:8080 \
   -e MCP_SERVER_PORT=8080 \
   -e GITHUB_TOKEN=$GITHUB_TOKEN \
@@ -161,11 +162,12 @@ docker run -d \
   -e AUTH_CALLBACK_URL=$AUTH_CALLBACK_URL \
   -e AUTH_TOKEN_TTL=24h \
   -e AUTH_AUDIENCE=$AUTH_AUDIENCE \
-  ghcr.io/shaharia-lab/mcp-kit:$VERSION server
+  ghcr.io/shaharia-lab/mcp-kit:$VERSION server --config /config/config.yaml
 
 # Run API server
 docker run -d \
   --name mcp-client \
+  -v $(pwd)/config.local.yaml:/config/config.yaml \
   --add-host=host.docker.internal:host-gateway \
   -e ANTHROPIC_API_KEY=$ANTHROPIC_API_KEY \
   -e MCP_SERVER_URL=http://host.docker.internal:8080/events \
@@ -176,7 +178,7 @@ docker run -d \
   -e AUTH_TOKEN_TTL=24h \
   -e AUTH_AUDIENCE=$AUTH_AUDIENCE \
   -p 8081:8081 \
-  ghcr.io/shaharia-lab/mcp-kit:$VERSION api
+  ghcr.io/shaharia-lab/mcp-kit:$VERSION api --config /config/config.yaml
   
 ## Running the MCP Kit Frontend
 

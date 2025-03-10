@@ -18,7 +18,7 @@ require (
 	github.com/openai/openai-go v0.1.0-alpha.61
 	github.com/prometheus/client_golang v1.21.0
 	github.com/shaharia-lab/goai v0.11.1
-	github.com/shaharia-lab/mcp-tools v0.0.2
+	github.com/shaharia-lab/mcp-tools v0.0.3
 	github.com/sirupsen/logrus v1.9.3
 	github.com/spf13/cobra v1.9.1
 	github.com/spf13/viper v1.19.0
@@ -114,7 +114,3 @@ require (
 	gopkg.in/ini.v1 v1.67.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
-
-replace github.com/shaharia-lab/mcp-tools => /home/shaharia/Projects/mcp-tools
-
-replace github.com/shaharia-lab/goai => /home/shaharia/Projects/goai
