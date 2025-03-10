@@ -58,8 +58,16 @@ The configuration is loaded via environment variables.  Key configuration parame
 
 ### Prerequisites
 
-*   Go installed
-*   [Include any other prerequisites]
+* Go installed
+* Need to configure Auth0 application for authentication. In order to do that, you need to set the following environment variables:
+  * `AUTH_DOMAIN`: Auth0 domain
+  * `AUTH_CLIENT_ID`: Auth0 client ID
+  * `AUTH_CLIENT_SECRET`: Auth0 client secret
+  * `AUTH_CALLBACK_URL`: Auth0 callback URL
+  * `AUTH_TOKEN_TTL`: Auth0 token TTL
+  * `AUTH_AUDIENCE`: Auth0 audience
+* To use Google services (i.e: gmail tool), you need to setup an OAuth2 app in the Google Developer Console
+   and set the `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET` environment variables.
 
 ### Installation
 
