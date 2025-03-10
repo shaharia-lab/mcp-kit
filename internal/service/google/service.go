@@ -68,6 +68,11 @@ func (s *GoogleService) HandleOAuthStart(w http.ResponseWriter, r *http.Request)
 
 // HandleOAuthCallback handles the OAuth2 callback and stores the token
 func (s *GoogleService) HandleOAuthCallback(w http.ResponseWriter, r *http.Request) {
+	if !s.enabled {
+		http.Error(w, "Google services are not enabled", http.StatusForbidden)
+		return
+	}
+
 	state := r.URL.Query().Get("state")
 	if state == "" {
 		http.Error(w, ErrInvalidState.Error(), http.StatusBadRequest)

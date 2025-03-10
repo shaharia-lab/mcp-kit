@@ -3,6 +3,7 @@ package cmd
 import (
 	"context"
 	"fmt"
+	"github.com/shaharia-lab/mcp-kit/internal/config"
 
 	"github.com/shaharia-lab/goai/mcp"
 	goaiObs "github.com/shaharia-lab/goai/observability"
@@ -74,7 +75,7 @@ func NewServerCmd() *cobra.Command {
 			if err != nil {
 				logger.Fatalf("Failed to create Gmail service: %v", err)
 			}
-			toolsLists := setupTools(container.LogrusLoggerImpl, gmailSvc)
+			toolsLists := setupTools(container.LogrusLoggerImpl, gmailSvc, container.Config)
 
 			err = container.BaseMCPServer.AddPrompts(prompt.MCPPromptsRegistry...)
 			if err != nil {
@@ -99,7 +100,7 @@ func NewServerCmd() *cobra.Command {
 	}
 }
 
-func setupTools(logger goaiObs.Logger, gmailService *gmail.Service) []mcp.Tool {
+func setupTools(logger goaiObs.Logger, gmailService *gmail.Service, config *config.Config) []mcp.Tool {
 	ts := tools.MCPToolsRegistry
 
 	ghConfig := mcptools.NewGitHubTool(logger, mcptools.GitHubConfig{})
@@ -108,8 +109,6 @@ func setupTools(logger goaiObs.Logger, gmailService *gmail.Service) []mcp.Tool {
 	git := mcptools.NewGit(logger, mcptools.GitConfig{})
 	curl := mcptools.NewCurl(logger, mcptools.CurlConfig{})
 	postgres := mcptools.NewPostgreSQL(logger, mcptools.PostgreSQLConfig{})
-
-	gm := mcptools.NewGmail(logger, gmailService, mcptools.GmailConfig{})
 
 	ts = append(
 		ts,
@@ -134,10 +133,12 @@ func setupTools(logger goaiObs.Logger, gmailService *gmail.Service) []mcp.Tool {
 
 		// PostgreSQL tools
 		postgres.PostgreSQLAllInOneTool(),
-
-		// Gmail
-		gm.GmailAllInOneTool(),
 	)
+
+	if config.GoogleServiceConfig.Enabled {
+		gmailTool := mcptools.NewGmail(logger, gmailService, mcptools.GmailConfig{})
+		ts = append(ts, gmailTool.GmailAllInOneTool())
+	}
 
 	return ts
 }
