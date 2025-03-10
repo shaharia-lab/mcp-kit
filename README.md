@@ -6,8 +6,9 @@ The MCP Kit provides a platform that facilitates interaction with Large Language
 It enables AI assistants to interact with external tools and services, extending their capabilities beyond their confined contexts.
 This toolkit offers a standardized way for AI models to communicate with external systems.
 
-**Disclaimer**: This project is a proof-of-concept and should not be used in production environments. Feel free to explore, experiment, and contribute to the project.
-If you want to build a production-ready system, consider using separate components and services tailored to your requirements. For any questions or feedback, please open an issue or reach out to the maintainers.
+**Disclaimer**: This project is a proof-of-concept and is not intended for production use. Feel free to explore, experiment, 
+and contribute to the project. For production systems, consider using separate, well-established components mentioned in this project
+and services tailored to your needs. For any questions or feedback, please open an issue or contact the maintainers.
 
 ## Components
 
@@ -105,16 +106,8 @@ Feel free to explore the [MCP Kit Frontend](https://github.com/shaharia-lab/mcp-
 
 ### Prerequisites
 
-* Go installed
-* Need to configure Auth0 application for authentication. In order to do that, you need to set the following environment variables:
-  * `AUTH_DOMAIN`: Auth0 domain
-  * `AUTH_CLIENT_ID`: Auth0 client ID
-  * `AUTH_CLIENT_SECRET`: Auth0 client secret
-  * `AUTH_CALLBACK_URL`: Auth0 callback URL
-  * `AUTH_TOKEN_TTL`: Auth0 token TTL
-  * `AUTH_AUDIENCE`: Auth0 audience
-* To use Google services (i.e: gmail tool), you need to setup an OAuth2 app in the Google Developer Console
-   and set the `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET` environment variables.
+* Go installed (for building from source)
+* Docker installed (optional)
 
 ### Installation
 
