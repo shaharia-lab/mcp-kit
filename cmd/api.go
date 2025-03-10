@@ -182,6 +182,46 @@ func setupRouter(
 	r.Use(middleware.Logger)
 	r.Use(middleware.Recoverer)
 
+	sunsetDate := "Sat March 31 2025 23:59:59 GMT"
+
+	// Deprecated routes
+	r.Group(func(r chi.Router) {
+		r.Use(middleware.NoCache)
+
+		r.With(DeprecatedRouteMiddleware(DeprecationInfo{
+			SuccessorURL: "/api/v1/llm-providers",
+			SunsetDate:   sunsetDate,
+		})).Get("/llm-providers", handlers.LLMProvidersHandler)
+
+		r.With(DeprecatedRouteMiddleware(DeprecationInfo{
+			SuccessorURL: "/api/v1/chats/{chatId}",
+			SunsetDate:   sunsetDate,
+		})).Get("/chats/{chatId}", handlers.GetChatHandler(logger, chatHistoryStorage))
+
+		r.With(DeprecatedRouteMiddleware(DeprecationInfo{
+			SuccessorURL: "/api/v1/tools",
+			SunsetDate:   sunsetDate,
+		})).Get("/api/tools", handlers.ListToolsHandler(toolsProvider))
+
+		r.With(DeprecatedRouteMiddleware(DeprecationInfo{
+			SuccessorURL: "/api/v1/chats",
+			SunsetDate:   sunsetDate,
+		})).Post("/ask", handlers.HandleAsk(mcpClient, logger, chatHistoryStorage, toolsProvider))
+
+		r.With(DeprecatedRouteMiddleware(DeprecationInfo{
+			SuccessorURL: "/api/v1/chats/stream",
+			SunsetDate:   sunsetDate,
+		})).Post("/ask-stream", handlers.HandleAskStream(mcpClient, logger, chatHistoryStorage, toolsProvider))
+
+		r.With(
+			authMiddleware.EnsureValidToken,
+			DeprecatedRouteMiddleware(DeprecationInfo{
+				SuccessorURL: "/api/v1/chats",
+				SunsetDate:   sunsetDate,
+			}),
+		).Get("/chats", handlers.ChatHistoryListsHandler(logger, chatHistoryStorage))
+	})
+
 	// Expose the metrics endpoint
 	r.Handle("/metrics", promhttp.Handler())
 
@@ -191,27 +231,39 @@ func setupRouter(
 		w.Write([]byte(`{"ping": "Pong"}`))
 	})
 
-	// Root route redirects to /static
-	r.Get("/", func(w http.ResponseWriter, r *http.Request) {
-		http.Redirect(w, r, "/static", http.StatusFound)
+	// Get the list of LLM providers
+	r.Route("/api/v1/llm-providers", func(r chi.Router) {
+		r.Use(authMiddleware.EnsureValidToken)
+		r.Get("/", handlers.LLMProvidersHandler)
 	})
 
-	r.Get("/llm-providers", handlers.LLMProvidersHandler)
-
-	r.Post("/ask", handlers.HandleAsk(mcpClient, logger, chatHistoryStorage, toolsProvider))
-	r.Post("/ask-stream", handlers.HandleAskStream(mcpClient, logger, chatHistoryStorage, toolsProvider))
-	r.With(authMiddleware.EnsureValidToken).Get("/chats", handlers.ChatHistoryListsHandler(logger, chatHistoryStorage))
-	r.Get("/chats/{chatId}", handlers.GetChatHandler(logger, chatHistoryStorage))
-	r.Get("/api/tools", handlers.ListToolsHandler(toolsProvider))
-
-	r.Get("/google-oauth2/login", func(w http.ResponseWriter, r *http.Request) {
-		googleService.HandleOAuthStart(w, r)
+	// Get the list of tools
+	r.Route("/api/v1/tools", func(r chi.Router) {
+		r.Use(authMiddleware.EnsureValidToken)
+		r.Get("/", handlers.ListToolsHandler(toolsProvider))
 	})
 
-	r.Get("/google-oauth2/callback", func(w http.ResponseWriter, r *http.Request) {
-		googleService.HandleOAuthCallback(w, r)
-		logger.Printf("Authenticate with Google Service has been successfully completed")
-		w.Write([]byte("Authentication successful. You can close this window now."))
+	// Ask LLM a question, with or without streaming
+	// Also get the chat history
+	r.Route("/api/v1/chats", func(r chi.Router) {
+		r.Use(authMiddleware.EnsureValidToken)
+		r.Post("/", handlers.HandleAsk(mcpClient, logger, chatHistoryStorage, toolsProvider))
+		r.Post("/stream", handlers.HandleAskStream(mcpClient, logger, chatHistoryStorage, toolsProvider))
+		r.Get("/{chatId}", handlers.GetChatHandler(logger, chatHistoryStorage))
+		r.Get("/", handlers.ChatHistoryListsHandler(logger, chatHistoryStorage))
+	})
+
+	// Authenticate with Google OAuth2 to access Google services like Gmail Tools
+	r.Route("/google-oauth2", func(r chi.Router) {
+		r.With(authMiddleware.EnsureValidToken).Get("/login", func(w http.ResponseWriter, r *http.Request) {
+			googleService.HandleOAuthStart(w, r)
+		})
+
+		r.Get("/callback", func(w http.ResponseWriter, r *http.Request) {
+			googleService.HandleOAuthCallback(w, r)
+			logger.Printf("Authenticate with Google Service has been successfully completed")
+			w.Write([]byte("Authentication successful. You can close this window now."))
+		})
 	})
 
 	return r
@@ -261,5 +313,28 @@ func (rw *responseWriterWrapper) WriteHeader(code int) {
 func (rw *responseWriterWrapper) Flush() {
 	if flusher, ok := rw.ResponseWriter.(http.Flusher); ok {
 		flusher.Flush()
+	}
+}
+
+// DeprecationInfo holds information about a deprecated endpoint
+type DeprecationInfo struct {
+	SuccessorURL string
+	SunsetDate   string
+}
+
+// DeprecatedRouteMiddleware creates a middleware that adds deprecation headers
+func DeprecatedRouteMiddleware(info DeprecationInfo) func(http.Handler) http.Handler {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			w.Header().Set("Deprecation", "true")
+			w.Header().Set("Link", fmt.Sprintf("<%s>; rel=\"successor-version\"", info.SuccessorURL))
+			w.Header().Set("Sunset", info.SunsetDate)
+
+			// Optional: Add custom header for more details
+			w.Header().Set("X-API-Deprecated-Message",
+				fmt.Sprintf("This endpoint is deprecated. Please use %s instead", info.SuccessorURL))
+
+			next.ServeHTTP(w, r)
+		})
 	}
 }
