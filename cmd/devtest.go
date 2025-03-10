@@ -2,9 +2,7 @@ package cmd
 
 import (
 	"context"
-	"github.com/shaharia-lab/mcp-kit/internal/service/google"
 	"github.com/spf13/cobra"
-	"google.golang.org/api/gmail/v1"
 	"log"
 	"net/http"
 )
@@ -17,34 +15,15 @@ func NewDevTestCmd() *cobra.Command {
 		RunE: func(cmd *cobra.Command, args []string) error {
 			ctx := context.Background()
 
-			container, _, err := InitializeAPI(ctx)
+			container, _, err := InitializeAPI(ctx, "")
 			if err != nil {
 				return err
 			}
 
-			googleOAuthStorage := google.NewFileTokenStorage(container.Config.GoogleServiceConfig.TokenSourceFile)
-
-			// Configure Google Service
-			googleService := google.NewGoogleService(googleOAuthStorage, google.Config{
-				ClientID:     container.Config.GoogleServiceConfig.ClientID,
-				ClientSecret: container.Config.GoogleServiceConfig.ClientSecret,
-				RedirectURL:  "http://localhost:9090/oauth/callback",
-				Scopes: []string{
-					gmail.GmailReadonlyScope,
-					gmail.GmailSendScope,
-					gmail.GmailModifyScope,
-					"openid",
-					"https://www.googleapis.com/auth/userinfo.email",
-					"https://www.googleapis.com/auth/userinfo.profile",
-				},
-
-				StateCookie: "google-oauth-state",
-			})
-
 			// Set up routes
-			http.HandleFunc("/oauth/login", googleService.HandleOAuthStart)
+			http.HandleFunc("/oauth/login", container.GoogleService.HandleOAuthStart)
 			http.HandleFunc("/oauth/callback", func(w http.ResponseWriter, r *http.Request) {
-				googleService.HandleOAuthCallback(w, r)
+				container.GoogleService.HandleOAuthCallback(w, r)
 				w.Write([]byte("Authentication successful and Gmail API test completed"))
 			})
 

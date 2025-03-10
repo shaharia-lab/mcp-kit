@@ -3,6 +3,7 @@ package auth
 import (
 	"context"
 	"fmt"
+	"github.com/shaharia-lab/mcp-kit/internal/config"
 	"net/url"
 	"strings"
 	"time"
@@ -17,17 +18,13 @@ import (
 // AuthService implements AuthProvider interface
 type AuthService struct {
 	provider    *oidc.Provider
-	config      Config
+	config      config.AuthConfig
 	oauthConfig oauth2.Config
 	logger      observability.Logger
 }
 
 // NewAuthService creates a new authentication service
-func NewAuthService(ctx context.Context, cfg Config, logger observability.Logger) (*AuthService, error) {
-	if err := cfg.Validate(); err != nil {
-		return nil, fmt.Errorf("invalid config: %w", err)
-	}
-
+func NewAuthService(ctx context.Context, cfg config.AuthConfig, logger observability.Logger) (*AuthService, error) {
 	provider, err := oidc.NewProvider(ctx, "https://"+cfg.AuthDomain+"/")
 	if err != nil {
 		return nil, fmt.Errorf("failed to create OIDC provider: %w", err)

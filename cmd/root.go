@@ -1,12 +1,10 @@
 package cmd
 
 import (
-	"log"
-	"os"
-
-	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
+
+var configFile string
 
 func NewRootCmd() *cobra.Command {
 	root := &cobra.Command{
@@ -15,14 +13,9 @@ func NewRootCmd() *cobra.Command {
 		Long:  `MCP (Model Context Protocol) server and client`,
 	}
 
-	logger := logrus.New()
-	logger.SetFormatter(&logrus.JSONFormatter{})
-	logger.SetOutput(os.Stdout)
-	logger.SetLevel(logrus.InfoLevel)
+	root.PersistentFlags().StringVar(&configFile, "config", "config.yaml", "path to config file")
 
-	l := log.New(logger.Writer(), "", log.LstdFlags)
-
-	root.AddCommand(NewServerCmd(l))
+	root.AddCommand(NewServerCmd())
 	root.AddCommand(NewTaskCmd())
 	root.AddCommand(NewAPICmd())
 	root.AddCommand(NewDevTestCmd())

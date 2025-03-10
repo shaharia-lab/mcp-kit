@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/rand"
 	"encoding/base64"
+	"github.com/shaharia-lab/mcp-kit/internal/config"
 	"golang.org/x/oauth2"
 	"golang.org/x/oauth2/google"
 	"net/http"
@@ -15,20 +16,11 @@ type GoogleService struct {
 	oauthConfig *oauth2.Config
 	stateCookie string
 	redirectURL string
-}
-
-// Config holds the configuration for GoogleService
-type Config struct {
-	ClientID        string   `envconfig:"GOOGLE_CLIENT_ID"`
-	ClientSecret    string   `envconfig:"GOOGLE_CLIENT_SECRET"`
-	RedirectURL     string   `envconfig:"GOOGLE_REDIRECT_URL"`
-	Scopes          []string `envconfig:"GOOGLE_SCOPES"`
-	StateCookie     string   `envconfig:"GOOGLE_STATE_COOKIE"`
-	TokenSourceFile string   `envconfig:"GOOGLE_AUTH_TOKEN_SOURCE_FILE"`
+	enabled     bool
 }
 
 // NewGoogleService creates a new instance of GoogleService
-func NewGoogleService(storage GoogleOAuthTokenSourceStorage, config Config) *GoogleService {
+func NewGoogleService(storage GoogleOAuthTokenSourceStorage, config config.GoogleConfig) *GoogleService {
 	oauthConfig := &oauth2.Config{
 		ClientID:     config.ClientID,
 		ClientSecret: config.ClientSecret,
@@ -42,11 +34,17 @@ func NewGoogleService(storage GoogleOAuthTokenSourceStorage, config Config) *Goo
 		oauthConfig: oauthConfig,
 		stateCookie: config.StateCookie,
 		redirectURL: config.RedirectURL,
+		enabled:     config.Enabled,
 	}
 }
 
 // HandleOAuthStart initiates the OAuth2 flow
 func (s *GoogleService) HandleOAuthStart(w http.ResponseWriter, r *http.Request) {
+	if !s.enabled {
+		http.Error(w, "Google services are not enabled", http.StatusForbidden)
+		return
+	}
+
 	state, err := generateRandomState()
 	if err != nil {
 		http.Error(w, "Failed to generate state", http.StatusInternalServerError)

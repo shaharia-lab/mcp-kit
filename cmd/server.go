@@ -3,22 +3,19 @@ package cmd
 import (
 	"context"
 	"fmt"
-	mcptools "github.com/shaharia-lab/mcp-tools"
-	"google.golang.org/api/gmail/v1"
-	"google.golang.org/api/option"
-	"log"
-
 	"github.com/shaharia-lab/goai/mcp"
 	goaiObs "github.com/shaharia-lab/goai/observability"
-	"github.com/shaharia-lab/mcp-kit/internal/config"
 	"github.com/shaharia-lab/mcp-kit/internal/prompt"
 	"github.com/shaharia-lab/mcp-kit/internal/tools"
+	mcptools "github.com/shaharia-lab/mcp-tools"
 	"github.com/spf13/cobra"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/codes"
+	"google.golang.org/api/gmail/v1"
+	"google.golang.org/api/option"
 )
 
-func NewServerCmd(logger *log.Logger) *cobra.Command {
+func NewServerCmd() *cobra.Command {
 	return &cobra.Command{
 		Use:   "server",
 		Short: "Start the server",
@@ -26,19 +23,16 @@ func NewServerCmd(logger *log.Logger) *cobra.Command {
 		RunE: func(cmd *cobra.Command, args []string) error {
 			var err error
 
-			cfg, err := config.Load()
-			if err != nil {
-				return fmt.Errorf("failed to load config: %w", err)
-			}
-
 			ctx := context.Background()
 
 			// Initialize all dependencies using Wire
-			container, cleanup, err := InitializeAPI(ctx)
+			container, cleanup, err := InitializeAPI(ctx, configFile)
 			if err != nil {
 				return fmt.Errorf("failed to initialize application: %w", err)
 			}
 			defer cleanup()
+
+			logger := container.LogrusLoggerImpl
 
 			// Initialize the tracing service
 			if err = container.TracingService.Initialize(ctx); err != nil {
@@ -92,7 +86,7 @@ func NewServerCmd(logger *log.Logger) *cobra.Command {
 			}
 
 			server := mcp.NewSSEServer(container.BaseMCPServer)
-			server.SetAddress(fmt.Sprintf(":%d", cfg.MCPServerPort))
+			server.SetAddress(fmt.Sprintf(":%d", container.Config.MCPServerPort))
 
 			container.LogrusLoggerImpl.Info("Server is starting...")
 			if err = server.Run(ctx); err != nil {

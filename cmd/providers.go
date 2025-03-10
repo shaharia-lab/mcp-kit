@@ -3,7 +3,6 @@ package cmd
 import (
 	"context"
 	"github.com/shaharia-lab/mcp-kit/internal/service/google"
-	"google.golang.org/api/gmail/v1"
 	"log"
 	"time"
 
@@ -37,8 +36,8 @@ func ProvideLogger() *log.Logger {
 	return log.Default()
 }
 
-func ProvideConfig() (*config.Config, error) {
-	return loadConfig()
+func ProvideConfig(configFilePath string) (*config.Config, error) {
+	return loadConfig(configFilePath)
 }
 
 func ProvideMCPClient(l goaiObs.Logger, cfg *config.Config) *mcp.Client {
@@ -122,21 +121,7 @@ func ProvideGoogleOAuthTokenSourceStorage(cfg *config.Config) google.GoogleOAuth
 }
 
 func ProvideGoogleService(cfg *config.Config, oauthTokenStorage google.GoogleOAuthTokenSourceStorage) *google.GoogleService {
-	return google.NewGoogleService(oauthTokenStorage, google.Config{
-		ClientID:     cfg.GoogleServiceConfig.ClientID,
-		ClientSecret: cfg.GoogleServiceConfig.ClientSecret,
-		RedirectURL:  "http://localhost:8081/oauth/callback",
-		Scopes: []string{
-			gmail.GmailReadonlyScope,
-			gmail.GmailSendScope,
-			gmail.GmailModifyScope,
-			"openid",
-			"https://www.googleapis.com/auth/userinfo.email",
-			"https://www.googleapis.com/auth/userinfo.profile",
-		},
-
-		StateCookie: "google-oauth-state",
-	})
+	return google.NewGoogleService(oauthTokenStorage, cfg.GoogleServiceConfig)
 }
 
 func NewContainer(

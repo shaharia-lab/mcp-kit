@@ -58,7 +58,7 @@ func NewAPICmd() *cobra.Command {
 			signal.Notify(signalChan, os.Interrupt, syscall.SIGTERM)
 
 			// Initialize all dependencies using Wire
-			container, cleanup, err := InitializeAPI(ctx)
+			container, cleanup, err := InitializeAPI(ctx, configFile)
 			if err != nil {
 				return fmt.Errorf("failed to initialize application: %w", err)
 			}
