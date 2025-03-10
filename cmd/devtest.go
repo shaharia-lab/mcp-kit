@@ -8,6 +8,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
+// NewDevTestCmd - create a new cobra command for running the development test
 func NewDevTestCmd() *cobra.Command {
 	return &cobra.Command{
 		Use:   "devtest",
