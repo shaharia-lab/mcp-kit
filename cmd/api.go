@@ -204,11 +204,11 @@ func setupRouter(
 	r.Get("/chats/{chatId}", handlers.GetChatHandler(logger, chatHistoryStorage))
 	r.Get("/api/tools", handlers.ListToolsHandler(toolsProvider))
 
-	r.Get("/oauth/login", func(w http.ResponseWriter, r *http.Request) {
+	r.Get("/google-oauth2/login", func(w http.ResponseWriter, r *http.Request) {
 		googleService.HandleOAuthStart(w, r)
 	})
 
-	r.Get("/oauth/callback", func(w http.ResponseWriter, r *http.Request) {
+	r.Get("/google-oauth2/callback", func(w http.ResponseWriter, r *http.Request) {
 		googleService.HandleOAuthCallback(w, r)
 		logger.Printf("Authenticate with Google Service has been successfully completed")
 		w.Write([]byte("Authentication successful. You can close this window now."))
