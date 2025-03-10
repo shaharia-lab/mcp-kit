@@ -117,19 +117,35 @@ func NewAPICmd() *cobra.Command {
 			case sig := <-signalChan:
 				container.Logger.Printf("Received signal: %v", sig)
 
-				// Create shutdown context with timeout
-				shutdownCtx, shutdownCancel := context.WithTimeout(context.Background(), 30*time.Second)
-				defer shutdownCancel()
+				// Create separate contexts for MCP client and HTTP server shutdown
+				mcpShutdownCtx, mcpShutdownCancel := context.WithTimeout(context.Background(), 5*time.Second)
+				defer mcpShutdownCancel()
 
-				// First disconnect MCP client
-				container.Logger.Printf("Disconnecting MCP client...")
-				if err = container.MCPClient.Close(shutdownCtx); err != nil {
-					container.Logger.Printf("Error disconnecting MCP client: %v", err)
+				// Use a channel to handle MCP client shutdown timeout
+				mcpClosed := make(chan struct{})
+				go func() {
+					container.Logger.Printf("Disconnecting MCP client...")
+					if err = container.MCPClient.Close(mcpShutdownCtx); err != nil {
+						container.Logger.Printf("Error disconnecting MCP client: %v", err)
+					}
+					close(mcpClosed)
+				}()
+
+				// Wait for MCP client to close or timeout
+				select {
+				case <-mcpClosed:
+					container.Logger.Printf("MCP client disconnected successfully")
+				case <-mcpShutdownCtx.Done():
+					container.Logger.Printf("MCP client disconnect timed out, proceeding with server shutdown")
 				}
+
+				// Create separate context for HTTP server shutdown
+				serverShutdownCtx, serverShutdownCancel := context.WithTimeout(context.Background(), 25*time.Second)
+				defer serverShutdownCancel()
 
 				// Then shutdown the HTTP server
 				container.Logger.Printf("Shutting down HTTP server...")
-				if err = srv.Shutdown(shutdownCtx); err != nil {
+				if err = srv.Shutdown(serverShutdownCtx); err != nil {
 					return fmt.Errorf("server shutdown error: %w", err)
 				}
 
