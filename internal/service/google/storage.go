@@ -3,9 +3,10 @@ package google
 import (
 	"context"
 	"encoding/json"
-	"golang.org/x/oauth2"
 	"os"
 	"sync"
+
+	"golang.org/x/oauth2"
 )
 
 // GoogleOAuthTokenSourceStorage defines the interface for OAuth token storage

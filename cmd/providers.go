@@ -2,9 +2,10 @@ package cmd
 
 import (
 	"context"
-	"github.com/shaharia-lab/mcp-kit/internal/service/google"
 	"log"
 	"time"
+
+	"github.com/shaharia-lab/mcp-kit/internal/service/google"
 
 	"github.com/shaharia-lab/goai"
 	"github.com/shaharia-lab/goai/mcp"

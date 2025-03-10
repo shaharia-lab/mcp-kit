@@ -2,9 +2,10 @@ package cmd
 
 import (
 	"context"
-	"github.com/spf13/cobra"
 	"log"
 	"net/http"
+
+	"github.com/spf13/cobra"
 )
 
 func NewDevTestCmd() *cobra.Command {

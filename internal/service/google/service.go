@@ -4,10 +4,11 @@ import (
 	"context"
 	"crypto/rand"
 	"encoding/base64"
+	"net/http"
+
 	"github.com/shaharia-lab/mcp-kit/internal/config"
 	"golang.org/x/oauth2"
 	"golang.org/x/oauth2/google"
-	"net/http"
 )
 
 // GoogleService handles OAuth2 flow for Google services

@@ -3,6 +3,7 @@ package observability
 import (
 	"context"
 	"fmt"
+
 	"github.com/shaharia-lab/goai/observability"
 
 	"github.com/shaharia-lab/mcp-kit/internal/config"

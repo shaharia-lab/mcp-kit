@@ -3,10 +3,11 @@ package auth
 import (
 	"context"
 	"fmt"
-	"github.com/shaharia-lab/mcp-kit/internal/config"
 	"net/url"
 	"strings"
 	"time"
+
+	"github.com/shaharia-lab/mcp-kit/internal/config"
 
 	"github.com/auth0/go-jwt-middleware/v2/jwks"
 	"github.com/auth0/go-jwt-middleware/v2/validator"
