@@ -19,6 +19,9 @@ COPY --from=builder /etc/passwd /etc/passwd
 # Copy the binary from builder
 COPY --from=builder /app/build/mcp /usr/local/bin/mcp
 
+# Copy the example config file
+COPY --from=builder /app/config.example.yaml /etc/mcp/config.example.yaml
+
 # Use non-root user
 USER app
 

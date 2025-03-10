@@ -4,3 +4,5 @@
 /cmd/static
 
 /.env.local.env.local
+/config.*.yaml
+!/config.example.yaml

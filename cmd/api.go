@@ -9,6 +9,8 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/shaharia-lab/mcp-kit/internal/service/google"
+
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/go-chi/cors"
@@ -18,7 +20,6 @@ import (
 	"github.com/shaharia-lab/mcp-kit/internal/auth"
 	handlers "github.com/shaharia-lab/mcp-kit/internal/handler"
 	"github.com/shaharia-lab/mcp-kit/internal/observability"
-	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
@@ -58,20 +59,19 @@ func NewAPICmd() *cobra.Command {
 			signal.Notify(signalChan, os.Interrupt, syscall.SIGTERM)
 
 			// Initialize all dependencies using Wire
-			container, cleanup, err := InitializeAPI(ctx)
+			container, cleanup, err := InitializeAPI(ctx, configFile)
 			if err != nil {
 				return fmt.Errorf("failed to initialize application: %w", err)
 			}
 			defer cleanup()
 
 			// Initialize the tracing service
-			tracingService := ProvideTracingService(container.Config, logrus.New())
-			if err = tracingService.Initialize(ctx); err != nil {
+			if err = container.TracingService.Initialize(ctx); err != nil {
 				return fmt.Errorf("failed to initialize tracer: %w", err)
 			}
 
 			defer func() {
-				if err := tracingService.Shutdown(ctx); err != nil {
+				if err := container.TracingService.Shutdown(ctx); err != nil {
 					container.Logger.Printf("Error shutting down tracer: %v", err)
 				}
 			}()
@@ -95,6 +95,7 @@ func NewAPICmd() *cobra.Command {
 					container.ChatHistoryStorage,
 					container.ToolsProvider,
 					container.AuthMiddleware,
+					container.GoogleService,
 				),
 			}
 
@@ -116,19 +117,35 @@ func NewAPICmd() *cobra.Command {
 			case sig := <-signalChan:
 				container.Logger.Printf("Received signal: %v", sig)
 
-				// Create shutdown context with timeout
-				shutdownCtx, shutdownCancel := context.WithTimeout(context.Background(), 30*time.Second)
-				defer shutdownCancel()
+				// Create separate contexts for MCP client and HTTP server shutdown
+				mcpShutdownCtx, mcpShutdownCancel := context.WithTimeout(context.Background(), 5*time.Second)
+				defer mcpShutdownCancel()
 
-				// First disconnect MCP client
-				container.Logger.Printf("Disconnecting MCP client...")
-				if err = container.MCPClient.Close(shutdownCtx); err != nil {
-					container.Logger.Printf("Error disconnecting MCP client: %v", err)
+				// Use a channel to handle MCP client shutdown timeout
+				mcpClosed := make(chan struct{})
+				go func() {
+					container.Logger.Printf("Disconnecting MCP client...")
+					if err = container.MCPClient.Close(mcpShutdownCtx); err != nil {
+						container.Logger.Printf("Error disconnecting MCP client: %v", err)
+					}
+					close(mcpClosed)
+				}()
+
+				// Wait for MCP client to close or timeout
+				select {
+				case <-mcpClosed:
+					container.Logger.Printf("MCP client disconnected successfully")
+				case <-mcpShutdownCtx.Done():
+					container.Logger.Printf("MCP client disconnect timed out, proceeding with server shutdown")
 				}
+
+				// Create separate context for HTTP server shutdown
+				serverShutdownCtx, serverShutdownCancel := context.WithTimeout(context.Background(), 25*time.Second)
+				defer serverShutdownCancel()
 
 				// Then shutdown the HTTP server
 				container.Logger.Printf("Shutting down HTTP server...")
-				if err = srv.Shutdown(shutdownCtx); err != nil {
+				if err = srv.Shutdown(serverShutdownCtx); err != nil {
 					return fmt.Errorf("server shutdown error: %w", err)
 				}
 
@@ -139,7 +156,14 @@ func NewAPICmd() *cobra.Command {
 	}
 }
 
-func setupRouter(mcpClient *mcp.Client, logger *log.Logger, chatHistoryStorage goai.ChatHistoryStorage, toolsProvider *goai.ToolsProvider, authMiddleware *auth.AuthMiddleware) *chi.Mux {
+func setupRouter(
+	mcpClient *mcp.Client,
+	logger *log.Logger,
+	chatHistoryStorage goai.ChatHistoryStorage,
+	toolsProvider *goai.ToolsProvider,
+	authMiddleware *auth.AuthMiddleware,
+	googleService *google.GoogleService,
+) *chi.Mux {
 	r := chi.NewRouter()
 
 	// Tracing middleware remains the same
@@ -174,6 +198,46 @@ func setupRouter(mcpClient *mcp.Client, logger *log.Logger, chatHistoryStorage g
 	r.Use(middleware.Logger)
 	r.Use(middleware.Recoverer)
 
+	sunsetDate := "Sat March 31 2025 23:59:59 GMT"
+
+	// Deprecated routes
+	r.Group(func(r chi.Router) {
+		r.Use(middleware.NoCache)
+
+		r.With(DeprecatedRouteMiddleware(DeprecationInfo{
+			SuccessorURL: "/api/v1/llm-providers",
+			SunsetDate:   sunsetDate,
+		})).Get("/llm-providers", handlers.LLMProvidersHandler)
+
+		r.With(DeprecatedRouteMiddleware(DeprecationInfo{
+			SuccessorURL: "/api/v1/chats/{chatId}",
+			SunsetDate:   sunsetDate,
+		})).Get("/chats/{chatId}", handlers.GetChatHandler(logger, chatHistoryStorage))
+
+		r.With(DeprecatedRouteMiddleware(DeprecationInfo{
+			SuccessorURL: "/api/v1/tools",
+			SunsetDate:   sunsetDate,
+		})).Get("/api/tools", handlers.ListToolsHandler(toolsProvider))
+
+		r.With(DeprecatedRouteMiddleware(DeprecationInfo{
+			SuccessorURL: "/api/v1/chats",
+			SunsetDate:   sunsetDate,
+		})).Post("/ask", handlers.HandleAsk(mcpClient, logger, chatHistoryStorage, toolsProvider))
+
+		r.With(DeprecatedRouteMiddleware(DeprecationInfo{
+			SuccessorURL: "/api/v1/chats/stream",
+			SunsetDate:   sunsetDate,
+		})).Post("/ask-stream", handlers.HandleAskStream(mcpClient, logger, chatHistoryStorage, toolsProvider))
+
+		r.With(
+			authMiddleware.EnsureValidToken,
+			DeprecatedRouteMiddleware(DeprecationInfo{
+				SuccessorURL: "/api/v1/chats",
+				SunsetDate:   sunsetDate,
+			}),
+		).Get("/chats", handlers.ChatHistoryListsHandler(logger, chatHistoryStorage))
+	})
+
 	// Expose the metrics endpoint
 	r.Handle("/metrics", promhttp.Handler())
 
@@ -183,18 +247,40 @@ func setupRouter(mcpClient *mcp.Client, logger *log.Logger, chatHistoryStorage g
 		w.Write([]byte(`{"ping": "Pong"}`))
 	})
 
-	// Root route redirects to /static
-	r.Get("/", func(w http.ResponseWriter, r *http.Request) {
-		http.Redirect(w, r, "/static", http.StatusFound)
+	// Get the list of LLM providers
+	r.Route("/api/v1/llm-providers", func(r chi.Router) {
+		r.Use(authMiddleware.EnsureValidToken)
+		r.Get("/", handlers.LLMProvidersHandler)
 	})
 
-	r.Get("/llm-providers", handlers.LLMProvidersHandler)
+	// Get the list of tools
+	r.Route("/api/v1/tools", func(r chi.Router) {
+		r.Use(authMiddleware.EnsureValidToken)
+		r.Get("/", handlers.ListToolsHandler(toolsProvider))
+	})
 
-	r.Post("/ask", handlers.HandleAsk(mcpClient, logger, chatHistoryStorage, toolsProvider))
-	r.Post("/ask-stream", handlers.HandleAskStream(mcpClient, logger, chatHistoryStorage, toolsProvider))
-	r.With(authMiddleware.EnsureValidToken).Get("/chats", handlers.ChatHistoryListsHandler(logger, chatHistoryStorage))
-	r.Get("/chats/{chatId}", handlers.GetChatHandler(logger, chatHistoryStorage))
-	r.Get("/api/tools", handlers.ListToolsHandler(toolsProvider))
+	// Ask LLM a question, with or without streaming
+	// Also get the chat history
+	r.Route("/api/v1/chats", func(r chi.Router) {
+		r.Use(authMiddleware.EnsureValidToken)
+		r.Post("/", handlers.HandleAsk(mcpClient, logger, chatHistoryStorage, toolsProvider))
+		r.Post("/stream", handlers.HandleAskStream(mcpClient, logger, chatHistoryStorage, toolsProvider))
+		r.Get("/{chatId}", handlers.GetChatHandler(logger, chatHistoryStorage))
+		r.Get("/", handlers.ChatHistoryListsHandler(logger, chatHistoryStorage))
+	})
+
+	// Authenticate with Google OAuth2 to access Google services like Gmail Tools
+	r.Route("/google-oauth2", func(r chi.Router) {
+		r.With(authMiddleware.EnsureValidToken).Get("/login", func(w http.ResponseWriter, r *http.Request) {
+			googleService.HandleOAuthStart(w, r)
+		})
+
+		r.Get("/callback", func(w http.ResponseWriter, r *http.Request) {
+			googleService.HandleOAuthCallback(w, r)
+			logger.Printf("Authenticate with Google Service has been successfully completed")
+			w.Write([]byte("Authentication successful. You can close this window now."))
+		})
+	})
 
 	return r
 }
@@ -243,5 +329,28 @@ func (rw *responseWriterWrapper) WriteHeader(code int) {
 func (rw *responseWriterWrapper) Flush() {
 	if flusher, ok := rw.ResponseWriter.(http.Flusher); ok {
 		flusher.Flush()
+	}
+}
+
+// DeprecationInfo holds information about a deprecated endpoint
+type DeprecationInfo struct {
+	SuccessorURL string
+	SunsetDate   string
+}
+
+// DeprecatedRouteMiddleware creates a middleware that adds deprecation headers
+func DeprecatedRouteMiddleware(info DeprecationInfo) func(http.Handler) http.Handler {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			w.Header().Set("Deprecation", "true")
+			w.Header().Set("Link", fmt.Sprintf("<%s>; rel=\"successor-version\"", info.SuccessorURL))
+			w.Header().Set("Sunset", info.SunsetDate)
+
+			// Optional: Add custom header for more details
+			w.Header().Set("X-API-Deprecated-Message",
+				fmt.Sprintf("This endpoint is deprecated. Please use %s instead", info.SuccessorURL))
+
+			next.ServeHTTP(w, r)
+		})
 	}
 }
