@@ -3,10 +3,10 @@ package observability
 import (
 	"context"
 	"fmt"
+	"github.com/shaharia-lab/goai/observability"
 
 	"github.com/shaharia-lab/mcp-kit/internal/config"
 
-	"github.com/sirupsen/logrus"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/exporters/otlp/otlptrace"
@@ -25,18 +25,14 @@ var isEnabled bool
 // TracingService handles all tracing operations
 type TracingService struct {
 	config    config.TracingConfig
-	logger    *logrus.Logger
+	logger    observability.Logger
 	tracer    trace.Tracer
 	provider  *sdktrace.TracerProvider
 	isEnabled bool
 }
 
 // NewTracingService creates a new instance of TracingService
-func NewTracingService(config config.TracingConfig, logger *logrus.Logger) *TracingService {
-	if logger == nil {
-		logger = logrus.New()
-	}
-
+func NewTracingService(config config.TracingConfig, logger observability.Logger) *TracingService {
 	return &TracingService{
 		config:    config,
 		logger:    logger,

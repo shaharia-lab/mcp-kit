@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/shaharia-lab/mcp-kit/internal/service/google"
 	"os"
 	"os/signal"
 	"syscall"
@@ -18,7 +19,6 @@ import (
 	"github.com/shaharia-lab/mcp-kit/internal/auth"
 	handlers "github.com/shaharia-lab/mcp-kit/internal/handler"
 	"github.com/shaharia-lab/mcp-kit/internal/observability"
-	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
@@ -65,13 +65,12 @@ func NewAPICmd() *cobra.Command {
 			defer cleanup()
 
 			// Initialize the tracing service
-			tracingService := ProvideTracingService(container.Config, logrus.New())
-			if err = tracingService.Initialize(ctx); err != nil {
+			if err = container.TracingService.Initialize(ctx); err != nil {
 				return fmt.Errorf("failed to initialize tracer: %w", err)
 			}
 
 			defer func() {
-				if err := tracingService.Shutdown(ctx); err != nil {
+				if err := container.TracingService.Shutdown(ctx); err != nil {
 					container.Logger.Printf("Error shutting down tracer: %v", err)
 				}
 			}()
@@ -95,6 +94,7 @@ func NewAPICmd() *cobra.Command {
 					container.ChatHistoryStorage,
 					container.ToolsProvider,
 					container.AuthMiddleware,
+					container.GoogleService,
 				),
 			}
 
@@ -139,7 +139,14 @@ func NewAPICmd() *cobra.Command {
 	}
 }
 
-func setupRouter(mcpClient *mcp.Client, logger *log.Logger, chatHistoryStorage goai.ChatHistoryStorage, toolsProvider *goai.ToolsProvider, authMiddleware *auth.AuthMiddleware) *chi.Mux {
+func setupRouter(
+	mcpClient *mcp.Client,
+	logger *log.Logger,
+	chatHistoryStorage goai.ChatHistoryStorage,
+	toolsProvider *goai.ToolsProvider,
+	authMiddleware *auth.AuthMiddleware,
+	googleService *google.GoogleService,
+) *chi.Mux {
 	r := chi.NewRouter()
 
 	// Tracing middleware remains the same
@@ -195,6 +202,16 @@ func setupRouter(mcpClient *mcp.Client, logger *log.Logger, chatHistoryStorage g
 	r.With(authMiddleware.EnsureValidToken).Get("/chats", handlers.ChatHistoryListsHandler(logger, chatHistoryStorage))
 	r.Get("/chats/{chatId}", handlers.GetChatHandler(logger, chatHistoryStorage))
 	r.Get("/api/tools", handlers.ListToolsHandler(toolsProvider))
+
+	r.Get("/oauth/login", func(w http.ResponseWriter, r *http.Request) {
+		googleService.HandleOAuthStart(w, r)
+	})
+
+	r.Get("/oauth/callback", func(w http.ResponseWriter, r *http.Request) {
+		googleService.HandleOAuthCallback(w, r)
+		logger.Printf("Authenticate with Google Service has been successfully completed")
+		w.Write([]byte("Authentication successful. You can close this window now."))
+	})
 
 	return r
 }

@@ -23,5 +23,7 @@ func InitializeAPI(ctx context.Context) (*Container, func(), error) {
 		ProvideLogrusLoggerImpl,
 		ProvideMCPBaseServer,
 		provideAuthenticator,
+		ProvideGoogleService,
+		ProvideGoogleOAuthTokenSourceStorage,
 	))
 }

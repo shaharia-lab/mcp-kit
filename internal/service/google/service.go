@@ -11,7 +11,7 @@ import (
 
 // GoogleService handles OAuth2 flow for Google services
 type GoogleService struct {
-	storage     GoogleOAuthStorage
+	storage     GoogleOAuthTokenSourceStorage
 	oauthConfig *oauth2.Config
 	stateCookie string
 	redirectURL string
@@ -28,7 +28,7 @@ type Config struct {
 }
 
 // NewGoogleService creates a new instance of GoogleService
-func NewGoogleService(storage GoogleOAuthStorage, config Config) *GoogleService {
+func NewGoogleService(storage GoogleOAuthTokenSourceStorage, config Config) *GoogleService {
 	oauthConfig := &oauth2.Config{
 		ClientID:     config.ClientID,
 		ClientSecret: config.ClientSecret,

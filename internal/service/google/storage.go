@@ -8,15 +8,15 @@ import (
 	"sync"
 )
 
-// GoogleOAuthStorage defines the interface for OAuth token storage
-type GoogleOAuthStorage interface {
-	// GetTokenSource returns an oauth2.TokenSource that automatically handles token refresh
+// GoogleOAuthTokenSourceStorage defines the interface for OAuth token storage
+type GoogleOAuthTokenSourceStorage interface {
+	// GetTokenSource returns an oauth2.TokenSource
 	GetTokenSource(ctx context.Context) (oauth2.TokenSource, error)
 	// SetTokenSource stores the token source for later use
 	SetTokenSource(ctx context.Context, token *oauth2.Token, config *oauth2.Config) error
 }
 
-// InMemoryStorage implements GoogleOAuthStorage interface with in-memory storage
+// InMemoryStorage implements GoogleOAuthTokenSourceStorage interface with in-memory storage
 type InMemoryStorage struct {
 	mu          sync.RWMutex
 	token       *oauth2.Token
@@ -28,6 +28,7 @@ func NewInMemoryStorage() *InMemoryStorage {
 	return &InMemoryStorage{}
 }
 
+// GetTokenSource returns the token source from the in-memory storage
 func (s *InMemoryStorage) GetTokenSource(ctx context.Context) (oauth2.TokenSource, error) {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
@@ -40,6 +41,7 @@ func (s *InMemoryStorage) GetTokenSource(ctx context.Context) (oauth2.TokenSourc
 	return s.oauthConfig.TokenSource(ctx, s.token), nil
 }
 
+// SetTokenSource stores the token source in the in-memory storage
 func (s *InMemoryStorage) SetTokenSource(ctx context.Context, token *oauth2.Token, config *oauth2.Config) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
@@ -49,7 +51,7 @@ func (s *InMemoryStorage) SetTokenSource(ctx context.Context, token *oauth2.Toke
 	return nil
 }
 
-// FileTokenStorage implements GoogleOAuthStorage using a JSON file
+// FileTokenStorage implements GoogleOAuthTokenSourceStorage using a JSON file
 type FileTokenStorage struct {
 	filepath string
 	mu       sync.RWMutex

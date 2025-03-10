@@ -3,7 +3,6 @@ package cmd
 import (
 	"context"
 	"fmt"
-	"github.com/shaharia-lab/mcp-kit/internal/service/google"
 	mcptools "github.com/shaharia-lab/mcp-tools"
 	"google.golang.org/api/gmail/v1"
 	"google.golang.org/api/option"
@@ -63,45 +62,39 @@ func NewServerCmd(logger *log.Logger) *cobra.Command {
 				}
 			}()
 
-			l := goaiObs.NewDefaultLogger()
-			baseServer, err := mcp.NewBaseServer(
-				mcp.UseLogger(l),
-			)
-
 			if err != nil {
 				return fmt.Errorf("failed to create base server: %w", err)
 			}
 
-			googleOAuthStorage := google.NewFileTokenStorage(container.Config.GoogleServiceConfig.TokenSourceFile)
-			googleAuthTokenSource, err := googleOAuthStorage.GetTokenSource(context.Background())
+			googleAuthTokenSource, err := container.GoogleOAuthTokenSourceStorage.GetTokenSource(ctx)
 			if err != nil {
 				return fmt.Errorf("failed to get token source: %w", err)
 			}
 
 			// configure gmail service
-			gmailSvc, err := gmail.NewService(context.Background(),
+			gmailSvc, err := gmail.NewService(ctx,
 				option.WithTokenSource(googleAuthTokenSource),
 				option.WithScopes(gmail.GmailReadonlyScope),
 			)
 			if err != nil {
 				logger.Fatalf("Failed to create Gmail service: %v", err)
 			}
-			toolsLists := setupTools(l, gmailSvc)
+			toolsLists := setupTools(container.LogrusLoggerImpl, gmailSvc)
 
-			err = baseServer.AddPrompts(prompt.MCPPromptsRegistry...)
+			err = container.BaseMCPServer.AddPrompts(prompt.MCPPromptsRegistry...)
 			if err != nil {
 				return fmt.Errorf("failed to add prompts: %w", err)
 			}
 
-			err = baseServer.AddTools(toolsLists...)
+			err = container.BaseMCPServer.AddTools(toolsLists...)
 			if err != nil {
 				return fmt.Errorf("failed to add tools: %w", err)
 			}
 
-			server := mcp.NewSSEServer(baseServer)
+			server := mcp.NewSSEServer(container.BaseMCPServer)
 			server.SetAddress(fmt.Sprintf(":%d", cfg.MCPServerPort))
 
-			l.Info("Server is starting...")
+			container.LogrusLoggerImpl.Info("Server is starting...")
 			if err = server.Run(ctx); err != nil {
 				return fmt.Errorf("failed to run server: %w", err)
 			}

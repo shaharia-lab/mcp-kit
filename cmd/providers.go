@@ -2,6 +2,8 @@ package cmd
 
 import (
 	"context"
+	"github.com/shaharia-lab/mcp-kit/internal/service/google"
+	"google.golang.org/api/gmail/v1"
 	"log"
 	"time"
 
@@ -16,17 +18,19 @@ import (
 
 // Container holds all the dependencies for our application
 type Container struct {
-	Logger             *log.Logger
-	MCPClient          *mcp.Client
-	ToolsProvider      *goai.ToolsProvider
-	ChatHistoryStorage goai.ChatHistoryStorage
-	Config             *config.Config
-	TracingService     *observability.TracingService
-	LoggerLogrus       *logrus.Logger
-	LogrusLoggerImpl   goaiObs.Logger
-	BaseMCPServer      *mcp.BaseServer
-	AuthService        *auth.AuthService
-	AuthMiddleware     *auth.AuthMiddleware
+	Logger                        *log.Logger
+	MCPClient                     *mcp.Client
+	ToolsProvider                 *goai.ToolsProvider
+	ChatHistoryStorage            goai.ChatHistoryStorage
+	Config                        *config.Config
+	TracingService                *observability.TracingService
+	LoggerLogrus                  *logrus.Logger
+	LogrusLoggerImpl              goaiObs.Logger
+	BaseMCPServer                 *mcp.BaseServer
+	AuthService                   *auth.AuthService
+	AuthMiddleware                *auth.AuthMiddleware
+	GoogleService                 *google.GoogleService
+	GoogleOAuthTokenSourceStorage google.GoogleOAuthTokenSourceStorage
 }
 
 func ProvideLogger() *log.Logger {
@@ -88,7 +92,7 @@ func ProvideToolsProvider(mcpClient *mcp.Client) (*goai.ToolsProvider, error) {
 	return provider, nil
 }
 
-func ProvideTracingService(cfg *config.Config, logger *logrus.Logger) *observability.TracingService {
+func ProvideTracingService(cfg *config.Config, logger goaiObs.Logger) *observability.TracingService {
 	tracingConfig := config.TracingConfig{
 		Enabled:         cfg.Tracing.Enabled,
 		ServiceName:     cfg.Tracing.ServiceName,
@@ -113,6 +117,28 @@ func ProvideMCPBaseServer(l goaiObs.Logger) (*mcp.BaseServer, error) {
 	)
 }
 
+func ProvideGoogleOAuthTokenSourceStorage(cfg *config.Config) google.GoogleOAuthTokenSourceStorage {
+	return google.NewFileTokenStorage(cfg.GoogleServiceConfig.TokenSourceFile)
+}
+
+func ProvideGoogleService(cfg *config.Config, oauthTokenStorage google.GoogleOAuthTokenSourceStorage) *google.GoogleService {
+	return google.NewGoogleService(oauthTokenStorage, google.Config{
+		ClientID:     cfg.GoogleServiceConfig.ClientID,
+		ClientSecret: cfg.GoogleServiceConfig.ClientSecret,
+		RedirectURL:  "http://localhost:8081/oauth/callback",
+		Scopes: []string{
+			gmail.GmailReadonlyScope,
+			gmail.GmailSendScope,
+			gmail.GmailModifyScope,
+			"openid",
+			"https://www.googleapis.com/auth/userinfo.email",
+			"https://www.googleapis.com/auth/userinfo.profile",
+		},
+
+		StateCookie: "google-oauth-state",
+	})
+}
+
 func NewContainer(
 	logger *log.Logger,
 	mcpClient *mcp.Client,
@@ -124,18 +150,22 @@ func NewContainer(
 	logrusLoggerImpl goaiObs.Logger,
 	baseServer *mcp.BaseServer,
 	authService *auth.AuthService,
+	googleService *google.GoogleService,
+	googleOAuthTokenSourceStorage google.GoogleOAuthTokenSourceStorage,
 ) *Container {
 	return &Container{
-		Logger:             logger,
-		MCPClient:          mcpClient,
-		ToolsProvider:      toolsProvider,
-		ChatHistoryStorage: chatHistoryStorage,
-		Config:             config,
-		TracingService:     tracingService,
-		LoggerLogrus:       loggerLogrus,
-		LogrusLoggerImpl:   logrusLoggerImpl,
-		BaseMCPServer:      baseServer,
-		AuthService:        authService,
-		AuthMiddleware:     auth.NewAuthMiddleware(authService, logrusLoggerImpl),
+		Logger:                        logger,
+		MCPClient:                     mcpClient,
+		ToolsProvider:                 toolsProvider,
+		ChatHistoryStorage:            chatHistoryStorage,
+		Config:                        config,
+		TracingService:                tracingService,
+		LoggerLogrus:                  loggerLogrus,
+		LogrusLoggerImpl:              logrusLoggerImpl,
+		BaseMCPServer:                 baseServer,
+		AuthService:                   authService,
+		AuthMiddleware:                auth.NewAuthMiddleware(authService, logrusLoggerImpl),
+		GoogleService:                 googleService,
+		GoogleOAuthTokenSourceStorage: googleOAuthTokenSourceStorage,
 	}
 }
