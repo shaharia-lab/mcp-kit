@@ -39,8 +39,8 @@ func NewTaskCmd() *cobra.Command {
 	}
 }
 
-func loadConfig() (*config.Config, error) {
-	cfg, err := config.Load()
+func loadConfig(configFilePath string) (*config.Config, error) {
+	cfg, err := config.Load(configFilePath)
 	if err != nil {
 		return nil, fmt.Errorf("failed to load config: %w", err)
 	}

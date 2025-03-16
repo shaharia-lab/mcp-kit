@@ -3,20 +3,21 @@ package cmd
 import (
 	"context"
 	"fmt"
-	mcptools "github.com/shaharia-lab/mcp-tools"
-	"log"
+	"github.com/shaharia-lab/mcp-kit/internal/config"
 
 	"github.com/shaharia-lab/goai/mcp"
 	goaiObs "github.com/shaharia-lab/goai/observability"
-	"github.com/shaharia-lab/mcp-kit/internal/config"
 	"github.com/shaharia-lab/mcp-kit/internal/prompt"
 	"github.com/shaharia-lab/mcp-kit/internal/tools"
+	mcptools "github.com/shaharia-lab/mcp-tools"
 	"github.com/spf13/cobra"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/codes"
+	"google.golang.org/api/gmail/v1"
+	"google.golang.org/api/option"
 )
 
-func NewServerCmd(logger *log.Logger) *cobra.Command {
+func NewServerCmd() *cobra.Command {
 	return &cobra.Command{
 		Use:   "server",
 		Short: "Start the server",
@@ -24,19 +25,16 @@ func NewServerCmd(logger *log.Logger) *cobra.Command {
 		RunE: func(cmd *cobra.Command, args []string) error {
 			var err error
 
-			cfg, err := config.Load()
-			if err != nil {
-				return fmt.Errorf("failed to load config: %w", err)
-			}
-
 			ctx := context.Background()
 
 			// Initialize all dependencies using Wire
-			container, cleanup, err := InitializeAPI(ctx)
+			container, cleanup, err := InitializeAPI(ctx, configFile)
 			if err != nil {
 				return fmt.Errorf("failed to initialize application: %w", err)
 			}
 			defer cleanup()
+
+			logger := container.LogrusLoggerImpl
 
 			// Initialize the tracing service
 			if err = container.TracingService.Initialize(ctx); err != nil {
@@ -60,31 +58,39 @@ func NewServerCmd(logger *log.Logger) *cobra.Command {
 				}
 			}()
 
-			l := goaiObs.NewDefaultLogger()
-			baseServer, err := mcp.NewBaseServer(
-				mcp.UseLogger(l),
-			)
-
 			if err != nil {
 				return fmt.Errorf("failed to create base server: %w", err)
 			}
 
-			toolsLists := setupTools(l)
+			googleAuthTokenSource, err := container.GoogleOAuthTokenSourceStorage.GetTokenSource(ctx)
+			if err != nil {
+				return fmt.Errorf("failed to get token source: %w", err)
+			}
 
-			err = baseServer.AddPrompts(prompt.MCPPromptsRegistry...)
+			// configure gmail service
+			gmailSvc, err := gmail.NewService(ctx,
+				option.WithTokenSource(googleAuthTokenSource),
+				option.WithScopes(gmail.GmailReadonlyScope),
+			)
+			if err != nil {
+				logger.Fatalf("Failed to create Gmail service: %v", err)
+			}
+			toolsLists := setupTools(container.LogrusLoggerImpl, gmailSvc, container.Config)
+
+			err = container.BaseMCPServer.AddPrompts(prompt.MCPPromptsRegistry...)
 			if err != nil {
 				return fmt.Errorf("failed to add prompts: %w", err)
 			}
 
-			err = baseServer.AddTools(toolsLists...)
+			err = container.BaseMCPServer.AddTools(toolsLists...)
 			if err != nil {
 				return fmt.Errorf("failed to add tools: %w", err)
 			}
 
-			server := mcp.NewSSEServer(baseServer)
-			server.SetAddress(fmt.Sprintf(":%d", cfg.MCPServerPort))
+			server := mcp.NewSSEServer(container.BaseMCPServer)
+			server.SetAddress(fmt.Sprintf(":%d", container.Config.MCPServerPort))
 
-			l.Info("Server is starting...")
+			container.LogrusLoggerImpl.Info("Server is starting...")
 			if err = server.Run(ctx); err != nil {
 				return fmt.Errorf("failed to run server: %w", err)
 			}
@@ -94,7 +100,7 @@ func NewServerCmd(logger *log.Logger) *cobra.Command {
 	}
 }
 
-func setupTools(logger goaiObs.Logger) []mcp.Tool {
+func setupTools(logger goaiObs.Logger, gmailService *gmail.Service, config *config.Config) []mcp.Tool {
 	ts := tools.MCPToolsRegistry
 
 	ghConfig := mcptools.NewGitHubTool(logger, mcptools.GitHubConfig{})
@@ -128,6 +134,11 @@ func setupTools(logger goaiObs.Logger) []mcp.Tool {
 		// PostgreSQL tools
 		postgres.PostgreSQLAllInOneTool(),
 	)
+
+	if config.GoogleServiceConfig.Enabled {
+		gmailTool := mcptools.NewGmail(logger, gmailService, mcptools.GmailConfig{})
+		ts = append(ts, gmailTool.GmailAllInOneTool())
+	}
 
 	return ts
 }

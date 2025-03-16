@@ -14,9 +14,6 @@ type LogrusLogger struct {
 
 // NewLogrusLogger creates a new LogrusLogger instance
 func NewLogrusLogger(log *logrus.Logger) goaiObs.Logger {
-	log.SetFormatter(&logrus.TextFormatter{
-		FullTimestamp: true,
-	})
 	return &LogrusLogger{
 		logger: logrus.NewEntry(log),
 	}

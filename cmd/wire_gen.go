@@ -13,11 +13,11 @@ import (
 // Injectors from wire.go:
 
 // InitializeAPI sets up the dependency injection
-func InitializeAPI(ctx context.Context) (*Container, func(), error) {
+func InitializeAPI(ctx context.Context, configFile2 string) (*Container, func(), error) {
 	logger := ProvideLogger()
 	logrusLogger := ProvideLogrusLogger()
 	observabilityLogger := ProvideLogrusLoggerImpl(logrusLogger)
-	config, err := ProvideConfig()
+	config, err := ProvideConfig(configFile2)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -27,7 +27,7 @@ func InitializeAPI(ctx context.Context) (*Container, func(), error) {
 		return nil, nil, err
 	}
 	chatHistoryStorage := ProvideChatHistoryStorage()
-	tracingService := ProvideTracingService(config, logrusLogger)
+	tracingService := ProvideTracingService(config, observabilityLogger)
 	baseServer, err := ProvideMCPBaseServer(observabilityLogger)
 	if err != nil {
 		return nil, nil, err
@@ -36,7 +36,9 @@ func InitializeAPI(ctx context.Context) (*Container, func(), error) {
 	if err != nil {
 		return nil, nil, err
 	}
-	container := NewContainer(logger, client, toolsProvider, chatHistoryStorage, config, tracingService, logrusLogger, observabilityLogger, baseServer, authService)
+	googleOAuthTokenSourceStorage := ProvideGoogleOAuthTokenSourceStorage(config)
+	googleService := ProvideGoogleService(config, googleOAuthTokenSourceStorage)
+	container := NewContainer(logger, client, toolsProvider, chatHistoryStorage, config, tracingService, logrusLogger, observabilityLogger, baseServer, authService, googleService, googleOAuthTokenSourceStorage)
 	return container, func() {
 	}, nil
 }
