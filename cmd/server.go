@@ -3,13 +3,9 @@ package cmd
 import (
 	"context"
 	"fmt"
-	"github.com/shaharia-lab/mcp-kit/internal/config"
-
 	"github.com/shaharia-lab/goai/mcp"
-	goaiObs "github.com/shaharia-lab/goai/observability"
 	"github.com/shaharia-lab/mcp-kit/internal/prompt"
 	"github.com/shaharia-lab/mcp-kit/internal/tools"
-	mcptools "github.com/shaharia-lab/mcp-tools"
 	"github.com/spf13/cobra"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/codes"
@@ -75,14 +71,19 @@ func NewServerCmd() *cobra.Command {
 			if err != nil {
 				logger.Fatalf("Failed to create Gmail service: %v", err)
 			}
-			toolsLists := setupTools(container.LogrusLoggerImpl, gmailSvc, container.Config)
 
 			err = container.BaseMCPServer.AddPrompts(prompt.MCPPromptsRegistry...)
 			if err != nil {
 				return fmt.Errorf("failed to add prompts: %w", err)
 			}
 
-			err = container.BaseMCPServer.AddTools(toolsLists...)
+			toolsRegistry := tools.NewRegistry(container.Config.Tools, container.LogrusLoggerImpl, gmailSvc)
+			err = toolsRegistry.Init()
+			if err != nil {
+				return fmt.Errorf("failed to initialize tools registry: %w", err)
+			}
+
+			err = container.BaseMCPServer.AddTools(toolsRegistry.GetToolLists()...)
 			if err != nil {
 				return fmt.Errorf("failed to add tools: %w", err)
 			}
@@ -98,47 +99,4 @@ func NewServerCmd() *cobra.Command {
 			return nil
 		},
 	}
-}
-
-func setupTools(logger goaiObs.Logger, gmailService *gmail.Service, config *config.Config) []mcp.Tool {
-	ts := tools.MCPToolsRegistry
-
-	ghConfig := mcptools.NewGitHubTool(logger, mcptools.GitHubConfig{})
-	fileSystem := mcptools.NewFileSystem(logger, mcptools.FileSystemConfig{})
-	docker := mcptools.NewDocker(logger)
-	git := mcptools.NewGit(logger, mcptools.GitConfig{})
-	curl := mcptools.NewCurl(logger, mcptools.CurlConfig{})
-	postgres := mcptools.NewPostgreSQL(logger, mcptools.PostgreSQLConfig{})
-
-	ts = append(
-		ts,
-
-		// Curl tools
-		curl.CurlAllInOneTool(),
-
-		// Git tools
-		git.GitAllInOneTool(),
-
-		// Docker tools
-		docker.DockerAllInOneTool(),
-
-		// File system tools
-		fileSystem.FileSystemAllInOneTool(),
-
-		// GitHub tools
-		ghConfig.GetIssuesTool(),
-		ghConfig.GetPullRequestsTool(),
-		ghConfig.GetRepositoryTool(),
-		ghConfig.GetSearchTool(),
-
-		// PostgreSQL tools
-		postgres.PostgreSQLAllInOneTool(),
-	)
-
-	if config.GoogleServiceConfig.Enabled {
-		gmailTool := mcptools.NewGmail(logger, gmailService, mcptools.GmailConfig{})
-		ts = append(ts, gmailTool.GmailAllInOneTool())
-	}
-
-	return ts
 }

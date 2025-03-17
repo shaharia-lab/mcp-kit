@@ -1,6 +1,8 @@
 package config
 
 import (
+	"fmt"
+	"github.com/shaharia-lab/mcp-kit/internal/tools"
 	"strings"
 	"time"
 
@@ -8,13 +10,14 @@ import (
 )
 
 type Config struct {
-	APIServerPort       int           `mapstructure:"api_server_port"`
-	MCPServerURL        string        `mapstructure:"mcp_server_url"`
-	MCPServerPort       int           `mapstructure:"mcp_server_port"`
-	ToolsEnabled        []string      `mapstructure:"tools_enabled"`
-	Tracing             TracingConfig `mapstructure:"tracing"`
-	Auth                AuthConfig    `mapstructure:"auth"`
-	GoogleServiceConfig GoogleConfig  `mapstructure:"google"`
+	APIServerPort       int                `mapstructure:"api_server_port"`
+	MCPServerURL        string             `mapstructure:"mcp_server_url"`
+	MCPServerPort       int                `mapstructure:"mcp_server_port"`
+	ToolsEnabled        []string           `mapstructure:"tools_enabled"`
+	Tracing             TracingConfig      `mapstructure:"tracing"`
+	Auth                AuthConfig         `mapstructure:"auth"`
+	GoogleServiceConfig GoogleConfig       `mapstructure:"google"`
+	Tools               *tools.ToolsConfig `yaml:"tools" validate:"required"`
 }
 
 // TracingConfig holds the configuration for the tracing service
@@ -54,6 +57,7 @@ func Load(configFile string) (*Config, error) {
 	var cfg Config
 
 	setDefaults()
+	tools.SetDefaults(viper.GetViper())
 
 	// Configure Viper
 	viper.SetConfigType("yaml")
@@ -71,6 +75,11 @@ func Load(configFile string) (*Config, error) {
 	// Unmarshal the config into our struct
 	if err := viper.Unmarshal(&cfg); err != nil {
 		return nil, err
+	}
+
+	// Validate tools configuration
+	if err := cfg.Tools.Validate(); err != nil {
+		return nil, fmt.Errorf("tools validation failed: %w", err)
 	}
 
 	return &cfg, nil
