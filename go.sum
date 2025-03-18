@@ -169,6 +169,8 @@ github.com/sagikazarmark/locafero v0.8.0 h1:mXaMVw7IqxNBxfv3LdWt9MDmcWDQ1fagDH91
 github.com/sagikazarmark/locafero v0.8.0/go.mod h1:UBUyz37V+EdMS3hDF3QWIiVr/2dPrx49OMO0Bn0hJqk=
 github.com/shaharia-lab/goai v0.12.0 h1:s177idIsM6GJhX3JJmyZRZ+4ve5pJnQ/QL3FaC4fMsc=
 github.com/shaharia-lab/goai v0.12.0/go.mod h1:EKzvGwFBTL8eLUIw3pTA+X18IMjfy5mncFQXhvQCnAo=
+github.com/shaharia-lab/mcp-tools v0.0.5 h1:Hwfigbu0CVLhGHDuqZpFxmUBGEfHiHsYj9phiP/ZQbM=
+github.com/shaharia-lab/mcp-tools v0.0.5/go.mod h1:fcAmptmJ+RhK7zwAM+dpIr6cCOtjJyn3yKjvPj98DYw=
 github.com/sirupsen/logrus v1.9.3 h1:dueUQJ1C2q9oE3F7wvmSGAaVtTmUizReu6fjN8uqzbQ=
 github.com/sirupsen/logrus v1.9.3/go.mod h1:naHLuLoDiP4jHNo9R0sCBMtWGeIprob74mVsIT4qYEQ=
 github.com/sourcegraph/conc v0.3.0 h1:OQTbbt6P72L20UqAkXXuLOj79LfEanQ+YQFNpLA9ySo=
