@@ -32,3 +32,56 @@ google:
   state_cookie: "static-value-for-now"
   token_source_file: "/tmp/google_auth_token_source.json"
   enabled: false
+
+tools:
+  get_wether:
+    enabled: true
+  postgres:
+    enabled: true
+    databases:
+      - name: "mcp_kit"
+        host: "localhost"
+        username: "root"
+        password: "root"
+        port: 5432
+        sslmode: "disable"
+  github_repository:
+    enabled: true
+    token: "${GITHUB_TOKEN}"
+  github_issues:
+    enabled: true
+    token: "${GITHUB_TOKEN}"
+  github_pull_requests:
+    enabled: true
+    token: "${GITHUB_TOKEN}"
+  github_search:
+    enabled: true
+    token: "${GITHUB_TOKEN}"
+  filesystem:
+    enabled: true
+    allowed_directory: "/tmp"
+    blocked_pattern:
+      - "secret"
+      - "password"
+  git:
+    enabled: true
+    default_repo_path: "/tmp"
+    blocked_commands:
+      - "push"
+      - "pull"
+      - "fetch"
+  curl:
+    enabled: true
+    blocked_methods:
+      - "POST"
+      - "PUT"
+      - "DELETE"
+  bash:
+    enabled: true
+  sed:
+    enabled: true
+  grep:
+    enabled: true
+  gmail:
+    enabled: true
+    token: "${GMAIL_TOKEN}"
