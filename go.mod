@@ -19,7 +19,7 @@ require (
 	github.com/openai/openai-go v0.1.0-alpha.61
 	github.com/prometheus/client_golang v1.21.1
 	github.com/shaharia-lab/goai v0.12.0
-	github.com/shaharia-lab/mcp-tools v0.0.4
+	github.com/shaharia-lab/mcp-tools v0.0.5
 	github.com/sirupsen/logrus v1.9.3
 	github.com/spf13/cobra v1.9.1
 	github.com/spf13/viper v1.20.0
