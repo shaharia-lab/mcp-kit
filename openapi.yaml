@@ -1,28 +1,36 @@
 openapi: 3.0.3
 info:
   title: MCP Kit API
+  description: API for interacting with the Model Context Protocol (MCP) Kit backend
   version: v1
+  contact:
+    name: Shaharia Lab OÜ
+    email: hello@shaharialab.com
 paths:
-  /llm-providers:
+  /api/v1/chats:
     get:
-      summary: Get a list of supported LLM providers and models
-      operationId: getLLMProviders
+      summary: List all chat histories
+      operationId: listChats
       tags:
-        - LLM Providers
+        - Chat
       responses:
         '200':
           description: Successful operation
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/SupportedLLMProviders'
+                type: object
+                properties:
+                  chats:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/ChatHistory'
         '500':
           description: Internal server error
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
-  /ask:
     post:
       summary: Ask a question to the LLM
       operationId: askQuestion
@@ -53,40 +61,17 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
-  /chats:
+
+  /api/v1/chats/{chatId}:
     get:
-      summary: List all chat histories
-      operationId: listChats
-      tags:
-        - Chat History
-      responses:
-        '200':
-          description: Successful operation
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  chats:
-                    type: array
-                    items:
-                      $ref: '#/components/schemas/ChatHistory'
-        '500':
-          description: Internal server error
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
-  /chat/{chatId}:
-    get:
-      summary: Get a single chat by ID
+      summary: Get a single chat by UUID
       operationId: getChat
       tags:
-        - Chat History
+        - Chat
       parameters:
         - name: chatId
           in: path
-          description: ID of the chat to retrieve
+          description: UUID of the chat to retrieve
           required: true
           schema:
             type: string
@@ -116,7 +101,53 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
-  /api/tools:
+
+  /api/v1/chats/stream:
+    post:
+      summary: Stream a chat conversation
+      operationId: streamChat
+      tags:
+        - Chat
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/StreamChatRequest'
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - type: object
+                    properties:
+                      content:
+                        type: string
+                        description: Chunk of the response content
+                  - type: object
+                    properties:
+                      content:
+                        type: string
+                        description: Last chunk of content
+                      done:
+                        type: boolean
+                        description: Indicates the stream has completed
+        '400':
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /api/v1/tools:
     get:
       summary: Get a list of available tools
       operationId: listTools
@@ -138,6 +169,26 @@ paths:
               schema:
                 $ref: '#/components/schemas/Error'
 
+  /api/v1/llm-providers:
+    get:
+      summary: Get a list of supported LLM providers and models
+      operationId: getLLMProviders
+      tags:
+        - LLM Providers
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SupportedLLMProviders'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
 components:
   schemas:
     Error:
@@ -152,46 +203,150 @@ components:
       properties:
         temperature:
           type: number
-          format: float
-          description: The temperature for the LLM model.
+          description: The sampling temperature for the model
+          example: 0.5
         maxTokens:
           type: integer
-          description: The maximum number of tokens for the LLM model.
+          description: Maximum number of tokens to generate
+          example: 2000
         topP:
           type: number
-          format: float
-          description: The top_p value for the LLM model.
+          description: Top-p sampling parameter
+          example: 0.5
         topK:
           type: integer
-          description: The top_k value for the LLM model.
+          description: Top-k sampling parameter
+          example: 50
+
+    StreamSettings:
+      type: object
+      properties:
+        chunk_size:
+          type: integer
+          description: Size of each chunk in the stream
+          example: 1
+        delay_ms:
+          type: integer
+          description: Delay between chunks in milliseconds
+          example: 10
 
     LLMProvider:
       type: object
       properties:
         provider:
           type: string
-          description: The name of the LLM provider.
+          description: Name of the provider (e.g., "Anthropic", "OpenAI")
+          example: "Anthropic"
         modelId:
           type: string
-          description: The ID of the model within the provider.
+          description: ID of the specific model to use
+          example: "claude-3-5-haiku-latest"
+
+    SupportedLLMProviders:
+      type: object
+      properties:
+        providers:
+          type: array
+          items:
+            type: object
+            properties:
+              name:
+                type: string
+                description: Name of the provider
+                example: "Anthropic"
+              models:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    name:
+                      type: string
+                      description: Name of the model
+                      example: "Claude 2.0"
+                    description:
+                      type: string
+                      description: Description of the model
+                      example: "Advanced language model optimized for reliability and thoughtful responses"
+                    modelId:
+                      type: string
+                      description: ID to use when referencing this model
+                      example: "claude-2.0"
+
+    Message:
+      type: object
+      properties:
+        Role:
+          type: string
+          description: Role of the message sender (user or assistant)
+          enum: [user, assistant]
+          example: "user"
+        Text:
+          type: string
+          description: Content of the message
+          example: "Hi"
+        generated_at:
+          type: string
+          format: date-time
+          description: Timestamp when the message was generated
+          example: "2025-03-18T23:43:38.06207668+01:00"
+
+    ChatHistory:
+      type: object
+      properties:
+        uuid:
+          type: string
+          format: uuid
+          description: Unique identifier for the chat
+          example: "9316b085-cdef-4588-86a8-098cf7c50c3a"
+        messages:
+          type: array
+          items:
+            $ref: '#/components/schemas/Message'
+        created_at:
+          type: string
+          format: date-time
+          description: Timestamp when the chat was created
+          example: "2025-03-18T23:43:38.061359628+01:00"
 
     QuestionRequest:
       type: object
+      required:
+        - question
       properties:
-        chat_uuid:
-          type: string
-          format: uuid
-          description: The UUID of the chat. If not provided, a new chat will be created.
         question:
           type: string
-          description: The question to ask the LLM.
+          description: The question or prompt to send to the LLM
+          example: "Hi"
         selectedTools:
           type: array
+          description: List of tool IDs to be made available for this request
           items:
             type: string
-          description: A list of tools to use for the question.
+          example: ["get_weather"]
         modelSettings:
           $ref: '#/components/schemas/ModelSettings'
+        llmProvider:
+          $ref: '#/components/schemas/LLMProvider'
+
+    StreamChatRequest:
+      type: object
+      required:
+        - question
+      properties:
+        question:
+          type: string
+          description: The question or prompt to send to the LLM
+          example: "Hi, what's the weather in Berlin, Germany?"
+        selectedTools:
+          type: array
+          description: List of tool IDs to be made available for this request
+          items:
+            type: string
+          example: ["get_weather"]
+        modelSettings:
+          $ref: '#/components/schemas/ModelSettings'
+        stream_settings:
+          $ref: '#/components/schemas/StreamSettings'
         llmProvider:
           $ref: '#/components/schemas/LLMProvider'
 
@@ -201,91 +356,29 @@ components:
         chat_uuid:
           type: string
           format: uuid
-          description: The UUID of the chat.
+          description: The UUID of the chat session
+          example: "9461ba91-86b0-496c-ab90-9995803507dc"
         answer:
           type: string
-          description: The answer from the LLM.
+          description: The answer from the LLM
+          example: "Hello! How can I assist you today?"
         input_token:
           type: integer
-          description: The number of input tokens used.
+          description: Number of tokens in the input
+          example: 129
         output_token:
           type: integer
-          description: The number of output tokens used.
-
-    ChatHistory:
-      type: object
-      properties:
-        UUID:
-          type: string
-          format: uuid
-          description: The UUID of the chat.
-        CreatedAt:
-          type: string
-          format: date-time
-          description: The creation time of the chat.
-        Messages:
-          type: array
-          items:
-            $ref: '#/components/schemas/Message'
-
-    Message:
-      type: object
-      properties:
-        GeneratedAt:
-          type: string
-          format: date-time
-          description: The time the message was generated.
-        LLMMessage:
-          $ref: '#/components/schemas/LLMMessage'
-
-    LLMMessage:
-      type: object
-      properties:
-        Role:
-          type: string
-          description: The role of the message sender (user, system, assistant)
-        Text:
-          type: string
-          description: The content of the message
-
-    Model:
-      type: object
-      properties:
-        name:
-          type: string
-          description: Name of the Model
-        description:
-          type: string
-          description: description of the model
-        modelId:
-          type: string
-          description: Model Id of the model
-
-    Provider:
-      type: object
-      properties:
-        name:
-          type: string
-          description: Name of the provider
-        models:
-          type: array
-          items:
-            $ref: '#/components/schemas/Model'
-
-    SupportedLLMProviders:
-      type: object
-      properties:
-        providers:
-          type: array
-          items:
-            $ref: '#/components/schemas/Provider'
+          description: Number of tokens in the output
+          example: 26
 
     ToolInfo:
       type: object
       properties:
         name:
           type: string
-          description: The name of the tool
+          description: Name of the tool
+          example: "bash"
         description:
           type: string
-          description: The description of the tool
+          description: Description of what the tool does
+          example: "Execute bash commands with specified script or command"

@@ -1,0 +1,881 @@
+{
+	"info": {
+		"_postman_id": "48c8dcf9-28b4-41ee-bd8e-3a7a9f82d09e",
+		"name": "MCP Kit API",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+		"_exporter_id": "14197513"
+	},
+	"item": [
+		{
+			"name": "api",
+			"item": [
+				{
+					"name": "v1",
+					"item": [
+						{
+							"name": "chats",
+							"item": [
+								{
+									"name": "{chatId}",
+									"item": [
+										{
+											"name": "Get a single chat by UUID",
+											"request": {
+												"method": "GET",
+												"header": [
+													{
+														"key": "Accept",
+														"value": "application/json"
+													}
+												],
+												"url": {
+													"raw": "{{baseUrl}}/api/v1/chats/:chatId",
+													"host": [
+														"{{baseUrl}}"
+													],
+													"path": [
+														"api",
+														"v1",
+														"chats",
+														":chatId"
+													],
+													"variable": [
+														{
+															"key": "chatId",
+															"value": "<uuid>",
+															"description": "(Required) UUID of the chat to retrieve"
+														}
+													]
+												}
+											},
+											"response": [
+												{
+													"name": "Successful operation",
+													"originalRequest": {
+														"method": "GET",
+														"header": [
+															{
+																"key": "Accept",
+																"value": "application/json"
+															}
+														],
+														"url": {
+															"raw": "//api/v1/chats/:chatId",
+															"path": [
+																"",
+																"api",
+																"v1",
+																"chats",
+																":chatId"
+															],
+															"variable": [
+																{
+																	"key": "chatId"
+																}
+															]
+														}
+													},
+													"status": "OK",
+													"code": 200,
+													"_postman_previewlanguage": "json",
+													"header": [
+														{
+															"key": "Content-Type",
+															"value": "application/json"
+														}
+													],
+													"cookie": [],
+													"body": "{\n  \"uuid\": \"<uuid>\",\n  \"messages\": [\n    {\n      \"Role\": \"assistant\",\n      \"Text\": \"<string>\",\n      \"generated_at\": \"<dateTime>\"\n    },\n    {\n      \"Role\": \"assistant\",\n      \"Text\": \"<string>\",\n      \"generated_at\": \"<dateTime>\"\n    }\n  ],\n  \"created_at\": \"<dateTime>\"\n}"
+												},
+												{
+													"name": "Bad request",
+													"originalRequest": {
+														"method": "GET",
+														"header": [
+															{
+																"key": "Accept",
+																"value": "application/json"
+															}
+														],
+														"url": {
+															"raw": "{{baseUrl}}/api/v1/chats/:chatId",
+															"host": [
+																"{{baseUrl}}"
+															],
+															"path": [
+																"api",
+																"v1",
+																"chats",
+																":chatId"
+															],
+															"variable": [
+																{
+																	"key": "chatId"
+																}
+															]
+														}
+													},
+													"status": "Bad Request",
+													"code": 400,
+													"_postman_previewlanguage": "json",
+													"header": [
+														{
+															"key": "Content-Type",
+															"value": "application/json"
+														}
+													],
+													"cookie": [],
+													"body": "{\n  \"error\": \"<string>\"\n}"
+												},
+												{
+													"name": "Chat not found",
+													"originalRequest": {
+														"method": "GET",
+														"header": [
+															{
+																"key": "Accept",
+																"value": "application/json"
+															}
+														],
+														"url": {
+															"raw": "{{baseUrl}}/api/v1/chats/:chatId",
+															"host": [
+																"{{baseUrl}}"
+															],
+															"path": [
+																"api",
+																"v1",
+																"chats",
+																":chatId"
+															],
+															"variable": [
+																{
+																	"key": "chatId"
+																}
+															]
+														}
+													},
+													"status": "Not Found",
+													"code": 404,
+													"_postman_previewlanguage": "json",
+													"header": [
+														{
+															"key": "Content-Type",
+															"value": "application/json"
+														}
+													],
+													"cookie": [],
+													"body": "{\n  \"error\": \"<string>\"\n}"
+												},
+												{
+													"name": "Internal server error",
+													"originalRequest": {
+														"method": "GET",
+														"header": [
+															{
+																"key": "Accept",
+																"value": "application/json"
+															}
+														],
+														"url": {
+															"raw": "{{baseUrl}}/api/v1/chats/:chatId",
+															"host": [
+																"{{baseUrl}}"
+															],
+															"path": [
+																"api",
+																"v1",
+																"chats",
+																":chatId"
+															],
+															"variable": [
+																{
+																	"key": "chatId"
+																}
+															]
+														}
+													},
+													"status": "Internal Server Error",
+													"code": 500,
+													"_postman_previewlanguage": "json",
+													"header": [
+														{
+															"key": "Content-Type",
+															"value": "application/json"
+														}
+													],
+													"cookie": [],
+													"body": "{\n  \"error\": \"<string>\"\n}"
+												}
+											]
+										}
+									]
+								},
+								{
+									"name": "stream",
+									"item": [
+										{
+											"name": "Stream a chat conversation",
+											"request": {
+												"method": "POST",
+												"header": [
+													{
+														"key": "Content-Type",
+														"value": "application/json"
+													},
+													{
+														"key": "Accept",
+														"value": "application/json"
+													}
+												],
+												"body": {
+													"mode": "raw",
+													"raw": "{\n  \"question\": \"<string>\",\n  \"selectedTools\": [\n    \"<string>\",\n    \"<string>\"\n  ],\n  \"modelSettings\": {\n    \"temperature\": \"<number>\",\n    \"maxTokens\": \"<integer>\",\n    \"topP\": \"<number>\",\n    \"topK\": \"<integer>\"\n  },\n  \"stream_settings\": {\n    \"chunk_size\": \"<integer>\",\n    \"delay_ms\": \"<integer>\"\n  },\n  \"llmProvider\": {\n    \"provider\": \"<string>\",\n    \"modelId\": \"<string>\"\n  }\n}",
+													"options": {
+														"raw": {
+															"headerFamily": "json",
+															"language": "json"
+														}
+													}
+												},
+												"url": {
+													"raw": "{{baseUrl}}/api/v1/chats/stream",
+													"host": [
+														"{{baseUrl}}"
+													],
+													"path": [
+														"api",
+														"v1",
+														"chats",
+														"stream"
+													]
+												}
+											},
+											"response": [
+												{
+													"name": "Successful operation",
+													"originalRequest": {
+														"method": "POST",
+														"header": [
+															{
+																"key": "Content-Type",
+																"value": "application/json"
+															},
+															{
+																"key": "Accept",
+																"value": "application/json"
+															}
+														],
+														"body": {
+															"mode": "raw",
+															"raw": "{\n  \"question\": \"<string>\",\n  \"selectedTools\": [\n    \"<string>\",\n    \"<string>\"\n  ],\n  \"modelSettings\": {\n    \"temperature\": \"<number>\",\n    \"maxTokens\": \"<integer>\",\n    \"topP\": \"<number>\",\n    \"topK\": \"<integer>\"\n  },\n  \"stream_settings\": {\n    \"chunk_size\": \"<integer>\",\n    \"delay_ms\": \"<integer>\"\n  },\n  \"llmProvider\": {\n    \"provider\": \"<string>\",\n    \"modelId\": \"<string>\"\n  }\n}",
+															"options": {
+																"raw": {
+																	"headerFamily": "json",
+																	"language": "json"
+																}
+															}
+														},
+														"url": {
+															"raw": "//api/v1/chats/stream",
+															"path": [
+																"",
+																"api",
+																"v1",
+																"chats",
+																"stream"
+															]
+														}
+													},
+													"status": "OK",
+													"code": 200,
+													"_postman_previewlanguage": "json",
+													"header": [
+														{
+															"key": "Content-Type",
+															"value": "application/json"
+														}
+													],
+													"cookie": [],
+													"body": "{\n  \"content\": \"<string>\"\n}"
+												},
+												{
+													"name": "Bad request",
+													"originalRequest": {
+														"method": "POST",
+														"header": [
+															{
+																"key": "Content-Type",
+																"value": "application/json"
+															},
+															{
+																"key": "Accept",
+																"value": "application/json"
+															}
+														],
+														"body": {
+															"mode": "raw",
+															"raw": "{\n  \"question\": \"<string>\",\n  \"selectedTools\": [\n    \"<string>\",\n    \"<string>\"\n  ],\n  \"modelSettings\": {\n    \"temperature\": \"<number>\",\n    \"maxTokens\": \"<integer>\",\n    \"topP\": \"<number>\",\n    \"topK\": \"<integer>\"\n  },\n  \"stream_settings\": {\n    \"chunk_size\": \"<integer>\",\n    \"delay_ms\": \"<integer>\"\n  },\n  \"llmProvider\": {\n    \"provider\": \"<string>\",\n    \"modelId\": \"<string>\"\n  }\n}",
+															"options": {
+																"raw": {
+																	"headerFamily": "json",
+																	"language": "json"
+																}
+															}
+														},
+														"url": {
+															"raw": "{{baseUrl}}/api/v1/chats/stream",
+															"host": [
+																"{{baseUrl}}"
+															],
+															"path": [
+																"api",
+																"v1",
+																"chats",
+																"stream"
+															]
+														}
+													},
+													"status": "Bad Request",
+													"code": 400,
+													"_postman_previewlanguage": "json",
+													"header": [
+														{
+															"key": "Content-Type",
+															"value": "application/json"
+														}
+													],
+													"cookie": [],
+													"body": "{\n  \"error\": \"<string>\"\n}"
+												},
+												{
+													"name": "Internal server error",
+													"originalRequest": {
+														"method": "POST",
+														"header": [
+															{
+																"key": "Content-Type",
+																"value": "application/json"
+															},
+															{
+																"key": "Accept",
+																"value": "application/json"
+															}
+														],
+														"body": {
+															"mode": "raw",
+															"raw": "{\n  \"question\": \"<string>\",\n  \"selectedTools\": [\n    \"<string>\",\n    \"<string>\"\n  ],\n  \"modelSettings\": {\n    \"temperature\": \"<number>\",\n    \"maxTokens\": \"<integer>\",\n    \"topP\": \"<number>\",\n    \"topK\": \"<integer>\"\n  },\n  \"stream_settings\": {\n    \"chunk_size\": \"<integer>\",\n    \"delay_ms\": \"<integer>\"\n  },\n  \"llmProvider\": {\n    \"provider\": \"<string>\",\n    \"modelId\": \"<string>\"\n  }\n}",
+															"options": {
+																"raw": {
+																	"headerFamily": "json",
+																	"language": "json"
+																}
+															}
+														},
+														"url": {
+															"raw": "{{baseUrl}}/api/v1/chats/stream",
+															"host": [
+																"{{baseUrl}}"
+															],
+															"path": [
+																"api",
+																"v1",
+																"chats",
+																"stream"
+															]
+														}
+													},
+													"status": "Internal Server Error",
+													"code": 500,
+													"_postman_previewlanguage": "json",
+													"header": [
+														{
+															"key": "Content-Type",
+															"value": "application/json"
+														}
+													],
+													"cookie": [],
+													"body": "{\n  \"error\": \"<string>\"\n}"
+												}
+											]
+										}
+									]
+								},
+								{
+									"name": "List all chat histories",
+									"request": {
+										"method": "GET",
+										"header": [
+											{
+												"key": "Accept",
+												"value": "application/json"
+											}
+										],
+										"url": {
+											"raw": "{{baseUrl}}/api/v1/chats",
+											"host": [
+												"{{baseUrl}}"
+											],
+											"path": [
+												"api",
+												"v1",
+												"chats"
+											]
+										}
+									},
+									"response": [
+										{
+											"name": "Successful operation",
+											"originalRequest": {
+												"method": "GET",
+												"header": [
+													{
+														"key": "Accept",
+														"value": "application/json"
+													}
+												],
+												"url": {
+													"raw": "//api/v1/chats",
+													"path": [
+														"",
+														"api",
+														"v1",
+														"chats"
+													]
+												}
+											},
+											"status": "OK",
+											"code": 200,
+											"_postman_previewlanguage": "json",
+											"header": [
+												{
+													"key": "Content-Type",
+													"value": "application/json"
+												}
+											],
+											"cookie": [],
+											"body": "{\n  \"chats\": [\n    {\n      \"uuid\": \"<uuid>\",\n      \"messages\": [\n        {\n          \"Role\": \"user\",\n          \"Text\": \"<string>\",\n          \"generated_at\": \"<dateTime>\"\n        },\n        {\n          \"Role\": \"user\",\n          \"Text\": \"<string>\",\n          \"generated_at\": \"<dateTime>\"\n        }\n      ],\n      \"created_at\": \"<dateTime>\"\n    },\n    {\n      \"uuid\": \"<uuid>\",\n      \"messages\": [\n        {\n          \"Role\": \"user\",\n          \"Text\": \"<string>\",\n          \"generated_at\": \"<dateTime>\"\n        },\n        {\n          \"Role\": \"user\",\n          \"Text\": \"<string>\",\n          \"generated_at\": \"<dateTime>\"\n        }\n      ],\n      \"created_at\": \"<dateTime>\"\n    }\n  ]\n}"
+										},
+										{
+											"name": "Internal server error",
+											"originalRequest": {
+												"method": "GET",
+												"header": [
+													{
+														"key": "Accept",
+														"value": "application/json"
+													}
+												],
+												"url": {
+													"raw": "{{baseUrl}}/api/v1/chats",
+													"host": [
+														"{{baseUrl}}"
+													],
+													"path": [
+														"api",
+														"v1",
+														"chats"
+													]
+												}
+											},
+											"status": "Internal Server Error",
+											"code": 500,
+											"_postman_previewlanguage": "json",
+											"header": [
+												{
+													"key": "Content-Type",
+													"value": "application/json"
+												}
+											],
+											"cookie": [],
+											"body": "{\n  \"error\": \"<string>\"\n}"
+										}
+									]
+								},
+								{
+									"name": "Ask a question to the LLM",
+									"request": {
+										"method": "POST",
+										"header": [
+											{
+												"key": "Content-Type",
+												"value": "application/json"
+											},
+											{
+												"key": "Accept",
+												"value": "application/json"
+											}
+										],
+										"body": {
+											"mode": "raw",
+											"raw": "{\n  \"question\": \"<string>\",\n  \"selectedTools\": [\n    \"<string>\",\n    \"<string>\"\n  ],\n  \"modelSettings\": {\n    \"temperature\": \"<number>\",\n    \"maxTokens\": \"<integer>\",\n    \"topP\": \"<number>\",\n    \"topK\": \"<integer>\"\n  },\n  \"llmProvider\": {\n    \"provider\": \"<string>\",\n    \"modelId\": \"<string>\"\n  }\n}",
+											"options": {
+												"raw": {
+													"headerFamily": "json",
+													"language": "json"
+												}
+											}
+										},
+										"url": {
+											"raw": "{{baseUrl}}/api/v1/chats",
+											"host": [
+												"{{baseUrl}}"
+											],
+											"path": [
+												"api",
+												"v1",
+												"chats"
+											]
+										}
+									},
+									"response": [
+										{
+											"name": "Successful operation",
+											"originalRequest": {
+												"method": "POST",
+												"header": [
+													{
+														"key": "Content-Type",
+														"value": "application/json"
+													},
+													{
+														"key": "Accept",
+														"value": "application/json"
+													}
+												],
+												"body": {
+													"mode": "raw",
+													"raw": "{\n  \"question\": \"<string>\",\n  \"selectedTools\": [\n    \"<string>\",\n    \"<string>\"\n  ],\n  \"modelSettings\": {\n    \"temperature\": \"<number>\",\n    \"maxTokens\": \"<integer>\",\n    \"topP\": \"<number>\",\n    \"topK\": \"<integer>\"\n  },\n  \"llmProvider\": {\n    \"provider\": \"<string>\",\n    \"modelId\": \"<string>\"\n  }\n}",
+													"options": {
+														"raw": {
+															"headerFamily": "json",
+															"language": "json"
+														}
+													}
+												},
+												"url": {
+													"raw": "//api/v1/chats",
+													"path": [
+														"",
+														"api",
+														"v1",
+														"chats"
+													]
+												}
+											},
+											"status": "OK",
+											"code": 200,
+											"_postman_previewlanguage": "json",
+											"header": [
+												{
+													"key": "Content-Type",
+													"value": "application/json"
+												}
+											],
+											"cookie": [],
+											"body": "{\n  \"chat_uuid\": \"<uuid>\",\n  \"answer\": \"<string>\",\n  \"input_token\": \"<integer>\",\n  \"output_token\": \"<integer>\"\n}"
+										},
+										{
+											"name": "Bad request",
+											"originalRequest": {
+												"method": "POST",
+												"header": [
+													{
+														"key": "Content-Type",
+														"value": "application/json"
+													},
+													{
+														"key": "Accept",
+														"value": "application/json"
+													}
+												],
+												"body": {
+													"mode": "raw",
+													"raw": "{\n  \"question\": \"<string>\",\n  \"selectedTools\": [\n    \"<string>\",\n    \"<string>\"\n  ],\n  \"modelSettings\": {\n    \"temperature\": \"<number>\",\n    \"maxTokens\": \"<integer>\",\n    \"topP\": \"<number>\",\n    \"topK\": \"<integer>\"\n  },\n  \"llmProvider\": {\n    \"provider\": \"<string>\",\n    \"modelId\": \"<string>\"\n  }\n}",
+													"options": {
+														"raw": {
+															"headerFamily": "json",
+															"language": "json"
+														}
+													}
+												},
+												"url": {
+													"raw": "{{baseUrl}}/api/v1/chats",
+													"host": [
+														"{{baseUrl}}"
+													],
+													"path": [
+														"api",
+														"v1",
+														"chats"
+													]
+												}
+											},
+											"status": "Bad Request",
+											"code": 400,
+											"_postman_previewlanguage": "json",
+											"header": [
+												{
+													"key": "Content-Type",
+													"value": "application/json"
+												}
+											],
+											"cookie": [],
+											"body": "{\n  \"error\": \"<string>\"\n}"
+										},
+										{
+											"name": "Internal server error",
+											"originalRequest": {
+												"method": "POST",
+												"header": [
+													{
+														"key": "Content-Type",
+														"value": "application/json"
+													},
+													{
+														"key": "Accept",
+														"value": "application/json"
+													}
+												],
+												"body": {
+													"mode": "raw",
+													"raw": "{\n  \"question\": \"<string>\",\n  \"selectedTools\": [\n    \"<string>\",\n    \"<string>\"\n  ],\n  \"modelSettings\": {\n    \"temperature\": \"<number>\",\n    \"maxTokens\": \"<integer>\",\n    \"topP\": \"<number>\",\n    \"topK\": \"<integer>\"\n  },\n  \"llmProvider\": {\n    \"provider\": \"<string>\",\n    \"modelId\": \"<string>\"\n  }\n}",
+													"options": {
+														"raw": {
+															"headerFamily": "json",
+															"language": "json"
+														}
+													}
+												},
+												"url": {
+													"raw": "{{baseUrl}}/api/v1/chats",
+													"host": [
+														"{{baseUrl}}"
+													],
+													"path": [
+														"api",
+														"v1",
+														"chats"
+													]
+												}
+											},
+											"status": "Internal Server Error",
+											"code": 500,
+											"_postman_previewlanguage": "json",
+											"header": [
+												{
+													"key": "Content-Type",
+													"value": "application/json"
+												}
+											],
+											"cookie": [],
+											"body": "{\n  \"error\": \"<string>\"\n}"
+										}
+									]
+								}
+							]
+						},
+						{
+							"name": "tools",
+							"item": [
+								{
+									"name": "Get a list of available tools",
+									"request": {
+										"method": "GET",
+										"header": [
+											{
+												"key": "Accept",
+												"value": "application/json"
+											}
+										],
+										"url": {
+											"raw": "{{baseUrl}}/api/v1/tools",
+											"host": [
+												"{{baseUrl}}"
+											],
+											"path": [
+												"api",
+												"v1",
+												"tools"
+											]
+										}
+									},
+									"response": [
+										{
+											"name": "Successful operation",
+											"originalRequest": {
+												"method": "GET",
+												"header": [
+													{
+														"key": "Accept",
+														"value": "application/json"
+													}
+												],
+												"url": {
+													"raw": "//api/v1/tools",
+													"path": [
+														"",
+														"api",
+														"v1",
+														"tools"
+													]
+												}
+											},
+											"status": "OK",
+											"code": 200,
+											"_postman_previewlanguage": "json",
+											"header": [
+												{
+													"key": "Content-Type",
+													"value": "application/json"
+												}
+											],
+											"cookie": [],
+											"body": "[\n  {\n    \"name\": \"<string>\",\n    \"description\": \"<string>\"\n  },\n  {\n    \"name\": \"<string>\",\n    \"description\": \"<string>\"\n  }\n]"
+										},
+										{
+											"name": "Internal server error",
+											"originalRequest": {
+												"method": "GET",
+												"header": [
+													{
+														"key": "Accept",
+														"value": "application/json"
+													}
+												],
+												"url": {
+													"raw": "{{baseUrl}}/api/v1/tools",
+													"host": [
+														"{{baseUrl}}"
+													],
+													"path": [
+														"api",
+														"v1",
+														"tools"
+													]
+												}
+											},
+											"status": "Internal Server Error",
+											"code": 500,
+											"_postman_previewlanguage": "json",
+											"header": [
+												{
+													"key": "Content-Type",
+													"value": "application/json"
+												}
+											],
+											"cookie": [],
+											"body": "{\n  \"error\": \"<string>\"\n}"
+										}
+									]
+								}
+							]
+						},
+						{
+							"name": "llm-providers",
+							"item": [
+								{
+									"name": "Get a list of supported LLM providers and models",
+									"request": {
+										"method": "GET",
+										"header": [
+											{
+												"key": "Accept",
+												"value": "application/json"
+											}
+										],
+										"url": {
+											"raw": "{{baseUrl}}/api/v1/llm-providers",
+											"host": [
+												"{{baseUrl}}"
+											],
+											"path": [
+												"api",
+												"v1",
+												"llm-providers"
+											]
+										}
+									},
+									"response": [
+										{
+											"name": "Successful operation",
+											"originalRequest": {
+												"method": "GET",
+												"header": [
+													{
+														"key": "Accept",
+														"value": "application/json"
+													}
+												],
+												"url": {
+													"raw": "//api/v1/llm-providers",
+													"path": [
+														"",
+														"api",
+														"v1",
+														"llm-providers"
+													]
+												}
+											},
+											"status": "OK",
+											"code": 200,
+											"_postman_previewlanguage": "json",
+											"header": [
+												{
+													"key": "Content-Type",
+													"value": "application/json"
+												}
+											],
+											"cookie": [],
+											"body": "{\n  \"providers\": [\n    {\n      \"name\": \"<string>\",\n      \"models\": [\n        {\n          \"name\": \"<string>\",\n          \"description\": \"<string>\",\n          \"modelId\": \"<string>\"\n        },\n        {\n          \"name\": \"<string>\",\n          \"description\": \"<string>\",\n          \"modelId\": \"<string>\"\n        }\n      ]\n    },\n    {\n      \"name\": \"<string>\",\n      \"models\": [\n        {\n          \"name\": \"<string>\",\n          \"description\": \"<string>\",\n          \"modelId\": \"<string>\"\n        },\n        {\n          \"name\": \"<string>\",\n          \"description\": \"<string>\",\n          \"modelId\": \"<string>\"\n        }\n      ]\n    }\n  ]\n}"
+										},
+										{
+											"name": "Internal server error",
+											"originalRequest": {
+												"method": "GET",
+												"header": [
+													{
+														"key": "Accept",
+														"value": "application/json"
+													}
+												],
+												"url": {
+													"raw": "{{baseUrl}}/api/v1/llm-providers",
+													"host": [
+														"{{baseUrl}}"
+													],
+													"path": [
+														"api",
+														"v1",
+														"llm-providers"
+													]
+												}
+											},
+											"status": "Internal Server Error",
+											"code": 500,
+											"_postman_previewlanguage": "json",
+											"header": [
+												{
+													"key": "Content-Type",
+													"value": "application/json"
+												}
+											],
+											"cookie": [],
+											"body": "{\n  \"error\": \"<string>\"\n}"
+										}
+									]
+								}
+							]
+						}
+					]
+				}
+			]
+		}
+	],
+	"variable": [
+		{
+			"key": "baseUrl",
+			"value": "/"
+		}
+	]
+}
