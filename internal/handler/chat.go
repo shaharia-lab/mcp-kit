@@ -160,8 +160,13 @@ func HandleAskStream(mcpClient *mcp.Client, logger *log.Logger, historyStorage g
 		}
 		defer reqCtx.span.End()
 
-		// Setup streaming
-		if err := setupStreamingHeaders(w); err != nil {
+		// Setup streaming headers
+		var chatUUID string
+		if reqCtx.chat != nil {
+			chatUUID = reqCtx.chat.UUID.String()
+		}
+
+		if err := setupStreamingHeaders(w, chatUUID); err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
@@ -318,12 +323,17 @@ func addUserMessage(
 	return messages, nil
 }
 
-func setupStreamingHeaders(w http.ResponseWriter) error {
+func setupStreamingHeaders(w http.ResponseWriter, chatUUID string) error {
 	w.Header().Set("Content-Type", "application/json")
 	w.Header().Set("X-Content-Type-Options", "nosniff")
 	w.Header().Set("Cache-Control", "no-cache")
 	w.Header().Set("Connection", "keep-alive")
 	w.Header().Set("X-Accel-Buffering", "no")
+
+	if chatUUID != "" {
+		w.Header().Set("X-MKit-Chat-UUID", chatUUID)
+	}
+
 	return nil
 }
 
