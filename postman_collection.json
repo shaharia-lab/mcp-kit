@@ -50,44 +50,6 @@
 											},
 											"response": [
 												{
-													"name": "Successful operation",
-													"originalRequest": {
-														"method": "GET",
-														"header": [
-															{
-																"key": "Accept",
-																"value": "application/json"
-															}
-														],
-														"url": {
-															"raw": "//api/v1/chats/:chatId",
-															"path": [
-																"",
-																"api",
-																"v1",
-																"chats",
-																":chatId"
-															],
-															"variable": [
-																{
-																	"key": "chatId"
-																}
-															]
-														}
-													},
-													"status": "OK",
-													"code": 200,
-													"_postman_previewlanguage": "json",
-													"header": [
-														{
-															"key": "Content-Type",
-															"value": "application/json"
-														}
-													],
-													"cookie": [],
-													"body": "{\n  \"uuid\": \"<uuid>\",\n  \"messages\": [\n    {\n      \"Role\": \"assistant\",\n      \"Text\": \"<string>\",\n      \"generated_at\": \"<dateTime>\"\n    },\n    {\n      \"Role\": \"assistant\",\n      \"Text\": \"<string>\",\n      \"generated_at\": \"<dateTime>\"\n    }\n  ],\n  \"created_at\": \"<dateTime>\"\n}"
-												},
-												{
 													"name": "Bad request",
 													"originalRequest": {
 														"method": "GET",
@@ -206,6 +168,60 @@
 													],
 													"cookie": [],
 													"body": "{\n  \"error\": \"<string>\"\n}"
+												},
+												{
+													"name": "200 OK",
+													"originalRequest": {
+														"method": "GET",
+														"header": [
+															{
+																"key": "Accept",
+																"value": "application/json"
+															}
+														],
+														"url": {
+															"raw": "{{baseUrl}}/api/v1/chats/:chatId",
+															"host": [
+																"{{baseUrl}}"
+															],
+															"path": [
+																"api",
+																"v1",
+																"chats",
+																":chatId"
+															],
+															"variable": [
+																{
+																	"key": "chatId",
+																	"value": "b6e5139e-bac3-4b75-8aff-0ae83abdc473",
+																	"description": "(Required) UUID of the chat to retrieve"
+																}
+															]
+														}
+													},
+													"status": "OK",
+													"code": 200,
+													"_postman_previewlanguage": "json",
+													"header": [
+														{
+															"key": "Content-Type",
+															"value": "application/json"
+														},
+														{
+															"key": "Vary",
+															"value": "Origin"
+														},
+														{
+															"key": "Date",
+															"value": "Wed, 19 Mar 2025 00:20:16 GMT"
+														},
+														{
+															"key": "Content-Length",
+															"value": "553"
+														}
+													],
+													"cookie": [],
+													"body": "{\n    \"uuid\": \"b6e5139e-bac3-4b75-8aff-0ae83abdc473\",\n    \"messages\": [\n        {\n            \"Role\": \"user\",\n            \"Text\": \"Hi, what's the weather in Berlin, Germany?\",\n            \"generated_at\": \"2025-03-19T00:53:57.835098242+01:00\"\n        },\n        {\n            \"Role\": \"assistant\",\n            \"Text\": \"I'll help you check the current weather in Berlin, Germany.It's a nice day in Berlin! The current weather is sunny with a temperature of 72°F (about 22°C)[^1].\\n\\n[^1]: Weather data retrieved using get_weather tool for Berlin, Germany\",\n            \"generated_at\": \"2025-03-19T00:54:01.799091867+01:00\"\n        }\n    ],\n    \"created_at\": \"2025-03-19T00:53:57.834335518+01:00\"\n}"
 												}
 											]
 										}
@@ -230,7 +246,7 @@
 												],
 												"body": {
 													"mode": "raw",
-													"raw": "{\n  \"question\": \"<string>\",\n  \"selectedTools\": [\n    \"<string>\",\n    \"<string>\"\n  ],\n  \"modelSettings\": {\n    \"temperature\": \"<number>\",\n    \"maxTokens\": \"<integer>\",\n    \"topP\": \"<number>\",\n    \"topK\": \"<integer>\"\n  },\n  \"stream_settings\": {\n    \"chunk_size\": \"<integer>\",\n    \"delay_ms\": \"<integer>\"\n  },\n  \"llmProvider\": {\n    \"provider\": \"<string>\",\n    \"modelId\": \"<string>\"\n  }\n}",
+													"raw": "{\n  \"question\": \"Hello\",\n  \"selectedTools\": [\n    \"get_weather\"\n  ],\n  \"modelSettings\": {\n    \"temperature\": 0.7,\n    \"maxTokens\": 300,\n    \"topP\": 0.5,\n    \"topK\": 50\n  },\n  \"stream_settings\": {\n    \"chunk_size\": 1,\n    \"delay_ms\": 5\n  },\n  \"llmProvider\": {\n    \"provider\": \"Anthropic\",\n    \"modelId\": \"claude-3-5-haiku-latest\"\n  }\n}",
 													"options": {
 														"raw": {
 															"headerFamily": "json",
@@ -252,53 +268,6 @@
 												}
 											},
 											"response": [
-												{
-													"name": "Successful operation",
-													"originalRequest": {
-														"method": "POST",
-														"header": [
-															{
-																"key": "Content-Type",
-																"value": "application/json"
-															},
-															{
-																"key": "Accept",
-																"value": "application/json"
-															}
-														],
-														"body": {
-															"mode": "raw",
-															"raw": "{\n  \"question\": \"<string>\",\n  \"selectedTools\": [\n    \"<string>\",\n    \"<string>\"\n  ],\n  \"modelSettings\": {\n    \"temperature\": \"<number>\",\n    \"maxTokens\": \"<integer>\",\n    \"topP\": \"<number>\",\n    \"topK\": \"<integer>\"\n  },\n  \"stream_settings\": {\n    \"chunk_size\": \"<integer>\",\n    \"delay_ms\": \"<integer>\"\n  },\n  \"llmProvider\": {\n    \"provider\": \"<string>\",\n    \"modelId\": \"<string>\"\n  }\n}",
-															"options": {
-																"raw": {
-																	"headerFamily": "json",
-																	"language": "json"
-																}
-															}
-														},
-														"url": {
-															"raw": "//api/v1/chats/stream",
-															"path": [
-																"",
-																"api",
-																"v1",
-																"chats",
-																"stream"
-															]
-														}
-													},
-													"status": "OK",
-													"code": 200,
-													"_postman_previewlanguage": "json",
-													"header": [
-														{
-															"key": "Content-Type",
-															"value": "application/json"
-														}
-													],
-													"cookie": [],
-													"body": "{\n  \"content\": \"<string>\"\n}"
-												},
 												{
 													"name": "Bad request",
 													"originalRequest": {
@@ -396,6 +365,83 @@
 													],
 													"cookie": [],
 													"body": "{\n  \"error\": \"<string>\"\n}"
+												},
+												{
+													"name": "200 OK",
+													"originalRequest": {
+														"method": "POST",
+														"header": [
+															{
+																"key": "Content-Type",
+																"value": "application/json"
+															},
+															{
+																"key": "Accept",
+																"value": "application/json"
+															}
+														],
+														"body": {
+															"mode": "raw",
+															"raw": "{\n  \"question\": \"Hello\",\n  \"selectedTools\": [\n    \"get_weather\"\n  ],\n  \"modelSettings\": {\n    \"temperature\": 0.7,\n    \"maxTokens\": 300,\n    \"topP\": 0.5,\n    \"topK\": 50\n  },\n  \"stream_settings\": {\n    \"chunk_size\": 1,\n    \"delay_ms\": 5\n  },\n  \"llmProvider\": {\n    \"provider\": \"Anthropic\",\n    \"modelId\": \"claude-3-5-haiku-latest\"\n  }\n}",
+															"options": {
+																"raw": {
+																	"headerFamily": "json",
+																	"language": "json"
+																}
+															}
+														},
+														"url": {
+															"raw": "{{baseUrl}}/api/v1/chats/stream",
+															"host": [
+																"{{baseUrl}}"
+															],
+															"path": [
+																"api",
+																"v1",
+																"chats",
+																"stream"
+															]
+														}
+													},
+													"status": "OK",
+													"code": 200,
+													"_postman_previewlanguage": "json",
+													"header": [
+														{
+															"key": "Cache-Control",
+															"value": "no-cache"
+														},
+														{
+															"key": "Connection",
+															"value": "keep-alive"
+														},
+														{
+															"key": "Content-Type",
+															"value": "application/json"
+														},
+														{
+															"key": "Vary",
+															"value": "Origin"
+														},
+														{
+															"key": "X-Accel-Buffering",
+															"value": "no"
+														},
+														{
+															"key": "X-Content-Type-Options",
+															"value": "nosniff"
+														},
+														{
+															"key": "Date",
+															"value": "Wed, 19 Mar 2025 00:17:58 GMT"
+														},
+														{
+															"key": "Transfer-Encoding",
+															"value": "chunked"
+														}
+													],
+													"cookie": [],
+													"body": "{\"content\":\"Hi\"}\n{\"content\":\" there! How can I help\"}\n{\"content\":\" you today?\"}\n{\"content\":\" I'm ready to assist you\"}\n{\"content\":\" with any questions or tasks\"}\n{\"content\":\" you might have.\"}\n{\"content\":\" Would you like to know\"}\n{\"content\":\" the weather\"}\n{\"content\":\" for a\"}\n{\"content\":\" specific location,\"}\n{\"content\":\" or is\"}\n{\"content\":\" there something else I can help you\"}\n{\"content\":\" with?\"}\n{\"content\":\"\",\"done\":true}\n"
 												}
 											]
 										}
@@ -489,6 +535,52 @@
 											],
 											"cookie": [],
 											"body": "{\n  \"error\": \"<string>\"\n}"
+										},
+										{
+											"name": "200 OK",
+											"originalRequest": {
+												"method": "GET",
+												"header": [
+													{
+														"key": "Accept",
+														"value": "application/json"
+													}
+												],
+												"url": {
+													"raw": "{{baseUrl}}/api/v1/chats",
+													"host": [
+														"{{baseUrl}}"
+													],
+													"path": [
+														"api",
+														"v1",
+														"chats"
+													]
+												}
+											},
+											"status": "OK",
+											"code": 200,
+											"_postman_previewlanguage": "json",
+											"header": [
+												{
+													"key": "Content-Type",
+													"value": "application/json"
+												},
+												{
+													"key": "Vary",
+													"value": "Origin"
+												},
+												{
+													"key": "Date",
+													"value": "Wed, 19 Mar 2025 00:14:11 GMT"
+												},
+												{
+													"key": "Transfer-Encoding",
+													"value": "chunked"
+												}
+											],
+											"cookie": [],
+											"body": "{\n    \"chats\": [\n        {\n            \"uuid\": \"b6e5139e-bac3-4b75-8aff-0ae83abdc473\",\n            \"messages\": [\n                {\n                    \"Role\": \"user\",\n                    \"Text\": \"Hi, what's the weather in Berlin, Germany?\",\n                    \"generated_at\": \"2025-03-19T00:53:57.835098242+01:00\"\n                },\n                {\n                    \"Role\": \"assistant\",\n                    \"Text\": \"I'll help you check the current weather in Berlin, Germany.It's a nice day in Berlin! The current weather is sunny with a temperature of 72°F (about 22°C)[^1].\\n\\n[^1]: Weather data retrieved using get_weather tool for Berlin, Germany\",\n                    \"generated_at\": \"2025-03-19T00:54:01.799091867+01:00\"\n                }\n            ],\n            \"created_at\": \"2025-03-19T00:53:57.834335518+01:00\"\n        }\n    ]\n}"
 										}
 									]
 								},
@@ -529,52 +621,6 @@
 										}
 									},
 									"response": [
-										{
-											"name": "Successful operation",
-											"originalRequest": {
-												"method": "POST",
-												"header": [
-													{
-														"key": "Content-Type",
-														"value": "application/json"
-													},
-													{
-														"key": "Accept",
-														"value": "application/json"
-													}
-												],
-												"body": {
-													"mode": "raw",
-													"raw": "{\n  \"question\": \"<string>\",\n  \"selectedTools\": [\n    \"<string>\",\n    \"<string>\"\n  ],\n  \"modelSettings\": {\n    \"temperature\": \"<number>\",\n    \"maxTokens\": \"<integer>\",\n    \"topP\": \"<number>\",\n    \"topK\": \"<integer>\"\n  },\n  \"llmProvider\": {\n    \"provider\": \"<string>\",\n    \"modelId\": \"<string>\"\n  }\n}",
-													"options": {
-														"raw": {
-															"headerFamily": "json",
-															"language": "json"
-														}
-													}
-												},
-												"url": {
-													"raw": "//api/v1/chats",
-													"path": [
-														"",
-														"api",
-														"v1",
-														"chats"
-													]
-												}
-											},
-											"status": "OK",
-											"code": 200,
-											"_postman_previewlanguage": "json",
-											"header": [
-												{
-													"key": "Content-Type",
-													"value": "application/json"
-												}
-											],
-											"cookie": [],
-											"body": "{\n  \"chat_uuid\": \"<uuid>\",\n  \"answer\": \"<string>\",\n  \"input_token\": \"<integer>\",\n  \"output_token\": \"<integer>\"\n}"
-										},
 										{
 											"name": "Bad request",
 											"originalRequest": {
@@ -670,6 +716,66 @@
 											],
 											"cookie": [],
 											"body": "{\n  \"error\": \"<string>\"\n}"
+										},
+										{
+											"name": "200 OK",
+											"originalRequest": {
+												"method": "POST",
+												"header": [
+													{
+														"key": "Content-Type",
+														"value": "application/json"
+													},
+													{
+														"key": "Accept",
+														"value": "application/json"
+													}
+												],
+												"body": {
+													"mode": "raw",
+													"raw": "{\n  \"question\": \"Hello\",\n  \"selectedTools\": [\n    \"get_weather\"\n  ],\n  \"modelSettings\": {\n    \"temperature\": 0.7,\n    \"maxTokens\": 300,\n    \"topP\": 0.5,\n    \"topK\": 50\n  },\n  \"stream_settings\": {\n    \"chunk_size\": 1,\n    \"delay_ms\": 5\n  },\n  \"llmProvider\": {\n    \"provider\": \"Anthropic\",\n    \"modelId\": \"claude-3-5-haiku-latest\"\n  }\n}",
+													"options": {
+														"raw": {
+															"headerFamily": "json",
+															"language": "json"
+														}
+													}
+												},
+												"url": {
+													"raw": "{{baseUrl}}/api/v1/chats",
+													"host": [
+														"{{baseUrl}}"
+													],
+													"path": [
+														"api",
+														"v1",
+														"chats"
+													]
+												}
+											},
+											"status": "OK",
+											"code": 200,
+											"_postman_previewlanguage": "json",
+											"header": [
+												{
+													"key": "Content-Type",
+													"value": "application/json"
+												},
+												{
+													"key": "Vary",
+													"value": "Origin"
+												},
+												{
+													"key": "Date",
+													"value": "Wed, 19 Mar 2025 00:19:12 GMT"
+												},
+												{
+													"key": "Content-Length",
+													"value": "316"
+												}
+											],
+											"cookie": [],
+											"body": "{\n    \"chat_uuid\": \"70e2eb6f-82c4-418f-bbd6-1ccdd47d455e\",\n    \"answer\": \"Hello there! How are you doing today? Is there anything I can help you with? I notice we have a weather tool available, so if you'd like to know the current weather for a specific location, I can help you with that.\",\n    \"input_token\": 348,\n    \"output_token\": 52\n}"
 										}
 									]
 								}
@@ -701,38 +807,6 @@
 										}
 									},
 									"response": [
-										{
-											"name": "Successful operation",
-											"originalRequest": {
-												"method": "GET",
-												"header": [
-													{
-														"key": "Accept",
-														"value": "application/json"
-													}
-												],
-												"url": {
-													"raw": "//api/v1/tools",
-													"path": [
-														"",
-														"api",
-														"v1",
-														"tools"
-													]
-												}
-											},
-											"status": "OK",
-											"code": 200,
-											"_postman_previewlanguage": "json",
-											"header": [
-												{
-													"key": "Content-Type",
-													"value": "application/json"
-												}
-											],
-											"cookie": [],
-											"body": "[\n  {\n    \"name\": \"<string>\",\n    \"description\": \"<string>\"\n  },\n  {\n    \"name\": \"<string>\",\n    \"description\": \"<string>\"\n  }\n]"
-										},
 										{
 											"name": "Internal server error",
 											"originalRequest": {
@@ -766,6 +840,52 @@
 											],
 											"cookie": [],
 											"body": "{\n  \"error\": \"<string>\"\n}"
+										},
+										{
+											"name": "200 OK",
+											"originalRequest": {
+												"method": "GET",
+												"header": [
+													{
+														"key": "Accept",
+														"value": "application/json"
+													}
+												],
+												"url": {
+													"raw": "{{baseUrl}}/api/v1/tools",
+													"host": [
+														"{{baseUrl}}"
+													],
+													"path": [
+														"api",
+														"v1",
+														"tools"
+													]
+												}
+											},
+											"status": "OK",
+											"code": 200,
+											"_postman_previewlanguage": "json",
+											"header": [
+												{
+													"key": "Content-Type",
+													"value": "application/json"
+												},
+												{
+													"key": "Vary",
+													"value": "Origin"
+												},
+												{
+													"key": "Date",
+													"value": "Wed, 19 Mar 2025 00:20:41 GMT"
+												},
+												{
+													"key": "Content-Length",
+													"value": "1404"
+												}
+											],
+											"cookie": [],
+											"body": "[\n    {\n        \"name\": \"bash\",\n        \"description\": \"Execute bash commands with specified script or command\"\n    },\n    {\n        \"name\": \"curl\",\n        \"description\": \"Perform any HTTP request with specified method, URL, headers, and data\"\n    },\n    {\n        \"name\": \"docker\",\n        \"description\": \"Execute Docker commands with specified arguments\"\n    },\n    {\n        \"name\": \"filesystem\",\n        \"description\": \"Performs filesystem operations like list, read, write, create, delete files and directories\"\n    },\n    {\n        \"name\": \"get_weather\",\n        \"description\": \"Get the current weather for a given location.\"\n    },\n    {\n        \"name\": \"git\",\n        \"description\": \"Performs any Git operation based on the provided command\"\n    },\n    {\n        \"name\": \"github_issues\",\n        \"description\": \"Manages GitHub issues - create, list, update, comment\"\n    },\n    {\n        \"name\": \"github_pull_requests\",\n        \"description\": \"Manages GitHub pull requests - create, review, merge\"\n    },\n    {\n        \"name\": \"github_repository\",\n        \"description\": \"Manages GitHub repositories - create, delete, update, fork\"\n    },\n    {\n        \"name\": \"github_search\",\n        \"description\": \"Performs GitHub search operations across repositories, code, issues, and users\"\n    },\n    {\n        \"name\": \"gmail\",\n        \"description\": \"Performs Gmail operations such as list, send, read messages\"\n    },\n    {\n        \"name\": \"grep\",\n        \"description\": \"Execute grep commands with specified pattern and options\"\n    },\n    {\n        \"name\": \"postgresql\",\n        \"description\": \"Performs PostgreSQL operations including querying, explaining queries, and retrieving schema information\"\n    },\n    {\n        \"name\": \"sed\",\n        \"description\": \"Stream editor for filtering and transforming text\"\n    }\n]"
 										}
 									]
 								}
@@ -797,38 +917,6 @@
 										}
 									},
 									"response": [
-										{
-											"name": "Successful operation",
-											"originalRequest": {
-												"method": "GET",
-												"header": [
-													{
-														"key": "Accept",
-														"value": "application/json"
-													}
-												],
-												"url": {
-													"raw": "//api/v1/llm-providers",
-													"path": [
-														"",
-														"api",
-														"v1",
-														"llm-providers"
-													]
-												}
-											},
-											"status": "OK",
-											"code": 200,
-											"_postman_previewlanguage": "json",
-											"header": [
-												{
-													"key": "Content-Type",
-													"value": "application/json"
-												}
-											],
-											"cookie": [],
-											"body": "{\n  \"providers\": [\n    {\n      \"name\": \"<string>\",\n      \"models\": [\n        {\n          \"name\": \"<string>\",\n          \"description\": \"<string>\",\n          \"modelId\": \"<string>\"\n        },\n        {\n          \"name\": \"<string>\",\n          \"description\": \"<string>\",\n          \"modelId\": \"<string>\"\n        }\n      ]\n    },\n    {\n      \"name\": \"<string>\",\n      \"models\": [\n        {\n          \"name\": \"<string>\",\n          \"description\": \"<string>\",\n          \"modelId\": \"<string>\"\n        },\n        {\n          \"name\": \"<string>\",\n          \"description\": \"<string>\",\n          \"modelId\": \"<string>\"\n        }\n      ]\n    }\n  ]\n}"
-										},
 										{
 											"name": "Internal server error",
 											"originalRequest": {
@@ -862,6 +950,52 @@
 											],
 											"cookie": [],
 											"body": "{\n  \"error\": \"<string>\"\n}"
+										},
+										{
+											"name": "200 OK",
+											"originalRequest": {
+												"method": "GET",
+												"header": [
+													{
+														"key": "Accept",
+														"value": "application/json"
+													}
+												],
+												"url": {
+													"raw": "{{baseUrl}}/api/v1/llm-providers",
+													"host": [
+														"{{baseUrl}}"
+													],
+													"path": [
+														"api",
+														"v1",
+														"llm-providers"
+													]
+												}
+											},
+											"status": "OK",
+											"code": 200,
+											"_postman_previewlanguage": "json",
+											"header": [
+												{
+													"key": "Content-Type",
+													"value": "application/json"
+												},
+												{
+													"key": "Vary",
+													"value": "Origin"
+												},
+												{
+													"key": "Date",
+													"value": "Wed, 19 Mar 2025 00:21:08 GMT"
+												},
+												{
+													"key": "Transfer-Encoding",
+													"value": "chunked"
+												}
+											],
+											"cookie": [],
+											"body": "{\n    \"providers\": [\n        {\n            \"name\": \"Anthropic\",\n            \"models\": [\n                {\n                    \"name\": \"Claude 3.5 Haiku Latest\",\n                    \"description\": \"Fast and cost-effective model\",\n                    \"modelId\": \"claude-3-5-haiku-latest\"\n                },\n                {\n                    \"name\": \"Claude 3.5 Haiku 2024-10-22\",\n                    \"description\": \"Fast and cost-effective model\",\n                    \"modelId\": \"claude-3-5-haiku-20241022\"\n                },\n                {\n                    \"name\": \"Claude 3.7 Sonnet\",\n                    \"description\": \"Most intelligent model from Anthropic\",\n                    \"modelId\": \"claude-3-7-sonnet-latest\"\n                },\n                {\n                    \"name\": \"Claude 3.5 Sonnet Latest\",\n                    \"description\": \"Our most intelligent model\",\n                    \"modelId\": \"claude-3-5-sonnet-latest\"\n                },\n                {\n                    \"name\": \"Claude 3.5 Sonnet 2024-10-22\",\n                    \"description\": \"Our most intelligent model\",\n                    \"modelId\": \"claude-3-5-sonnet-20241022\"\n                },\n                {\n                    \"name\": \"Claude 3.5 Sonnet 2024-06-20\",\n                    \"description\": \"Our previous most intelligent model\",\n                    \"modelId\": \"claude-3-5-sonnet-20240620\"\n                },\n                {\n                    \"name\": \"Claude 3 Opus Latest\",\n                    \"description\": \"Excels at writing and complex tasks\",\n                    \"modelId\": \"claude-3-opus-latest\"\n                },\n                {\n                    \"name\": \"Claude 3 Opus 2024-02-29\",\n                    \"description\": \"Excels at writing and complex tasks\",\n                    \"modelId\": \"claude-3-opus-20240229\"\n                },\n                {\n                    \"name\": \"Claude 3 Sonnet 2024-02-29\",\n                    \"description\": \"Balance of speed and intelligence\",\n                    \"modelId\": \"claude-3-sonnet-20240229\"\n                },\n                {\n                    \"name\": \"Claude 3 Haiku 2024-03-07\",\n                    \"description\": \"Our previous fast and cost-effective\",\n                    \"modelId\": \"claude-3-haiku-20240307\"\n                },\n                {\n                    \"name\": \"Claude 2.1\",\n                    \"description\": \"Powerful language model for general-purpose tasks\",\n                    \"modelId\": \"claude-2.1\"\n                },\n                {\n                    \"name\": \"Claude 2.0\",\n                    \"description\": \"Advanced language model optimized for reliability and thoughtful responses\",\n                    \"modelId\": \"claude-2.0\"\n                }\n            ]\n        },\n        {\n            \"name\": \"OpenAI\",\n            \"models\": [\n                {\n                    \"name\": \"GPT-4o Latest\",\n                    \"description\": \"Latest GPT-4o model\",\n                    \"modelId\": \"chatgpt-4o-latest\"\n                },\n                {\n                    \"name\": \"GPT-4o Mini\",\n                    \"description\": \"Optimized GPT-4o Mini model\",\n                    \"modelId\": \"gpt-4o-mini\"\n                },\n                {\n                    \"name\": \"GPT-4\",\n                    \"description\": \"Standard GPT-4 model\",\n                    \"modelId\": \"gpt-4\"\n                },\n                {\n                    \"name\": \"GPT-4 Turbo\",\n                    \"description\": \"Most capable GPT-4 model for various tasks\",\n                    \"modelId\": \"gpt-4-turbo\"\n                },\n                {\n                    \"name\": \"GPT-3.5 Turbo\",\n                    \"description\": \"Efficient model balancing performance and speed\",\n                    \"modelId\": \"gpt-3.5-turbo\"\n                },\n                {\n                    \"name\": \"GPT-4.5 Preview\",\n                    \"description\": \"Last GPT-4.5 model from OpenAI\",\n                    \"modelId\": \"gpt-4.5-preview\"\n                }\n            ]\n        },\n        {\n            \"name\": \"Amazon Bedrock\",\n            \"models\": [\n                {\n                    \"name\": \"Claude 3 Haiku 2024-03-07\",\n                    \"description\": \"Optimized for quick, detailed responses\",\n                    \"modelId\": \"anthropic.claude-3-haiku-20240307-v1:0\"\n                },\n                {\n                    \"name\": \"Claude 3 Opus 2024-02-29\",\n                    \"description\": \"Excels at writing and complex tasks\",\n                    \"modelId\": \"anthropic.claude-3-opus-20240229-v1:0\"\n                },\n                {\n                    \"name\": \"Claude 3 Sonnet 2024-02-29\",\n                    \"description\": \"Balanced performance and intelligence\",\n                    \"modelId\": \"anthropic.claude-3-sonnet-20240229-v1:0\"\n                },\n                {\n                    \"name\": \"Claude 3.5 Haiku 2024-10-22\",\n                    \"description\": \"Our most recent fast and cost-effective model\",\n                    \"modelId\": \"anthropic.claude-3-5-haiku-20241022-v1:0\"\n                },\n                {\n                    \"name\": \"Claude 3.5 Sonnet 2024-10-22\",\n                    \"description\": \"Intelligent and fine-tuned for deep tasks\",\n                    \"modelId\": \"anthropic.claude-3-5-sonnet-20241022-v2:0\"\n                },\n                {\n                    \"name\": \"Claude 3.5 Sonnet 2024-06-20\",\n                    \"description\": \"Balanced for intelligent and previous updates\",\n                    \"modelId\": \"anthropic.claude-3-5-sonnet-20240620-v1:0\"\n                },\n                {\n                    \"name\": \"Claude 3.7 Sonnet\",\n                    \"description\": \"Latest best model from Anthropic\",\n                    \"modelId\": \"anthropic.claude-3-7-sonnet-20250219-v1:0\"\n                },\n                {\n                    \"name\": \"Titan Text G1 - Express\",\n                    \"description\": \"Amazon's express text model for versatile use cases\",\n                    \"modelId\": \"amazon.titan-text-express-v1\"\n                },\n                {\n                    \"name\": \"Cohere: Command R+\",\n                    \"description\": \"Advanced command response model\",\n                    \"modelId\": \"cohere.command-r-plus-v1:0\"\n                },\n                {\n                    \"name\": \"Cohere: Command R\",\n                    \"description\": \"Command-response optimized model\",\n                    \"modelId\": \"cohere.command-r-v1:0\"\n                },\n                {\n                    \"name\": \"Llama 3 8B Instruct\",\n                    \"description\": \"Meta's mid-range instruct model\",\n                    \"modelId\": \"meta.llama3-8b-instruct-v1:0\"\n                },\n                {\n                    \"name\": \"Llama 3 70B Instruct\",\n                    \"description\": \"Meta's large instruct model\",\n                    \"modelId\": \"meta.llama3-70b-instruct-v1:0\"\n                },\n                {\n                    \"name\": \"Llama 3.1 8B Instruct\",\n                    \"description\": \"Updated 8B instruct model by Meta\",\n                    \"modelId\": \"meta.llama3-1-8b-instruct-v1:0\"\n                },\n                {\n                    \"name\": \"Llama 3.1 70B Instruct\",\n                    \"description\": \"Updated comprehensive instruct model by Meta\",\n                    \"modelId\": \"meta.llama3-1-70b-instruct-v1:0\"\n                },\n                {\n                    \"name\": \"Llama 3.1 405B Instruct\",\n                    \"description\": \"Meta's groundbreaking large instruct model\",\n                    \"modelId\": \"meta.llama3-1-405b-instruct-v1:0\"\n                },\n                {\n                    \"name\": \"Llama 3.2 1B Instruct\",\n                    \"description\": \"Compact instruct model for lightweight tasks\",\n                    \"modelId\": \"meta.llama3-2-1b-instruct-v1:0\"\n                },\n                {\n                    \"name\": \"Llama 3.2 3B Instruct\",\n                    \"description\": \"Balanced model for intelligence and agility\",\n                    \"modelId\": \"meta.llama3-2-3b-instruct-v1:0\"\n                },\n                {\n                    \"name\": \"Llama 3.2 11B Instruct\",\n                    \"description\": \"High-precision instruct model at 11B scale\",\n                    \"modelId\": \"meta.llama3-2-11b-instruct-v1:0\"\n                },\n                {\n                    \"name\": \"Llama 3.2 90B Instruct\",\n                    \"description\": \"Meta's premier 90B-scale instruct model\",\n                    \"modelId\": \"meta.llama3-2-90b-instruct-v1:0\"\n                },\n                {\n                    \"name\": \"Llama 3.3 70B Instruct\",\n                    \"description\": \"Meta's latest iteration of 70B instruct\",\n                    \"modelId\": \"meta.llama3-3-70b-instruct-v1:0\"\n                },\n                {\n                    \"name\": \"Mistral 7B Instruct\",\n                    \"description\": \"Compact yet powerful instruct model by MistralAI\",\n                    \"modelId\": \"mistral.mistral-7b-instruct-v0:2\"\n                },\n                {\n                    \"name\": \"Mistral Large (24.02)\",\n                    \"description\": \"Latest large model optimized by MistralAI\",\n                    \"modelId\": \"mistral.mistral-large-2402-v1:0\"\n                }\n            ]\n        },\n        {\n            \"name\": \"DeepSeek\",\n            \"models\": [\n                {\n                    \"name\": \"DeepSeek Chat\",\n                    \"description\": \"Conversational AI model optimized for interactive chats\",\n                    \"modelId\": \"deepseek-chat\"\n                },\n                {\n                    \"name\": \"DeepSeek Reasoner\",\n                    \"description\": \"Advanced reasoning model for analytical tasks\",\n                    \"modelId\": \"deepseek-reasoner\"\n                }\n            ]\n        }\n    ]\n}"
 										}
 									]
 								}
@@ -872,10 +1006,47 @@
 			]
 		}
 	],
+	"auth": {
+		"type": "bearer",
+		"bearer": [
+			{
+				"key": "token",
+				"value": "{{AuthorizationToken}}",
+				"type": "string"
+			}
+		]
+	},
+	"event": [
+		{
+			"listen": "prerequest",
+			"script": {
+				"type": "text/javascript",
+				"packages": {},
+				"exec": [
+					""
+				]
+			}
+		},
+		{
+			"listen": "test",
+			"script": {
+				"type": "text/javascript",
+				"packages": {},
+				"exec": [
+					""
+				]
+			}
+		}
+	],
 	"variable": [
 		{
 			"key": "baseUrl",
-			"value": "/"
+			"value": "http://localhost:8081/"
+		},
+		{
+			"key": "AuthorizationToken",
+			"value": "xxx",
+			"type": "string"
 		}
 	]
 }

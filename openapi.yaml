@@ -6,6 +6,12 @@ info:
   contact:
     name: Shaharia Lab OÜ
     email: hello@shaharialab.com
+  license:
+    name: MIT
+    url: https://opensource.org/licenses/MIT
+servers:
+  - url: http://localhost:8081
+    description: Default local HTTP server from the MCP Kit
 paths:
   /api/v1/chats:
     get:
