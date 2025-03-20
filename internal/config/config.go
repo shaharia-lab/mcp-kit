@@ -17,7 +17,7 @@ type Config struct {
 	Tracing             TracingConfig      `mapstructure:"tracing"`
 	Auth                AuthConfig         `mapstructure:"auth"`
 	GoogleServiceConfig GoogleConfig       `mapstructure:"google"`
-	Tools               *tools.ToolsConfig `yaml:"tools" validate:"required"`
+	Tools               *tools.ToolsConfig `mapstructure:"tools"`
 }
 
 // TracingConfig holds the configuration for the tracing service
@@ -72,7 +72,7 @@ func Load(configFile string) (*Config, error) {
 		return nil, err
 	}
 
-	// Unmarshal the config into our struct
+	// Unmarshal into struct
 	if err := viper.Unmarshal(&cfg); err != nil {
 		return nil, err
 	}

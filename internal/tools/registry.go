@@ -62,10 +62,7 @@ func (r *Registry) Init() error {
 	}
 
 	if r.config.Postgres.IsEnabled() {
-		postgres := mcptools.NewPostgreSQL(r.logger, mcptools.PostgreSQLConfig{
-			DefaultDatabase: r.config.Postgres.Databases[0].Name,
-			BlockedCommands: r.config.Postgres.Databases[0].BlockedCommands,
-		})
+		postgres := mcptools.NewPostgreSQL(r.logger, mcptools.PostgreSQLConfig{})
 		r.AddTool(mcptools.PostgreSQLToolName, postgres.PostgreSQLAllInOneTool())
 	}
 
