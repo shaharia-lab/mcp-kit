@@ -2,7 +2,7 @@ module github.com/shaharia-lab/mcp-kit
 
 go 1.23.0
 
-toolchain go1.23.7
+toolchain go1.24.1
 
 require (
 	github.com/anthropics/anthropic-sdk-go v0.2.0-alpha.13
@@ -16,7 +16,7 @@ require (
 	github.com/go-playground/validator/v10 v10.25.0
 	github.com/google/uuid v1.6.0
 	github.com/google/wire v0.6.0
-	github.com/openai/openai-go v0.1.0-alpha.61
+	github.com/openai/openai-go v0.1.0-beta.3
 	github.com/prometheus/client_golang v1.21.1
 	github.com/shaharia-lab/goai v0.12.0
 	github.com/shaharia-lab/mcp-tools v0.0.5
