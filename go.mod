@@ -2,10 +2,10 @@ module github.com/shaharia-lab/mcp-kit
 
 go 1.23.0
 
-toolchain go1.23.7
+toolchain go1.24.1
 
 require (
-	github.com/anthropics/anthropic-sdk-go v0.2.0-alpha.13
+	github.com/anthropics/anthropic-sdk-go v0.2.0-beta.3
 	github.com/auth0/go-jwt-middleware/v2 v2.3.0
 	github.com/aws/aws-sdk-go-v2/config v1.29.17
 	github.com/aws/aws-sdk-go-v2/service/bedrockruntime v1.31.0
