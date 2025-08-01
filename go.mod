@@ -16,7 +16,7 @@ require (
 	github.com/go-playground/validator/v10 v10.26.0
 	github.com/google/uuid v1.6.0
 	github.com/google/wire v0.6.0
-	github.com/openai/openai-go v0.1.0-alpha.61
+	github.com/openai/openai-go v1.12.0
 	github.com/prometheus/client_golang v1.22.0
 	github.com/shaharia-lab/goai v0.12.0
 	github.com/shaharia-lab/mcp-tools v0.0.5
